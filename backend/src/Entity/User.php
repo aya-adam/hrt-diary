@@ -25,26 +25,25 @@ use Symfony\Component\Uid\Uuid;
     operations: [
         new Get(
             normalizationContext: ['groups' => ['user:read']],
-            security: '(is_granted(\'ROLE_USER\') and object == user) or is_granted(\'ROLE_ADMIN\')',
+            security: 'object == user or is_granted(\'ROLE_ADMIN\')',
         ),
         new GetCollection(
             normalizationContext: ['groups' => ['user:read']],
-            security: '(is_granted(\'ROLE_USER\') and object == user) or is_granted(\'ROLE_ADMIN\')',
+            security: 'object == user or is_granted(\'ROLE_ADMIN\')',
         ),
         new Post(
             normalizationContext: ['groups' => ['user:read']],
             denormalizationContext: ['groups' => ['user:create']],
-            security: '(is_granted(\'ROLE_USER\') and object == user) or is_granted(\'ROLE_ADMIN\')',
             processor: UserStateProcessor::class,
         ),
         new Patch(
             normalizationContext: ['groups' => ['user:read']],
             denormalizationContext: ['groups' => ['user:update']],
-            security: '(is_granted(\'ROLE_USER\') and object == user) or is_granted(\'ROLE_ADMIN\')',
+            security: 'object == user or is_granted(\'ROLE_ADMIN\')',
             processor: UserStateProcessor::class,
         ),
         new Delete(
-            security: '(is_granted(\'ROLE_USER\') and object == user) or is_granted(\'ROLE_ADMIN\')',
+            security: 'object == user or is_granted(\'ROLE_ADMIN\')',
             processor: UserStateProcessor::class,
         ),
     ],
