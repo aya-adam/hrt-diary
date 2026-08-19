@@ -1,6 +1,6 @@
 gesdinet_jwt_refresh_token:
     refresh_token_class: App\Entity\RefreshToken
-    token_parameter_name: refresh_token
+    token_parameter_name: '%app.jwt_refresh_token_cookie_name%'
     ttl: 604800  # 7 days
     cookie:
         enabled: true

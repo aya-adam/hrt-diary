@@ -7,6 +7,8 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    app.jwt_access_token_cookie_name: access_token
+    app.jwt_refresh_token_cookie_name: refresh_token
 
 services:
     # default configuration for services in *this* file
@@ -36,10 +38,6 @@ services:
         decoration_priority: -20
         arguments: ['@.inner']
         autoconfigure: false
-
-    App\Security\Authentication\JWTSuccessHandler:
-        arguments:
-            $tokenTtl: '%lexik_jwt_authentication.token_ttl%'
 
     # Attribute mapping driver for the Doctrine Extension listeners
     gedmo.mapping.driver.attribute:

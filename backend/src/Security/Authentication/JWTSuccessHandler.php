@@ -6,12 +6,11 @@ use App\Entity\User;
 use Lexik\Bundle\JWTAuthenticationBundle\Event\AuthenticationSuccessEvent;
 use Lexik\Bundle\JWTAuthenticationBundle\Events;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\HttpFoundation\Cookie;
 
 class JWTSuccessHandler implements EventSubscriberInterface
 {
     public function __construct(
-        private int $tokenTtl,
+        private JwtCookieFactory $cookieFactory,
     ) {}
 
     public static function getSubscribedEvents(): array
@@ -29,25 +28,7 @@ class JWTSuccessHandler implements EventSubscriberInterface
             return;
         }
 
-        $data = $event->getData();
-        $token = $data['token'] ?? null;
-
-        if (!$token) {
-            return;
-        }
-
-        $response = $event->getResponse();
-
-        $cookie = Cookie::create('access_token')
-            ->withValue($token)
-            ->withExpires(new \DateTimeImmutable("+{$this->tokenTtl} seconds"))
-            ->withPath('/')
-            ->withSecure(true)
-            ->withHttpOnly(true)
-            ->withSameSite('none')
-            ->withPartitioned(true);
-
-        $response->headers->setCookie($cookie);
+        $event->getResponse()->headers->setCookie($this->cookieFactory->createAccessTokenCookie($user));
 
         $event->setData([
             'id' => $user->getId(),

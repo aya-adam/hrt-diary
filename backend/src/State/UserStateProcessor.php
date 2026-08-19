@@ -12,6 +12,7 @@ use ApiPlatform\State\ProcessorInterface;
 use App\Entity\User;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final class UserStateProcessor implements ProcessorInterface
@@ -23,6 +24,7 @@ final class UserStateProcessor implements ProcessorInterface
         private readonly ProcessorInterface $removeProcessor,
         private readonly Security $security,
         private UserPasswordHasherInterface $passwordHasher,
+        private RequestStack $requestStack,
     ) {}
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
@@ -42,9 +44,16 @@ final class UserStateProcessor implements ProcessorInterface
 
     private function persist(mixed $data, Operation $operation, array $uriVariables, array $context): mixed
     {
+        $previousData = $context['previous_data'] ?? null;
+        $emailChanged = $previousData instanceof User && $data instanceof User && $previousData->getEmail() !== $data->getEmail();
+
         $result = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
 
-        // Add further actions: logs, notifications etc.
+        if ($emailChanged) {
+            $request = $this->requestStack->getCurrentRequest();
+            $request?->attributes->set('_user_for_new_cookies', $data);
+            $request?->attributes->set('_previous_user_identifier', $previousData->getUserIdentifier());
+        }
 
         return $result;
     }
