@@ -13,14 +13,17 @@ use App\State\UserStateProcessor;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
+#[UniqueEntity(fields: 'email', identifierFieldNames: ['id'], message: 'This email is already in use.')]
 #[ApiResource(
     operations: [
         new Get(
@@ -57,7 +60,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
     private ?Uuid $id = null;
 
-    #[Groups(['user:read', 'user:create', 'user:create'])]
+    #[Assert\NotBlank]
+    #[Assert\Email]
+    #[Assert\Length(max: 180)]
+    #[Groups(['user:read', 'user:create'])]
     #[ORM\Column(length: 180)]
     private ?string $email = null;
 
@@ -76,6 +82,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @var string The plain password (before hashing)
      */
+    #[Assert\NotBlank]
     #[Groups(['user:create', 'user:update'])]
     private ?string $plainPassword = null;
 
