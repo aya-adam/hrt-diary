@@ -37,12 +37,14 @@ use Symfony\Component\Validator\Constraints as Assert;
         new Post(
             normalizationContext: ['groups' => ['user:read']],
             denormalizationContext: ['groups' => ['user:create']],
+            validationContext: ['groups' => ['Default', 'user:create']],
             processor: UserStateProcessor::class,
         ),
         new Patch(
             normalizationContext: ['groups' => ['user:read']],
             denormalizationContext: ['groups' => ['user:update']],
             security: 'object == user or is_granted(\'ROLE_ADMIN\')',
+            validationContext: ['groups' => ['Default', 'user:update']],
             processor: UserStateProcessor::class,
         ),
         new Delete(
@@ -63,7 +65,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Assert\NotBlank]
     #[Assert\Email]
     #[Assert\Length(max: 180)]
-    #[Groups(['user:read', 'user:create'])]
+    #[Groups(['user:read', 'user:create', 'user:update'])]
     #[ORM\Column(length: 180)]
     private ?string $email = null;
 
@@ -82,7 +84,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @var string The plain password (before hashing)
      */
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(groups: ['user:create'])]
+    #[Assert\Length(min: 8, groups: ['user:create', 'user:update'])]
     #[Groups(['user:create', 'user:update'])]
     private ?string $plainPassword = null;
 
