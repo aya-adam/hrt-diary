@@ -11,6 +11,8 @@ use Zenstruck\Foundry\Persistence\PersistentObjectFactory;
  */
 final class UserFactory extends PersistentObjectFactory
 {
+    public const string DEFAULT_PASSWORD = 'password';
+
     /**
      * @see https://symfony.com/bundles/ZenstruckFoundryBundle/current/index.html#factories-as-services
      *
@@ -26,6 +28,11 @@ final class UserFactory extends PersistentObjectFactory
         return User::class;
     }
 
+    public function withGeneratedPassword(): self
+    {
+        return $this->with(['password' => self::faker()->password()]);
+    }
+
     /**
      * @see https://symfony.com/bundles/ZenstruckFoundryBundle/current/index.html#model-factories
      *
@@ -36,7 +43,7 @@ final class UserFactory extends PersistentObjectFactory
     {
         return [
             'email' => self::faker()->safeEmail(),
-            'password' => self::faker()->password(),
+            'password' => self::DEFAULT_PASSWORD,
             'roles' => [],
         ];
     }
@@ -48,9 +55,8 @@ final class UserFactory extends PersistentObjectFactory
     protected function initialize(): static
     {
         return $this
-            ->afterInstantiate(function(User $user): void {
-                $plainPassword = $user->getPassword();
-                $user->setPassword($this->passwordHasher->hashPassword($user, $plainPassword));
+            ->afterInstantiate(function(User $user, array $attributes): void {
+                $user->setPassword($this->passwordHasher->hashPassword($user, $attributes['password']));
             })
         ;
     }
