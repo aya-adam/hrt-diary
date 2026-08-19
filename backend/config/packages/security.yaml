@@ -5,16 +5,28 @@ security:
 
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
-        users_in_memory: { memory: null }
+        # used to reload user from session & other features (e.g. switch_user)
+        app_user_provider:
+            entity:
+                class: App\Entity\User
+                property: email
 
     firewalls:
         dev:
             # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
-        main:
-            lazy: true
-            provider: users_in_memory
+        api:
+            pattern: ^/
+            stateless: true
+            entry_point: jwt
+            json_login:
+                check_path: /auth/login
+                success_handler: lexik_jwt_authentication.handler.authentication_success
+                failure_handler: lexik_jwt_authentication.handler.authentication_failure
+            jwt: ~
+            refresh_jwt:
+                check_path: /auth/refresh
 
             # Activate different ways to authenticate:
             # https://symfony.com/doc/current/security.html#the-firewall
@@ -25,8 +37,10 @@ security:
     # Note: Only the *first* matching rule is applied
     access_control:
         - { path: ^/users, roles: PUBLIC_ACCESS, methods: [POST] }
+        - { path: ^/auth/(login|refresh), roles: PUBLIC_ACCESS, methods: [POST] }
+        - { path: ^/auth/logout, roles: IS_AUTHENTICATED_FULLY, methods: [POST] }
         - { path: ^/$, roles: PUBLIC_ACCESS }
-        - { path: ^/, roles: ROLE_USER }
+        # - { path: ^/, roles: ROLE_USER }
 
 when@test:
     security:

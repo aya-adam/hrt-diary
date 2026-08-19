@@ -19,6 +19,28 @@ services:
     App\:
         resource: '../src/'
 
+    App\OpenApi\RefreshTokenDecorator:
+        decorates: 'api_platform.openapi.factory'
+        decoration_priority: 0
+        arguments:
+            $decorated: '@.inner'
+    
+    App\OpenApi\LoginResponseDecorator:
+        decorates: 'api_platform.openapi.factory'
+        decoration_priority: -10
+        arguments: ['@.inner']
+        autoconfigure: false
+    
+    App\OpenApi\LoginCheckTagDecorator:
+        decorates: 'api_platform.openapi.factory'
+        decoration_priority: -20
+        arguments: ['@.inner']
+        autoconfigure: false
+
+    App\Security\Authentication\JWTSuccessHandler:
+        arguments:
+            $tokenTtl: '%lexik_jwt_authentication.token_ttl%'
+
     # Attribute mapping driver for the Doctrine Extension listeners
     gedmo.mapping.driver.attribute:
         class: Gedmo\Mapping\Driver\AttributeReader
