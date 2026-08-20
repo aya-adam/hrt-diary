@@ -3,15 +3,15 @@
 namespace App\Tests\Api;
 
 use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
-use ApiPlatform\Symfony\Bundle\Test\Client;
 use App\Entity\User;
 use App\Factory\UserFactory;
+use App\Tests\Support\AuthenticatedClientTrait;
 use Zenstruck\Foundry\Test\Factories;
 use Zenstruck\Foundry\Test\ResetDatabase;
 
 class AuthenticationTest extends ApiTestCase
 {
-    use ResetDatabase, Factories;
+    use AuthenticatedClientTrait, ResetDatabase, Factories;
 
     protected const string ACCESS_TOKEN_COOKIE_NAME = 'access_token';
     protected const string REFRESH_TOKEN_COOKIE_NAME = 'refresh_token';
@@ -66,9 +66,9 @@ class AuthenticationTest extends ApiTestCase
 
     public function testSuccessfullTokenRefresh(): void
     {
-        $user = UserFactory::createOne(['email' => 'user@example.org', 'password' => '0password0']);
+        $user = UserFactory::createOne(['email' => 'user@example.org']);
+        $client = self::createAuthenticatedClient($user);
 
-        $client = self::createAuthenticatedClient('user@example.org', '0password0');
         $client->getCookieJar()->expire(self::ACCESS_TOKEN_COOKIE_NAME);
 
         $client->request('GET', '/users/' . $user->getId()->toRfc4122());
@@ -109,9 +109,8 @@ class AuthenticationTest extends ApiTestCase
 
     public function testInvalidTokenRefresh(): void
     {
-        $user = UserFactory::createOne(['email' => 'user@example.org', 'password' => '0password0']);
-
-        $client = self::createAuthenticatedClient('user@example.org', '0password0');
+        $user = UserFactory::createOne();
+        $client = self::createAuthenticatedClient($user);
 
         $client->getCookieJar()->expire(self::ACCESS_TOKEN_COOKIE_NAME);
         $client->getCookieJar()->expire(self::REFRESH_TOKEN_COOKIE_NAME);
@@ -148,9 +147,7 @@ class AuthenticationTest extends ApiTestCase
 
     public function testLogout(): void
     {
-        UserFactory::createOne(['email' => 'user@example.org', 'password' => '0password0']);
-
-        $client = self::createAuthenticatedClient('user@example.org', '0password0');
+        $client = self::createAuthenticatedClient(UserFactory::createOne());
 
         $client->request('POST', '/auth/logout');
 
@@ -163,16 +160,5 @@ class AuthenticationTest extends ApiTestCase
         $this->assertResponseHasCookie(self::REFRESH_TOKEN_COOKIE_NAME);
         $this->assertNull($client->getCookieJar()->get(self::ACCESS_TOKEN_COOKIE_NAME));
         $this->assertNull($client->getCookieJar()->get(self::REFRESH_TOKEN_COOKIE_NAME));
-    }
-
-    private static function createAuthenticatedClient(string $email, string $password): Client
-    {
-        $client = static::createClient();
-        $client->request('POST', '/auth/login', ['json' => [
-            'username' => $email,
-            'password' => $password,
-        ]]);
-
-        return $client;
     }
 }
