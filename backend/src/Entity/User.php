@@ -32,7 +32,6 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
         new GetCollection(
             normalizationContext: ['groups' => ['user:read']],
-            security: 'object == user or is_granted(\'ROLE_ADMIN\')',
         ),
         new Post(
             normalizationContext: ['groups' => ['user:read']],
