@@ -32,7 +32,12 @@ class UserTest extends ApiTestCase
     public function setUp(): void
     {
         $this->user = UserFactory::createOne(['email' => 'user@example.org']);
-        $this->client = self::createAuthenticatedClient($this->user);
+        $this->client = self::createAuthenticatedClient($this->user, UserFactory::DEFAULT_PASSWORD, [], [
+            'headers' => [
+                'accept' => 'application/ld+json',
+                'content-type' => 'application/ld+json'
+            ]
+        ]);
 
         parent::setUp();
     }
