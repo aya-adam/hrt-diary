@@ -7,6 +7,7 @@ use ApiPlatform\Doctrine\Orm\Extension\QueryItemExtensionInterface;
 use Doctrine\ORM\QueryBuilder;
 use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
 use ApiPlatform\Metadata\Operation;
+use App\Entity\Post;
 use App\Entity\User;
 use Override;
 use Symfony\Bridge\Doctrine\Types\UuidType;
@@ -52,6 +53,7 @@ final class OwnerExtension implements QueryCollectionExtensionInterface, QueryIt
     private function getSupportedClasses(): array
     {
         return [
+            Post::class,
             User::class,
         ];
     }
