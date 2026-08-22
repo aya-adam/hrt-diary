@@ -55,6 +55,10 @@ class Post
     #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
     private ?Uuid $id = null;
 
+    #[ORM\ManyToOne(inversedBy: 'posts')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?User $user = null;
+
     #[Assert\NotBlank]
     #[Assert\Length(max: 255)]
     #[Groups(['post:read', 'post:create', 'post:update'])]
@@ -76,10 +80,6 @@ class Post
     #[Groups(['post:create', 'post:update'])]
     private ?bool $published = null;
 
-    #[ORM\ManyToOne(inversedBy: 'posts')]
-    #[ORM\JoinColumn(nullable: false)]
-    private ?User $user = null;
-
     #[Groups(['post:read'])]
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $publishedAt = null;
@@ -97,6 +97,18 @@ class Post
     public function getId(): ?Uuid
     {
         return $this->id;
+    }
+
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
+    public function setUser(?User $user): static
+    {
+        $this->user = $user;
+
+        return $this;
     }
 
     public function getTitle(): ?string
@@ -143,18 +155,6 @@ class Post
     public function setPublished(?bool $published): static
     {
         $this->published = $published;
-
-        return $this;
-    }
-
-    public function getUser(): ?User
-    {
-        return $this->user;
-    }
-
-    public function setUser(?User $user): static
-    {
-        $this->user = $user;
 
         return $this;
     }

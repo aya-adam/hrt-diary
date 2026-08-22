@@ -39,11 +39,11 @@ final class PostFactory extends PersistentObjectFactory
     protected function defaults(): array|callable
     {
         return [
-            'excerpt' => self::faker()->text(255),
-            'publishedAt' => null,
-            'text' => self::faker()->paragraphs(self::faker()->numberBetween(1, 5), true),
-            'title' => ucwords(self::faker()->words(self::faker()->numberBetween(3, 5), true)),
             'user' => UserFactory::new(),
+            'title' => ucwords(self::faker()->words(self::faker()->numberBetween(3, 5), true)),
+            'excerpt' => self::faker()->text(255),
+            'text' => self::faker()->paragraphs(self::faker()->numberBetween(1, 5), true),
+            'publishedAt' => null,
         ];
     }
 

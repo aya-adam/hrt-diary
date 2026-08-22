@@ -64,6 +64,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
     private ?Uuid $id = null;
 
+    /**
+     * @var Collection<int, PostEntity>
+     */
+    #[ORM\OneToMany(targetEntity: PostEntity::class, mappedBy: 'user', orphanRemoval: true)]
+    private Collection $posts;
+
     #[Assert\NotBlank]
     #[Assert\Email]
     #[Assert\Length(max: 180)]
@@ -101,12 +107,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Gedmo\Timestampable(on: 'update')]
     private ?\DateTimeImmutable $updatedAt = null;
 
-    /**
-     * @var Collection<int, PostEntity>
-     */
-    #[ORM\OneToMany(targetEntity: PostEntity::class, mappedBy: 'user', orphanRemoval: true)]
-    private Collection $posts;
-
     public function __construct()
     {
         $this->posts = new ArrayCollection();
@@ -115,6 +115,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getId(): ?Uuid
     {
         return $this->id;
+    }
+
+    /**
+     * @return Collection<int, PostEntity>
+     */
+    public function getPosts(): Collection
+    {
+        return $this->posts;
+    }
+
+    public function addPost(PostEntity $post): static
+    {
+        if (!$this->posts->contains($post)) {
+            $this->posts->add($post);
+            $post->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removePost(PostEntity $post): static
+    {
+        if ($this->posts->removeElement($post)) {
+            // set the owning side to null (unless already changed)
+            if ($post->getUser() === $this) {
+                $post->setUser(null);
+            }
+        }
+
+        return $this;
     }
 
     public function getEmail(): ?string
@@ -127,16 +157,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->email = $email;
 
         return $this;
-    }
-
-    /**
-     * A visual identifier that represents this user.
-     *
-     * @see UserInterface
-     */
-    public function getUserIdentifier(): string
-    {
-        return (string) $this->email;
     }
 
     /**
@@ -213,14 +233,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * Ensure the session doesn't contain actual password hashes by CRC32C-hashing them, as supported since Symfony 7.3.
+     * A visual identifier that represents this user.
+     *
+     * @see UserInterface
      */
-    public function __serialize(): array
+    public function getUserIdentifier(): string
     {
-        $data = (array) $this;
-        $data["\0" . self::class . "\0password"] = hash('crc32c', $this->password);
-
-        return $data;
+        return (string) $this->email;
     }
 
     #[\Deprecated]
@@ -230,32 +249,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * @return Collection<int, PostEntity>
+     * Ensure the session doesn't contain actual password hashes by CRC32C-hashing them, as supported since Symfony 7.3.
      */
-    public function getPosts(): Collection
+    public function __serialize(): array
     {
-        return $this->posts;
-    }
+        $data = (array) $this;
+        $data["\0" . self::class . "\0password"] = hash('crc32c', $this->password);
 
-    public function addPost(PostEntity $post): static
-    {
-        if (!$this->posts->contains($post)) {
-            $this->posts->add($post);
-            $post->setUser($this);
-        }
-
-        return $this;
-    }
-
-    public function removePost(PostEntity $post): static
-    {
-        if ($this->posts->removeElement($post)) {
-            // set the owning side to null (unless already changed)
-            if ($post->getUser() === $this) {
-                $post->setUser(null);
-            }
-        }
-
-        return $this;
+        return $data;
     }
 }
