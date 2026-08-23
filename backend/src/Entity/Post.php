@@ -30,14 +30,12 @@ use Symfony\Component\Validator\Constraints as Assert;
         new \ApiPlatform\Metadata\Post(
             normalizationContext: ['groups' => ['post:read']],
             denormalizationContext: ['groups' => ['post:create']],
-            validationContext: ['groups' => ['Default', 'post:create']],
             processor: PostStateProcessor::class,
         ),
         new Patch(
             normalizationContext: ['groups' => ['post:read']],
             denormalizationContext: ['groups' => ['post:update']],
             security: 'object.getUser() == user or is_granted(\'ROLE_ADMIN\')',
-            validationContext: ['groups' => ['Default', 'post:update']],
             processor: PostStateProcessor::class,
         ),
         new Delete(
