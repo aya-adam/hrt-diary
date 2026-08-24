@@ -14,7 +14,7 @@ use Override;
 use Zenstruck\Foundry\Test\Factories;
 use Zenstruck\Foundry\Test\ResetDatabase;
 
-class LabResultTest extends ApiTestCase
+class LabResultResourceTest extends ApiTestCase
 {
     use AuthenticatedClientTrait, ResetDatabase, Factories;
 
