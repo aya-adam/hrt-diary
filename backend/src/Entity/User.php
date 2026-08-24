@@ -65,6 +65,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?Uuid $id = null;
 
     /**
+     * @var Collection<int, LabResult>
+     */
+    #[ORM\OneToMany(targetEntity: LabResult::class, mappedBy: 'user', orphanRemoval: true)]
+    private Collection $labResults;
+
+    /**
      * @var Collection<int, PostEntity>
      */
     #[ORM\OneToMany(targetEntity: PostEntity::class, mappedBy: 'user', orphanRemoval: true)]
@@ -109,12 +115,43 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function __construct()
     {
+        $this->labResults = new ArrayCollection();
         $this->posts = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
     {
         return $this->id;
+    }
+
+    /**
+     * @return Collection<int, LabResult>
+     */
+    public function getLabResults(): Collection
+    {
+        return $this->labResults;
+    }
+
+    public function addLabResult(LabResult $labResult): static
+    {
+        if (!$this->labResults->contains($labResult)) {
+            $this->labResults->add($labResult);
+            $labResult->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLabResult(LabResult $labResult): static
+    {
+        if ($this->labResults->removeElement($labResult)) {
+            // set the owning side to null (unless already changed)
+            if ($labResult->getUser() === $this) {
+                $labResult->setUser(null);
+            }
+        }
+
+        return $this;
     }
 
     /**

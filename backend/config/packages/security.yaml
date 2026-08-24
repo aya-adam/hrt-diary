@@ -36,7 +36,7 @@ security:
 
     # Note: Only the *first* matching rule is applied
     access_control:
-        - { path: ^/users, roles: PUBLIC_ACCESS, methods: [POST] }
+        - { path: ^/(lab_results|posts|users), roles: PUBLIC_ACCESS, methods: [POST] }
         - { path: ^/auth/(login|refresh), roles: PUBLIC_ACCESS, methods: [POST] }
         - { path: ^/auth/logout, roles: IS_AUTHENTICATED_FULLY, methods: [POST] }
         - { path: ^/$, roles: PUBLIC_ACCESS }

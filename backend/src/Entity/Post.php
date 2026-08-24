@@ -9,6 +9,8 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use App\Repository\PostRepository;
 use App\State\PostStateProcessor;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -57,6 +59,13 @@ class Post
     #[ORM\JoinColumn(nullable: false)]
     private ?User $user = null;
 
+    /**
+     * @var Collection<int, LabResult>
+     */
+    #[Groups(['post:read', 'post:create', 'post:update'])]
+    #[ORM\ManyToMany(targetEntity: LabResult::class, mappedBy: 'posts')]
+    private Collection $labResults;
+
     #[Assert\NotBlank]
     #[Assert\Length(max: 255)]
     #[Groups(['post:read', 'post:create', 'post:update'])]
@@ -92,6 +101,11 @@ class Post
     #[Gedmo\Timestampable(on: 'update')]
     private ?\DateTimeImmutable $updatedAt = null;
 
+    public function __construct()
+    {
+        $this->labResults = new ArrayCollection();
+    }
+
     public function getId(): ?Uuid
     {
         return $this->id;
@@ -105,6 +119,33 @@ class Post
     public function setUser(?User $user): static
     {
         $this->user = $user;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, LabResult>
+     */
+    public function getLabResults(): Collection
+    {
+        return $this->labResults;
+    }
+
+    public function addLabResult(LabResult $labResult): static
+    {
+        if (!$this->labResults->contains($labResult)) {
+            $this->labResults->add($labResult);
+            $labResult->addPost($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLabResult(LabResult $labResult): static
+    {
+        if ($this->labResults->removeElement($labResult)) {
+            $labResult->removePost($this);
+        }
 
         return $this;
     }

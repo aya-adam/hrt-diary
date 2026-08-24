@@ -7,6 +7,7 @@ use ApiPlatform\Doctrine\Orm\Extension\QueryItemExtensionInterface;
 use Doctrine\ORM\QueryBuilder;
 use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
 use ApiPlatform\Metadata\Operation;
+use App\Entity\LabResult;
 use App\Entity\Post;
 use App\Entity\User;
 use Override;
@@ -53,6 +54,7 @@ final class OwnerExtension implements QueryCollectionExtensionInterface, QueryIt
     private function getSupportedClasses(): array
     {
         return [
+            LabResult::class,
             Post::class,
             User::class,
         ];
