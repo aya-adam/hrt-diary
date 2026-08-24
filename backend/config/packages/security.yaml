@@ -40,7 +40,7 @@ security:
         - { path: ^/auth/(login|refresh), roles: PUBLIC_ACCESS, methods: [POST] }
         - { path: ^/auth/logout, roles: IS_AUTHENTICATED_FULLY, methods: [POST] }
         - { path: ^/$, roles: PUBLIC_ACCESS }
-        # - { path: ^/, roles: ROLE_USER }
+        - { path: ^/, roles: ROLE_USER }
 
 when@test:
     security:
