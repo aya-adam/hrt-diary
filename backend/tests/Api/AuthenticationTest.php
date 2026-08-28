@@ -6,11 +6,10 @@ use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
 use App\Entity\User;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
-use Zenstruck\Foundry\Test\ResetDatabase;
 
 class AuthenticationTest extends ApiTestCase
 {
-    use AuthenticatedClientTrait, ResetDatabase;
+    use AuthenticatedClientTrait;
 
     protected const string ACCESS_TOKEN_COOKIE_NAME = 'access_token';
     protected const string REFRESH_TOKEN_COOKIE_NAME = 'refresh_token';

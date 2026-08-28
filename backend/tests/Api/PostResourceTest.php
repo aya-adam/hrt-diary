@@ -10,11 +10,10 @@ use App\Factory\PostFactory;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
 use Override;
-use Zenstruck\Foundry\Test\ResetDatabase;
 
 class PostResourceTest extends ApiTestCase
 {
-    use AuthenticatedClientTrait, ResetDatabase;
+    use AuthenticatedClientTrait;
 
     private ?Client $client = null;
     private ?User $user = null;
