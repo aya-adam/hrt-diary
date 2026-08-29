@@ -29,7 +29,9 @@ final class UserStateProcessor implements ProcessorInterface
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
-        if (!$operation instanceof Post) {
+        if ($operation instanceof Post) {
+            $this->assertUserIsAnonymous();
+        } else {
             $this->assertOwnership($data);
         }
 
@@ -70,6 +72,13 @@ final class UserStateProcessor implements ProcessorInterface
     private function assertOwnership(mixed $data): void
     {
         if ($data instanceof User && $data->getUserIdentifier() !== $this->security->getUser()->getUserIdentifier()) {
+            throw new AccessDeniedException();
+        }
+    }
+
+    private function assertUserIsAnonymous(): void
+    {
+        if ($this->security->getUser() !== null) {
             throw new AccessDeniedException();
         }
     }
