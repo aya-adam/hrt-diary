@@ -81,6 +81,12 @@ class LabResult
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $publishedAt = null;
 
+    #[Assert\NotBlank]
+    #[Assert\Type('DateTimeInterface')]
+    #[Groups(['labResult:read', 'labResult:create', 'labResult:update'])]
+    #[ORM\Column]
+    private ?\DateTimeImmutable $drawnAt = null;
+
     #[Groups(['labResult:read'])]
     #[ORM\Column]
     #[Gedmo\Timestampable(on: 'update')]
@@ -169,6 +175,18 @@ class LabResult
     public function setPublishedAt(?\DateTimeImmutable $publishedAt): static
     {
         $this->publishedAt = $publishedAt;
+
+        return $this;
+    }
+
+    public function getDrawnAt(): ?\DateTimeImmutable
+    {
+        return $this->drawnAt;
+    }
+
+    public function setDrawnAt(\DateTimeImmutable $drawnAt): static
+    {
+        $this->drawnAt = $drawnAt;
 
         return $this;
     }

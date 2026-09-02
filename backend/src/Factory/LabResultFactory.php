@@ -40,6 +40,7 @@ final class LabResultFactory extends PersistentObjectFactory
             'user' => UserFactory::new(),
             'notes' => self::faker()->paragraphs(self::faker()->numberBetween(1, 3), true),
             'publishedAt' => null,
+            'drawnAt' => self::faker()->dateTimeBetween('-1 month'),
         ];
     }
 
