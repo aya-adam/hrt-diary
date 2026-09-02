@@ -6,13 +6,17 @@ use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
 use App\Entity\User;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
+use Override;
+use Symfony\Component\BrowserKit\Cookie;
 
 class AuthenticationTest extends ApiTestCase
 {
     use AuthenticatedClientTrait;
 
-    protected const string ACCESS_TOKEN_COOKIE_NAME = 'access_token';
-    protected const string REFRESH_TOKEN_COOKIE_NAME = 'refresh_token';
+    protected const string COOKIE_NAME_ACCESS_TOKEN = 'access_token';
+    protected const string COOKIE_NAME_REFRESH_TOKEN = 'refresh_token';
+
+    protected User $user;
 
     /**
      * If you're using RecreateDatabaseTrait, RefreshDatabaseTrait, ReloadDatabaseTrait from theofidry/AliceBundle, you
@@ -24,72 +28,38 @@ class AuthenticationTest extends ApiTestCase
      */
     protected static ?bool $alwaysBootKernel = true;
 
-    public function testSuccessfullAuthentication(): void
+    #[Override]
+    public function setUp(): void
     {
-        UserFactory::createOne(['email' => 'user@example.org', 'password' => '0password0']);
+        $this->user = UserFactory::createOne(['email' => 'user@example.org']);
 
-        $response = static::createClient()->request('POST', '/auth/login', ['json' => [
+        parent::setUp();
+    }
+
+    public function testAuthenticationAuthenticatesUser(): void
+    {
+        $client = self::createClient();
+
+        $client->request('POST', '/auth/login', ['json' => [
             'username' => 'user@example.org',
-            'password' => '0password0',
+            'password' => UserFactory::DEFAULT_PASSWORD,
         ]]);
 
         $this->assertResponseStatusCodeSame(200);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonContains([
-            'email' => 'user@example.org',
-        ]);
-        $this->assertMatchesRegularExpression('#^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$#', $response->toArray()['id']);
-        $this->assertResponseHasCookie(self::ACCESS_TOKEN_COOKIE_NAME);
-        $this->assertResponseHasCookie(self::REFRESH_TOKEN_COOKIE_NAME);
+        $this->assertResponseHasCookie(self::COOKIE_NAME_ACCESS_TOKEN);
+        $this->assertResponseHasCookie(self::COOKIE_NAME_REFRESH_TOKEN);
+        $this->assertFalse($client->getCookieJar()->get(self::COOKIE_NAME_ACCESS_TOKEN)->isExpired());
+        $this->assertFalse($client->getCookieJar()->get(self::COOKIE_NAME_REFRESH_TOKEN)->isExpired());
+        $this->assertNotSame('', $client->getCookieJar()->get(self::COOKIE_NAME_REFRESH_TOKEN)->getValue());
+        $this->assertNotSame('', $client->getCookieJar()->get(self::COOKIE_NAME_REFRESH_TOKEN)->getValue());
     }
 
-    public function testInvalidAuthentication(): void
+    public function testAuthenticationReturnsAuthenticatedUser(): void
     {
-        UserFactory::createOne(['email' => 'user@example.org', 'password' => '0password0']);
-
-        static::createClient()->request('POST', '/auth/login', ['json' => [
+        $response = self::createClient()->request('POST', '/auth/login', ['json' => [
             'username' => 'user@example.org',
-            'password' => 'invalid',
+            'password' => UserFactory::DEFAULT_PASSWORD,
         ]]);
-
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'Invalid credentials.',
-        ]);
-        $this->assertResponseNotHasCookie(self::ACCESS_TOKEN_COOKIE_NAME);
-        $this->assertResponseNotHasCookie(self::REFRESH_TOKEN_COOKIE_NAME);
-    }
-
-    public function testSuccessfullTokenRefresh(): void
-    {
-        $user = UserFactory::createOne(['email' => 'user@example.org']);
-        $client = self::createAuthenticatedClient($user);
-
-        $client->getCookieJar()->expire(self::ACCESS_TOKEN_COOKIE_NAME);
-
-        $client->request('GET', '/users/' . $user->getId()->toRfc4122());
-
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
-
-        $response = $client->request('POST', '/auth/refresh');
-
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonContains([
-            'email' => 'user@example.org',
-        ]);
-        $this->assertMatchesRegularExpression('#^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$#', $response->toArray()['id']);
-        $this->assertResponseHasCookie(self::ACCESS_TOKEN_COOKIE_NAME);
-        $this->assertResponseHasCookie(self::REFRESH_TOKEN_COOKIE_NAME);
-
-        $response = $client->request('GET', '/users/' . $user->getId()->toRfc4122());
 
         $this->assertResponseStatusCodeSame(200);
         $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
@@ -105,22 +75,53 @@ class AuthenticationTest extends ApiTestCase
         $this->assertMatchesResourceItemJsonSchema(User::class);
     }
 
-    public function testInvalidTokenRefresh(): void
+    public function testAuthenticationReturns401WhenPasswordInvalid(): void
     {
-        $user = UserFactory::createOne();
-        $client = self::createAuthenticatedClient($user);
-
-        $client->getCookieJar()->expire(self::ACCESS_TOKEN_COOKIE_NAME);
-        $client->getCookieJar()->expire(self::REFRESH_TOKEN_COOKIE_NAME);
-
-        $client->request('GET', '/users/' . $user->getId()->toRfc4122());
+        self::createClient()->request('POST', '/auth/login', ['json' => [
+            'username' => 'user@example.org',
+            'password' => 'wrong_password',
+        ]]);
 
         $this->assertResponseStatusCodeSame(401);
         $this->assertResponseHeaderSame('content-type', 'application/json');
         $this->assertJsonEquals([
             'code' => 401,
-            'message' => 'JWT Token not found',
+            'message' => 'Invalid credentials.',
         ]);
+    }
+
+    public function testTokenRefreshReAuthenticatesUser(): void
+    {
+        $client = self::createAuthenticatedClient($this->user);
+
+        $client->getCookieJar()->expire(self::COOKIE_NAME_ACCESS_TOKEN);
+
+        $response = $client->request('POST', '/auth/refresh');
+
+        $this->assertResponseStatusCodeSame(200);
+        $this->assertResponseHasCookie(self::COOKIE_NAME_ACCESS_TOKEN);
+        $this->assertResponseHasCookie(self::COOKIE_NAME_REFRESH_TOKEN);
+        $this->assertFalse($client->getCookieJar()->get(self::COOKIE_NAME_ACCESS_TOKEN)->isExpired());
+        $this->assertFalse($client->getCookieJar()->get(self::COOKIE_NAME_REFRESH_TOKEN)->isExpired());
+        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
+        $this->assertJsonContains([
+            '@context' => '/contexts/User',
+            '@type' => 'User',
+            'email' => 'user@example.org',
+        ]);
+        $this->assertMatchesRegularExpression('/^\/users\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
+        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
+        $this->assertMatchesResourceItemJsonSchema(User::class);
+    }
+
+    public function testTokenRefreshReturns401WhenRefreshTokenIsInvalid(): void
+    {
+        $client = self::createAuthenticatedClient($this->user);
+
+        $client->getCookieJar()->expire(self::COOKIE_NAME_ACCESS_TOKEN);
+        $client->getCookieJar()->expire(self::COOKIE_NAME_REFRESH_TOKEN);
 
         $client->request('POST', '/auth/refresh');
 
@@ -130,10 +131,27 @@ class AuthenticationTest extends ApiTestCase
             'code' => 401,
             'message' => 'Missing JWT Refresh Token',
         ]);
-        $this->assertResponseNotHasCookie(self::ACCESS_TOKEN_COOKIE_NAME);
-        $this->assertResponseNotHasCookie(self::REFRESH_TOKEN_COOKIE_NAME);
+    }
 
-        $client->request('GET', '/users/' . $user->getId()->toRfc4122());
+    public function testLogoutInvalidatesTokens(): void
+    {
+        $client = self::createAuthenticatedClient($this->user);
+
+        $client->request('POST', '/auth/logout');
+
+        $this->assertResponseStatusCodeSame(200);
+        $this->assertResponseCookieValueSame(self::COOKIE_NAME_ACCESS_TOKEN, '');
+        $this->assertResponseCookieValueSame(self::COOKIE_NAME_REFRESH_TOKEN, '');
+    }
+
+    public function testLogoutReturns401WhenAccessTokenIsInvalid(): void
+    {
+        $client = self::createAuthenticatedClient($this->user);
+
+        $client->getCookieJar()->expire(self::COOKIE_NAME_ACCESS_TOKEN);
+        $client->getCookieJar()->expire(self::COOKIE_NAME_REFRESH_TOKEN);
+
+        $client->request('POST', '/auth/logout');
 
         $this->assertResponseStatusCodeSame(401);
         $this->assertResponseHeaderSame('content-type', 'application/json');
@@ -141,22 +159,5 @@ class AuthenticationTest extends ApiTestCase
             'code' => 401,
             'message' => 'JWT Token not found',
         ]);
-    }
-
-    public function testLogout(): void
-    {
-        $client = self::createAuthenticatedClient(UserFactory::createOne());
-
-        $client->request('POST', '/auth/logout');
-
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'message' => 'Successfully logged out',
-        ]);
-        $this->assertResponseHasCookie(self::ACCESS_TOKEN_COOKIE_NAME);
-        $this->assertResponseHasCookie(self::REFRESH_TOKEN_COOKIE_NAME);
-        $this->assertNull($client->getCookieJar()->get(self::ACCESS_TOKEN_COOKIE_NAME));
-        $this->assertNull($client->getCookieJar()->get(self::REFRESH_TOKEN_COOKIE_NAME));
     }
 }

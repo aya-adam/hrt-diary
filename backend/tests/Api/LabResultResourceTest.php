@@ -3,21 +3,15 @@
 namespace App\Tests\Api;
 
 use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
-use ApiPlatform\Symfony\Bundle\Test\Client;
 use App\Entity\LabResult;
-use App\Entity\User;
 use App\Factory\LabResultFactory;
 use App\Factory\PostFactory;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
-use Override;
 
 class LabResultResourceTest extends ApiTestCase
 {
     use AuthenticatedClientTrait;
-
-    private ?Client $client = null;
-    private ?User $user = null;
 
     /**
      * If you're using RecreateDatabaseTrait, RefreshDatabaseTrait, ReloadDatabaseTrait from theofidry/AliceBundle, you
@@ -29,93 +23,13 @@ class LabResultResourceTest extends ApiTestCase
      */
     protected static ?bool $alwaysBootKernel = true;
 
-    #[Override]
-    public function setUp(): void
+    public function testGetCollectionReturnsOwnedLabResultsAsRegularUser(): void
     {
-        $this->user = UserFactory::createOne(['email' => 'user@example.org']);
-        $this->client = self::createAuthenticatedClient($this->user, UserFactory::DEFAULT_PASSWORD, [], [
-            'headers' => [
-                'accept' => 'application/ld+json',
-                'content-type' => 'application/ld+json'
-            ]
-        ]);
-
-        parent::setUp();
-    }
-
-    public function testPostLabResult(): void
-    {
-        $posts = PostFactory::createMany(2, ['user' => $this->user]);
-
-        $response = $this->client->request('POST', '/lab_results', ['json' => [
-            'posts' => ['/posts/' . $posts[0]->getId()->toRfc4122()],
-            'notes' => 'My first note on my first labs',
-            'published' => false,
-        ]]);
-
-        $this->assertResponseStatusCodeSame(201);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/LabResult',
-            '@type' => 'LabResult',
-            'posts' => ['/posts/' . $posts[0]->getId()->toRfc4122()],
-            'notes' => 'My first note on my first labs',
-        ]);
-        $this->assertArrayNotHasKey('publishedAt', $response->toArray());
-        $this->assertMatchesRegularExpression('/^\/lab_results\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
-        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-        $this->assertMatchesResourceItemJsonSchema(LabResult::class);
-
-        $response = $this->client->request('POST', '/lab_results', ['json' => [
-            'posts' => ['/posts/' . $posts[1]->getId()->toRfc4122()],
-            'notes' => 'My second note on my second labs',
-            'published' => true,
-        ]]);
-
-        $this->assertResponseStatusCodeSame(201);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/LabResult',
-            '@type' => 'LabResult',
-            'posts' => ['/posts/' . $posts[1]->getId()->toRfc4122()],
-            'notes' => 'My second note on my second labs',
-        ]);
-        $this->assertMatchesRegularExpression('/^\/lab_results\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
-        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['publishedAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-        $this->assertMatchesResourceItemJsonSchema(LabResult::class);
-
-        $response = $this->client->request('POST', '/lab_results', ['json' => [
-            'notes' => 'My third note on my third labs without posts',
-            'published' => true,
-        ]]);
-
-        $this->assertResponseStatusCodeSame(201);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/LabResult',
-            '@type' => 'LabResult',
-            'posts' => [],
-            'notes' => 'My third note on my third labs without posts',
-        ]);
-        $this->assertMatchesRegularExpression('/^\/lab_results\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
-        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['publishedAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-        $this->assertMatchesResourceItemJsonSchema(LabResult::class);
-    }
-
-    public function testGetLabResultCollection(): void
-    {
-        LabResultFactory::createMany(20, ['user' => $this->user]);
+        $user = UserFactory::createOne();
         LabResultFactory::createMany(20);
+        LabResultFactory::createMany(20, ['user' => $user]);
 
-        $response = $this->client->request('GET', '/lab_results');
+        $response = self::createAuthenticatedClient($user)->request('GET', '/lab_results');
 
         $this->assertResponseStatusCodeSame(200);
         $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
@@ -129,69 +43,601 @@ class LabResultResourceTest extends ApiTestCase
         $this->assertMatchesResourceCollectionJsonSchema(LabResult::class);
     }
 
-    public function testGetLabResult(): void
+    public function testGetCollectionReturns401ForAnonymousUser(): void
     {
-        $labResult = LabResultFactory::createOne([
-            'posts' => PostFactory::createMany(2, ['user' => $this->user]),
-            'notes' => 'Lab notes',
-            'user' => $this->user,
-        ]);
+        LabResultFactory::createMany(20);
 
-        $response = $this->client->request('GET', '/lab_results/' . $labResult->getId()->toRfc4122());
+        self::createClient()->request('GET', '/lab_results');
+
+        $this->assertResponseStatusCodeSame(401);
+        $this->assertResponseHeaderSame('content-type', 'application/json');
+        $this->assertJsonEquals([
+            'code' => 401,
+            'message' => 'JWT Token not found',
+        ]);
+    }
+
+    public function testGetItemReturnsOwnedLabResultsAsRegularUser(): void
+    {
+        $user = UserFactory::createOne();
+        $labResult = LabResultFactory::createOne(['user' => $user]);
+
+        self::createAuthenticatedClient($user)->request('GET', "/lab_results/{$labResult->getId()->toRfc4122()}");
 
         $this->assertResponseStatusCodeSame(200);
+        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
+        $this->assertMatchesResourceItemJsonSchema(LabResult::class);
+    }
+
+    public function testGetItemReturns404ForNonOwnerAsRegularUser(): void
+    {
+        $user = UserFactory::createOne();
+        $labResult = LabResultFactory::createOne(['user' => UserFactory::createOne()]);
+
+        self::createAuthenticatedClient($user)->request('GET', "/lab_results/{$labResult->getId()->toRfc4122()}");
+
+        $this->assertResponseStatusCodeSame(404);
+        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+    }
+
+    public function testGetItemReturns401ForAnonymousUser(): void
+    {
+        $labResult = LabResultFactory::createOne();
+
+        self::createClient()->request('GET', "/lab_results/{$labResult->getId()->toRfc4122()}");
+
+        $this->assertResponseStatusCodeSame(401);
+        $this->assertResponseHeaderSame('content-type', 'application/json');
+        $this->assertJsonEquals([
+            'code' => 401,
+            'message' => 'JWT Token not found',
+        ]);
+    }
+
+    public function testPostCreatesLabResult(): void
+    {
+        $user = UserFactory::createOne();
+
+        $response = self::createAuthenticatedClient($user)->request('POST', '/lab_results', ['json' => [
+            'notes' => 'Test notes',
+            'drawnAt' => '2024-07-03T00:08:05+00:00',
+        ]]);
+
+        $this->assertResponseStatusCodeSame(201);
         $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
         $this->assertJsonContains([
             '@context' => '/contexts/LabResult',
             '@type' => 'LabResult',
-            'posts' => array_map(fn($post) => '/posts/' . $post->getId()->toRfc4122(), $labResult->getPosts()->toArray()),
-            'notes' => 'Lab notes',
+            'notes' => "Test notes",
+            'drawnAt' => "2024-07-03T00:08:05+00:00"
         ]);
-        $this->assertCount($labResult->getPosts()->count(), $response->toArray()['posts']);
-        $this->assertArrayNotHasKey('publishedAt', $response->toArray());
+        $this->assertNull($response->toArray()['publishedAt']);
         $this->assertMatchesRegularExpression('/^\/lab_results\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
         $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);
         $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
         $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
         $this->assertMatchesResourceItemJsonSchema(LabResult::class);
     }
 
-    public function testUpdateLabResult(): void
+    public function testPostCreatesPublishedLabResult(): void
     {
-        $labResult = LabResultFactory::createOne(['user' => $this->user]);
-        $posts = PostFactory::createMany(2, ['user' => $this->user]);
+        $user = UserFactory::createOne();
 
-        $response = $this->client->request('PATCH', '/lab_results/' . $labResult->getId()->toRfc4122(), [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'posts' => array_map(fn($post) => '/posts/' . $post->getId()->toRfc4122(), $posts),
-                'notes' => 'My new lab notes',
-                'published' => true,
-            ],
-        ]);
+        $response = self::createAuthenticatedClient($user)->request('POST', '/lab_results', ['json' => [
+            'notes' => 'Test notes',
+            'drawnAt' => '2024-07-03T00:08:05+00:00',
+            'published' => true,
+        ]]);
 
-        $this->assertResponseStatusCodeSame(200);
+        $this->assertResponseStatusCodeSame(201);
         $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
         $this->assertJsonContains([
             '@context' => '/contexts/LabResult',
             '@type' => 'LabResult',
-            'posts' => array_map(fn($post) => '/posts/' . $post->getId()->toRfc4122(), $posts),
-            'notes' => 'My new lab notes',
+            'notes' => "Test notes",
+            'drawnAt' => "2024-07-03T00:08:05+00:00"
         ]);
         $this->assertMatchesRegularExpression('/^\/lab_results\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
         $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
         $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['publishedAt']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);
         $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
         $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
         $this->assertMatchesResourceItemJsonSchema(LabResult::class);
     }
 
-    public function testDeletePost(): void
+    public function testPostCreatesLabResultAssignedToPosts(): void
     {
-        $labResult = LabResultFactory::createOne(['user' => $this->user]);
+        $user = UserFactory::createOne();
+        $posts = PostFactory::createMany(3, ['user' => $user]);
 
-        $this->client->request('DELETE', '/lab_results/' . $labResult->getId()->toRfc4122());
+        $response = self::createAuthenticatedClient($user)->request('POST', '/lab_results', ['json' => [
+            'posts' => [
+                "/posts/{$posts[0]->getId()->toRfc4122()}",
+                "/posts/{$posts[1]->getId()->toRfc4122()}",
+                "/posts/{$posts[2]->getId()->toRfc4122()}",
+            ],
+            'notes' => 'Test notes',
+            'drawnAt' => '2024-07-03T00:08:05+00:00',
+        ]]);
+
+        $this->assertResponseStatusCodeSame(201);
+        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
+        $this->assertJsonContains([
+            '@context' => '/contexts/LabResult',
+            '@type' => 'LabResult',
+            'posts' => [
+                "/posts/{$posts[0]->getId()->toRfc4122()}",
+                "/posts/{$posts[1]->getId()->toRfc4122()}",
+                "/posts/{$posts[2]->getId()->toRfc4122()}",
+            ],
+            'notes' => "Test notes",
+            'drawnAt' => "2024-07-03T00:08:05+00:00"
+        ]);
+        $this->assertNull($response->toArray()['publishedAt']);
+        $this->assertMatchesRegularExpression('/^\/lab_results\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
+        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
+        $this->assertMatchesResourceItemJsonSchema(LabResult::class);
+    }
+
+    public function testPostCreatesPublidhedLabResultAssignedToPosts(): void
+    {
+        $user = UserFactory::createOne();
+        $posts = PostFactory::createMany(3, ['user' => $user]);
+
+        $response = self::createAuthenticatedClient($user)->request('POST', '/lab_results', ['json' => [
+            'posts' => [
+                "/posts/{$posts[0]->getId()->toRfc4122()}",
+                "/posts/{$posts[1]->getId()->toRfc4122()}",
+                "/posts/{$posts[2]->getId()->toRfc4122()}",
+            ],
+            'notes' => 'Test notes',
+            'drawnAt' => '2024-07-03T00:08:05+00:00',
+            'published' => true,
+        ]]);
+
+        $this->assertResponseStatusCodeSame(201);
+        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
+        $this->assertJsonContains([
+            '@context' => '/contexts/LabResult',
+            '@type' => 'LabResult',
+            'posts' => [
+                "/posts/{$posts[0]->getId()->toRfc4122()}",
+                "/posts/{$posts[1]->getId()->toRfc4122()}",
+                "/posts/{$posts[2]->getId()->toRfc4122()}",
+            ],
+            'notes' => "Test notes",
+            'drawnAt' => "2024-07-03T00:08:05+00:00"
+        ]);
+        $this->assertMatchesRegularExpression('/^\/lab_results\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
+        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['publishedAt']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
+        $this->assertMatchesResourceItemJsonSchema(LabResult::class);
+    }
+
+    public function testPostReturns401ForAnonymousUser(): void
+    {
+        self::createClient()->request('POST', '/lab_results', ['json' => [
+            'notes' => 'Test notes',
+            'drawnAt' => '2024-07-03T00:08:05+00:00',
+        ]]);
+
+        $this->assertResponseStatusCodeSame(401);
+        $this->assertResponseHeaderSame('content-type', 'application/json');
+        $this->assertJsonEquals([
+            'code' => 401,
+            'message' => 'JWT Token not found',
+        ]);
+    }
+
+    public function testPostReturns422WhenPostsAreNotOwned(): void
+    {
+        $user = UserFactory::createOne();
+        $posts = PostFactory::createMany(3);
+
+        self::createAuthenticatedClient($user)->request('POST', '/lab_results', ['json' => [
+            'posts' => [
+                "/posts/{$posts[0]->getId()->toRfc4122()}",
+                "/posts/{$posts[1]->getId()->toRfc4122()}",
+                "/posts/{$posts[2]->getId()->toRfc4122()}",
+            ],
+            'notes' => 'Test notes',
+            'drawnAt' => '2024-07-03T00:08:05+00:00',
+        ]]);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $this->assertJsonContains([
+            '@context' => '/contexts/ConstraintViolation',
+            '@type' => 'ConstraintViolation',
+            'violations' => [[
+                'propertyPath' => 'posts[0]',
+                'message' => 'This value should be of type Post.',
+            ]],
+        ]);
+    }
+
+    public function testPostReturns422WhenDrawnAtIsMissing(): void
+    {
+        $user = UserFactory::createOne();
+
+        self::createAuthenticatedClient($user)->request('POST', '/lab_results', ['json' => [
+            'notes' => 'Test notes',
+        ]]);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $this->assertJsonContains([
+            '@context' => '/contexts/ConstraintViolation',
+            '@type' => 'ConstraintViolation',
+            'violations' => [[
+                'propertyPath' => 'drawnAt',
+                'message' => 'This value should not be blank.',
+            ]],
+        ]);
+    }
+
+    public function testPostReturns422WhenDrawnAtIsBlank(): void
+    {
+        $user = UserFactory::createOne();
+
+        self::createAuthenticatedClient($user)->request('POST', '/lab_results', ['json' => [
+            'notes' => 'Test notes',
+            'drawnAt' => '',
+        ]]);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $this->assertJsonContains([
+            '@context' => '/contexts/ConstraintViolation',
+            '@type' => 'ConstraintViolation',
+            'violations' => [[
+                'propertyPath' => 'drawnAt',
+                'message' => 'This value should be of type string.',
+            ]],
+        ]);
+    }
+
+    public function testPostReturns422WhenDrawnAtIsNotDateValue(): void
+    {
+        $user = UserFactory::createOne();
+
+        self::createAuthenticatedClient($user)->request('POST', '/lab_results', ['json' => [
+            'notes' => 'Test notes',
+            'drawnAt' => 'invalid_datetime',
+        ]]);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $this->assertJsonContains([
+            '@context' => '/contexts/ConstraintViolation',
+            '@type' => 'ConstraintViolation',
+            'violations' => [[
+                'propertyPath' => 'drawnAt',
+                'message' => 'This value should be of type string.',
+            ]],
+        ]);
+    }
+
+    public function testPostReturns422WhenNotesIsBlank(): void
+    {
+        $user = UserFactory::createOne();
+
+        self::createAuthenticatedClient($user)->request('POST', '/lab_results', ['json' => [
+            'notes' => '',
+            'drawnAt' => '2024-07-03T00:08:05+00:00',
+        ]]);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $this->assertJsonContains([
+            '@context' => '/contexts/ConstraintViolation',
+            '@type' => 'ConstraintViolation',
+            'violations' => [[
+                'propertyPath' => 'notes',
+                'message' => 'This value should not be blank.',
+            ]],
+        ]);
+    }
+
+    public function testPostReturns422WhenPublishedIsNotBooleanOrNull(): void
+    {
+        $user = UserFactory::createOne();
+
+        self::createAuthenticatedClient($user)->request('POST', '/lab_results', ['json' => [
+            'notes' => '',
+            'drawnAt' => '2024-07-03T00:08:05+00:00',
+            'published' => 'true',
+        ]]);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $this->assertJsonContains([
+            '@context' => '/contexts/ConstraintViolation',
+            '@type' => 'ConstraintViolation',
+            'violations' => [[
+                'propertyPath' => 'published',
+                'message' => 'This value should be of type bool|null.',
+            ]],
+        ]);
+    }
+
+    public function testPatchUpdatesLabResult(): void
+    {
+        $user = UserFactory::createOne();
+        $labResult = LabResultFactory::createOne(['user' => $user]);
+
+        $response = self::createAuthenticatedClient($user)->request('PATCH', "/lab_results/{$labResult->getId()->toRfc4122()}", [
+            'headers' => ['content-type' => 'application/merge-patch+json'],
+            'json' => [
+                'notes' => 'Updated Test Notes',
+                'drawnAt' => '2024-07-03T00:08:05+00:00',
+            ],
+        ]);
+
+        $this->assertNull($response->toArray()['publishedAt']);
+        $this->assertMatchesRegularExpression('/^\/lab_results\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
+        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
+        $this->assertMatchesResourceItemJsonSchema(LabResult::class);
+    }
+
+    public function testPatchUpdatesLabResultToPublic(): void
+    {
+        $user = UserFactory::createOne();
+        $labResult = LabResultFactory::createOne(['user' => $user]);
+
+        $response = self::createAuthenticatedClient($user)->request('PATCH', "/lab_results/{$labResult->getId()->toRfc4122()}", [
+            'headers' => ['content-type' => 'application/merge-patch+json'],
+            'json' => [
+                'notes' => 'Updated Test Notes',
+                'drawnAt' => '2024-07-03T00:08:05+00:00',
+                'published' => true,
+            ],
+        ]);
+
+        $this->assertMatchesRegularExpression('/^\/lab_results\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
+        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['publishedAt']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
+        $this->assertMatchesResourceItemJsonSchema(LabResult::class);
+    }
+
+    public function testPatchUpdatesLabResultToPrivate(): void
+    {
+        $user = UserFactory::createOne();
+        $labResult = LabResultFactory::new()->published()->create(['user' => $user]);
+
+        $response = self::createAuthenticatedClient($user)->request('PATCH', "/lab_results/{$labResult->getId()->toRfc4122()}", [
+            'headers' => ['content-type' => 'application/merge-patch+json'],
+            'json' => [
+                'notes' => 'Updated Test Notes',
+                'drawnAt' => '2024-07-03T00:08:05+00:00',
+                'published' => false,
+            ],
+        ]);
+
+        $this->assertNull($response->toArray()['publishedAt']);
+        $this->assertMatchesRegularExpression('/^\/lab_results\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
+        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
+        $this->assertMatchesResourceItemJsonSchema(LabResult::class);
+    }
+
+    public function testPatchReturns401ForAnonymousUser(): void
+    {
+        $labResult = LabResultFactory::createOne();
+
+        self::createClient()->request('PATCH', "/lab_results/{$labResult->getId()->toRfc4122()}", [
+            'headers' => ['content-type' => 'application/merge-patch+json'],
+            'json' => [
+                'notes' => 'Updated Test Notes',
+                'drawnAt' => '2024-07-03T00:08:05+00:00',
+            ],
+        ]);
+
+        $this->assertResponseStatusCodeSame(401);
+        $this->assertResponseHeaderSame('content-type', 'application/json');
+        $this->assertJsonEquals([
+            'code' => 401,
+            'message' => 'JWT Token not found',
+        ]);
+    }
+
+    public function testPatchReturns404ForNonOwnerAsRegularUser(): void
+    {
+        $user = UserFactory::createOne();
+        $labResult = LabResultFactory::createOne();
+
+        self::createAuthenticatedClient($user)->request('PATCH', "/lab_results/{$labResult->getId()->toRfc4122()}", [
+            'headers' => ['content-type' => 'application/merge-patch+json'],
+            'json' => [
+                'notes' => 'Updated Test Notes',
+                'drawnAt' => '2024-07-03T00:08:05+00:00',
+            ],
+        ]);
+
+        $this->assertResponseStatusCodeSame(404);
+        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+    }
+
+    public function testPatchReturns422WhenPostsAreNotOwned(): void
+    {
+        $user = UserFactory::createOne();
+        $labResult = LabResultFactory::createOne(['user' => $user]);
+        $posts = PostFactory::createMany(3);
+
+        self::createAuthenticatedClient($user)->request('PATCH', "/lab_results/{$labResult->getId()->toRfc4122()}", [
+            'headers' => ['content-type' => 'application/merge-patch+json'],
+            'json' => [
+                'posts' => [
+                    "/posts/{$posts[0]->getId()->toRfc4122()}",
+                    "/posts/{$posts[1]->getId()->toRfc4122()}",
+                    "/posts/{$posts[2]->getId()->toRfc4122()}",
+                ],
+                'notes' => 'Updated Test Notes',
+                'drawnAt' => '2024-07-03T00:08:05+00:00',
+            ],
+        ]);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $this->assertJsonContains([
+            '@context' => '/contexts/ConstraintViolation',
+            '@type' => 'ConstraintViolation',
+            'violations' => [[
+                'propertyPath' => 'posts[0]',
+                'message' => 'This value should be of type Post.',
+            ]],
+        ]);
+    }
+
+    public function testPatchReturns422WhenDrawnAtIsBlank(): void
+    {
+        $user = UserFactory::createOne();
+        $labResult = LabResultFactory::createOne(['user' => $user]);
+
+        self::createAuthenticatedClient($user)->request('PATCH', "/lab_results/{$labResult->getId()->toRfc4122()}", [
+            'headers' => ['content-type' => 'application/merge-patch+json'],
+            'json' => [
+                'notes' => 'Updated Test Notes',
+                'drawnAt' => '',
+            ],
+        ]);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $this->assertJsonContains([
+            '@context' => '/contexts/ConstraintViolation',
+            '@type' => 'ConstraintViolation',
+            'violations' => [[
+                'propertyPath' => 'drawnAt',
+                'message' => 'This value should be of type string.',
+            ]],
+        ]);
+    }
+
+    public function testPatchReturns422WhenDrawnAtIsNotDateValue(): void
+    {
+        $user = UserFactory::createOne();
+        $labResult = LabResultFactory::createOne(['user' => $user]);
+
+        self::createAuthenticatedClient($user)->request('PATCH', "/lab_results/{$labResult->getId()->toRfc4122()}", [
+            'headers' => ['content-type' => 'application/merge-patch+json'],
+            'json' => [
+                'notes' => 'Updated Test Notes',
+                'drawnAt' => 'invalid_datetime',
+            ],
+        ]);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $this->assertJsonContains([
+            '@context' => '/contexts/ConstraintViolation',
+            '@type' => 'ConstraintViolation',
+            'violations' => [[
+                'propertyPath' => 'drawnAt',
+                'message' => 'This value should be of type string.',
+            ]],
+        ]);
+    }
+
+    public function testPatchReturns422WhenNotesIsBlank(): void
+    {
+        $user = UserFactory::createOne();
+        $labResult = LabResultFactory::createOne(['user' => $user]);
+
+        self::createAuthenticatedClient($user)->request('PATCH', "/lab_results/{$labResult->getId()->toRfc4122()}", [
+            'headers' => ['content-type' => 'application/merge-patch+json'],
+            'json' => [
+                'notes' => '',
+                'drawnAt' => '2024-07-03T00:08:05+00:00',
+            ],
+        ]);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $this->assertJsonContains([
+            '@context' => '/contexts/ConstraintViolation',
+            '@type' => 'ConstraintViolation',
+            'violations' => [[
+                'propertyPath' => 'notes',
+                'message' => 'This value should not be blank.',
+            ]],
+        ]);
+    }
+
+    public function testPatchReturns422WhenPublishedIsNotBooleanOrNull(): void
+    {
+        $user = UserFactory::createOne();
+        $labResult = LabResultFactory::createOne(['user' => $user]);
+
+        self::createAuthenticatedClient($user)->request('PATCH', "/lab_results/{$labResult->getId()->toRfc4122()}", [
+            'headers' => ['content-type' => 'application/merge-patch+json'],
+            'json' => [
+                'notes' => '',
+                'drawnAt' => '2024-07-03T00:08:05+00:00',
+                'published' => 'true',
+            ],
+        ]);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $this->assertJsonContains([
+            '@context' => '/contexts/ConstraintViolation',
+            '@type' => 'ConstraintViolation',
+            'violations' => [[
+                'propertyPath' => 'published',
+                'message' => 'This value should be of type bool|null.',
+            ]],
+        ]);
+    }
+
+    public function testDeleteRemovesLabResult(): void
+    {
+        $user = UserFactory::createOne();
+        $labResult = LabResultFactory::createOne(['user' => $user]);
+
+        self::createAuthenticatedClient($user)->request('DELETE', "/lab_results/{$labResult->getId()->toRfc4122()}");
 
         $this->assertResponseStatusCodeSame(204);
+    }
+
+    public function testDeleteReturns404ForNonOwnerAsRegularUser(): void
+    {
+        $user = UserFactory::createOne();
+        $labResult = LabResultFactory::createOne();
+
+        self::createAuthenticatedClient($user)->request('DELETE', "/lab_results/{$labResult->getId()->toRfc4122()}");
+
+        $this->assertResponseStatusCodeSame(404);
+        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+    }
+
+    public function testDeleteReturns401ForAnonymousUser(): void
+    {
+        $labResult = LabResultFactory::createOne();
+
+        self::createClient()->request('DELETE', "/lab_results/{$labResult->getId()->toRfc4122()}");
+
+        $this->assertResponseStatusCodeSame(401);
+        $this->assertResponseHeaderSame('content-type', 'application/json');
+        $this->assertJsonEquals([
+            'code' => 401,
+            'message' => 'JWT Token not found',
+        ]);
     }
 }
