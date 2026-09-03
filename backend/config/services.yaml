@@ -63,3 +63,11 @@ services:
         calls:
             - [ setAnnotationReader, [ '@gedmo.mapping.driver.attribute' ] ]
             - [ setClock, [ '@clock' ] ]
+
+when@test:
+    services:
+        _defaults:
+            autowire: true
+            autoconfigure: true
+
+        App\Tests\GlobalState\SeedDefaultDataState: ~
