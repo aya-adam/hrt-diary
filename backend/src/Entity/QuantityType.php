@@ -29,7 +29,7 @@ use Symfony\Component\Uid\Uuid;
 )]
 class QuantityType
 {
-    #[Groups(['quantityType:read', 'unit:read'])]
+    #[Groups(['quantityType:read', 'hormone:read', 'unit:read'])]
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
@@ -43,11 +43,11 @@ class QuantityType
     #[ORM\OneToMany(targetEntity: Unit::class, mappedBy: 'quantityType')]
     private Collection $units;
 
-    #[Groups(['quantityType:read', 'unit:read'])]
+    #[Groups(['quantityType:read', 'hormone:read', 'unit:read'])]
     #[ORM\Column(length: 255)]
     private ?string $label = null;
 
-    #[Groups(['quantityType:read', 'unit:read'])]
+    #[Groups(['quantityType:read', 'hormone:read', 'unit:read'])]
     #[ORM\Column(length: 255)]
     #[Gedmo\Slug(fields: ['label'])]
     private ?string $slug = null;

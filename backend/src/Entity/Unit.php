@@ -24,22 +24,22 @@ use Symfony\Component\Uid\Uuid;
 )]
 class Unit
 {
-    #[Groups(['unit:read', 'quantityType:read'])]
+    #[Groups(['unit:read', 'hormone:read', 'quantityType:read'])]
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
     private ?Uuid $id = null;
 
-    #[Groups(['unit:read'])]
+    #[Groups(['unit:read', 'hormone:read'])]
     #[ORM\ManyToOne(inversedBy: 'units')]
     private ?QuantityType $quantityType = null;
 
-    #[Groups(['unit:read', 'quantityType:read'])]
+    #[Groups(['unit:read', 'hormone:read', 'quantityType:read'])]
     #[ORM\Column(length: 10)]
     private ?string $symbol = null;
 
-    #[Groups(['unit:read', 'quantityType:read'])]
+    #[Groups(['unit:read', 'hormone:read', 'quantityType:read'])]
     #[ORM\Column(length: 255)]
     private ?string $label = null;
 
