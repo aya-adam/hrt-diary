@@ -43,6 +43,16 @@ services:
     gedmo.mapping.driver.attribute:
         class: Gedmo\Mapping\Driver\AttributeReader
 
+    # Gedmo Sluggable Extension Listener
+    gedmo.listener.sluggable:
+        class: Gedmo\Sluggable\SluggableListener
+        tags:
+            - { name: doctrine.event_listener, event: 'onFlush' }
+            - { name: doctrine.event_listener, event: 'loadClassMetadata' }
+            - { name: doctrine.event_listener, event: 'prePersist' }
+        calls:
+            - [ setAnnotationReader, [ '@gedmo.mapping.driver.attribute' ] ]
+
     # Gedmo Timestampable Extension Listener
     gedmo.listener.timestampable:
         class: Gedmo\Timestampable\TimestampableListener
