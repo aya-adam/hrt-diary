@@ -89,7 +89,7 @@ class LabResult
 
     #[Groups(['labResult:read'])]
     #[ORM\Column]
-    #[Gedmo\Timestampable(on: 'update')]
+    #[Gedmo\Timestampable(on: 'create')]
     private ?\DateTimeImmutable $createdAt = null;
 
     #[Groups(['labResult:read'])]
