@@ -7,7 +7,8 @@ use App\Entity\QuantityType;
 use App\Entity\Unit;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
-use Doctrine\ORM\EntityManagerInterface;
+
+use function Zenstruck\Foundry\Persistence\repository;
 
 class QuantityTypeResourceTest extends ApiTestCase
 {
@@ -50,8 +51,8 @@ class QuantityTypeResourceTest extends ApiTestCase
 
     public function testGetItemReturnsQuyntityType(): void
     {
-        $quantityTypeRespository = self::getContainer()->get(EntityManagerInterface::class)->getRepository(QuantityType::class);
-        $quantityType = $quantityTypeRespository->findAll()[0];
+        $quantityTypeRespository = repository(QuantityType::class);
+        $quantityType = $quantityTypeRespository->first();
 
         $user = UserFactory::createOne();
 
@@ -64,8 +65,8 @@ class QuantityTypeResourceTest extends ApiTestCase
 
     public function testGetItemReturns401ForAnonymousUser(): void
     {
-        $quantityTypeRespository = self::getContainer()->get(EntityManagerInterface::class)->getRepository(QuantityType::class);
-        $quantityType = $quantityTypeRespository->findAll()[0];
+        $quantityTypeRespository = repository(QuantityType::class);
+        $quantityType = $quantityTypeRespository->first();
 
         self::createClient()->request('GET', "/quantity_types/{$quantityType->getId()->toRfc4122()}");
 
@@ -79,7 +80,7 @@ class QuantityTypeResourceTest extends ApiTestCase
 
     public function testPostReturns405(): void
     {
-        $unitRespository = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Unit::class);
+        $unitRespository = repository(Unit::class);
         $units = $unitRespository->findAll();
 
         $user = UserFactory::createOne();
@@ -99,12 +100,10 @@ class QuantityTypeResourceTest extends ApiTestCase
 
     public function testPatchReturns405(): void
     {
-        $em = self::getContainer()->get(EntityManagerInterface::class);
+        $quantityTypeRespository = repository(QuantityType::class);
+        $quantityType = $quantityTypeRespository->first();
 
-        $quantityTypeRespository = $em->getRepository(QuantityType::class);
-        $quantityType = $quantityTypeRespository->findAll()[0];
-
-        $unitRespository = $em->getRepository(Unit::class);
+        $unitRespository = repository(Unit::class);
         $units = $unitRespository->findAll();
 
         $user = UserFactory::createOne();
@@ -127,8 +126,8 @@ class QuantityTypeResourceTest extends ApiTestCase
 
     public function testDeleteReturns405(): void
     {
-        $unitRespository = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Unit::class);
-        $unit = $unitRespository->findAll()[0];
+        $unitRespository = repository(Unit::class);
+        $unit = $unitRespository->first();
 
         $user = UserFactory::createOne();
 

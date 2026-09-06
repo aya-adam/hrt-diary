@@ -7,7 +7,8 @@ use App\Entity\Hormone;
 use App\Entity\Unit;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
-use Doctrine\ORM\EntityManagerInterface;
+
+use function Zenstruck\Foundry\Persistence\repository;
 
 class HormoneResourceTest extends ApiTestCase
 {
@@ -50,8 +51,8 @@ class HormoneResourceTest extends ApiTestCase
 
     public function testGetItemReturnsUnit(): void
     {
-        $hormoneRespository = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Hormone::class);
-        $hormone = $hormoneRespository->findAll()[0];
+        $hormoneRespository = repository(Hormone::class);
+        $hormone = $hormoneRespository->first();
 
         $user = UserFactory::createOne();
 
@@ -64,8 +65,8 @@ class HormoneResourceTest extends ApiTestCase
 
     public function testGetItemReturns401ForAnonymousUser(): void
     {
-        $hormoneRespository = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Hormone::class);
-        $hormone = $hormoneRespository->findAll()[0];
+        $hormoneRespository = repository(Hormone::class);
+        $hormone = $hormoneRespository->first();
 
         self::createClient()->request('GET', "/hormones/{$hormone->getId()->toRfc4122()}");
 
@@ -79,8 +80,8 @@ class HormoneResourceTest extends ApiTestCase
 
     public function testPostReturns405(): void
     {
-        $unitRespository = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Unit::class);
-        $unit = $unitRespository->findAll()[0];
+        $unitRespository = repository(Unit::class);
+        $unit = $unitRespository->first();
 
         $user = UserFactory::createOne();
 
@@ -95,13 +96,11 @@ class HormoneResourceTest extends ApiTestCase
 
     public function testPatchReturns405(): void
     {
-        $em = self::getContainer()->get(EntityManagerInterface::class);
+        $hormoneRespository = repository(Hormone::class);
+        $hormone = $hormoneRespository->first();
 
-        $hormoneRespository = $em->getRepository(Hormone::class);
-        $hormone = $hormoneRespository->findAll()[0];
-
-        $unitRespository = $em->getRepository(Unit::class);
-        $unit = $unitRespository->findAll()[0];
+        $unitRespository = repository(Unit::class);
+        $unit = $unitRespository->first();
 
         $user = UserFactory::createOne();
 
@@ -119,8 +118,8 @@ class HormoneResourceTest extends ApiTestCase
 
     public function testDeleteReturns405(): void
     {
-        $hormoneRespository = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Hormone::class);
-        $hormone = $hormoneRespository->findAll()[0];
+        $hormoneRespository = repository(Hormone::class);
+        $hormone = $hormoneRespository->first();
 
         $user = UserFactory::createOne();
 

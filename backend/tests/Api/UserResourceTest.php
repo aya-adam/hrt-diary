@@ -7,7 +7,8 @@ use App\Entity\RefreshToken;
 use App\Entity\User;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
-use Doctrine\ORM\EntityManagerInterface;
+
+use function Zenstruck\Foundry\Persistence\repository;
 
 class UserResourceTest extends ApiTestCase
 {
@@ -290,7 +291,7 @@ class UserResourceTest extends ApiTestCase
 
     public function testPatchUpdatesPersistedRefreshTokenAfterEmailUpdate(): void
     {
-        $tokenRespository = self::getContainer()->get(EntityManagerInterface::class)->getRepository(RefreshToken::class);
+        $tokenRespository = repository(RefreshToken::class);
 
         $user = UserFactory::createOne(['email' => 'old_email@example.org']);
 
@@ -317,7 +318,7 @@ class UserResourceTest extends ApiTestCase
 
     public function testPatchUpdatePassword(): void
     {
-        $userRepository = self::getContainer()->get(EntityManagerInterface::class)->getRepository(User::class);
+        $userRepository = repository(User::class);
 
         $user = UserFactory::createOne();
 
