@@ -71,6 +71,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private Collection $labResults;
 
     /**
+     * @var Collection<int, Measurement>
+     */
+    #[ORM\OneToMany(targetEntity: Measurement::class, mappedBy: 'user', orphanRemoval: true)]
+    private Collection $measurements;
+
+    /**
      * @var Collection<int, PostEntity>
      */
     #[ORM\OneToMany(targetEntity: PostEntity::class, mappedBy: 'user', orphanRemoval: true)]
@@ -116,6 +122,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function __construct()
     {
         $this->labResults = new ArrayCollection();
+        $this->measurements = new ArrayCollection();
         $this->posts = new ArrayCollection();
     }
 
@@ -148,6 +155,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             // set the owning side to null (unless already changed)
             if ($labResult->getUser() === $this) {
                 $labResult->setUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Measurement>
+     */
+    public function getMeasurements(): Collection
+    {
+        return $this->measurements;
+    }
+
+    public function addMeasurement(Measurement $measurement): static
+    {
+        if (!$this->measurements->contains($measurement)) {
+            $this->measurements->add($measurement);
+            $measurement->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMeasurement(Measurement $measurement): static
+    {
+        if ($this->measurements->removeElement($measurement)) {
+            // set the owning side to null (unless already changed)
+            if ($measurement->getUser() === $this) {
+                $measurement->setUser(null);
             }
         }
 

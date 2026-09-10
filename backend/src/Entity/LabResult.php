@@ -62,6 +62,13 @@ class LabResult
     private ?User $user = null;
 
     /**
+     * @var Collection<int, Measurement>
+     */
+    #[Groups(['labResult:read'])]
+    #[ORM\OneToMany(targetEntity: Measurement::class, mappedBy: 'labResult', orphanRemoval: true)]
+    private Collection $measurements;
+
+    /**
      * @var Collection<int, PostEntity>
      */
     #[Groups(['labResult:read', 'labResult:create', 'labResult:update'])]
@@ -99,6 +106,7 @@ class LabResult
 
     public function __construct()
     {
+        $this->measurements = new ArrayCollection();
         $this->posts = new ArrayCollection();
     }
 
@@ -115,6 +123,36 @@ class LabResult
     public function setUser(?User $user): static
     {
         $this->user = $user;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Measurement>
+     */
+    public function getMeasurements(): Collection
+    {
+        return $this->measurements;
+    }
+
+    public function addMeasurement(Measurement $measurement): static
+    {
+        if (!$this->measurements->contains($measurement)) {
+            $this->measurements->add($measurement);
+            $measurement->setLabResult($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMeasurement(Measurement $measurement): static
+    {
+        if ($this->measurements->removeElement($measurement)) {
+            // set the owning side to null (unless already changed)
+            if ($measurement->getLabResult() === $this) {
+                $measurement->setLabResult(null);
+            }
+        }
 
         return $this;
     }

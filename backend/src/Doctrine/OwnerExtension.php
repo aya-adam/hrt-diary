@@ -8,6 +8,7 @@ use Doctrine\ORM\QueryBuilder;
 use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
 use ApiPlatform\Metadata\Operation;
 use App\Entity\LabResult;
+use App\Entity\Measurement;
 use App\Entity\Post;
 use App\Entity\User;
 use Override;
@@ -55,6 +56,7 @@ final class OwnerExtension implements QueryCollectionExtensionInterface, QueryIt
     {
         return [
             LabResult::class,
+            Measurement::class,
             Post::class,
             User::class,
         ];
