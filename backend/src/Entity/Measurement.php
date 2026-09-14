@@ -87,7 +87,7 @@ class Measurement
     #[Assert\NotBlank]
     #[Assert\Type('string')]
     #[Assert\Type('numeric')]
-    #[Assert\Regex('/^(0|[1-9]\d{0,3})(\.\d{1,2})?$/', message: 'Invalid number. Enter a value between 0 and 9999 with up to 2 decimal places (e.g. 42 or 42.5).')]
+    #[Assert\Regex('/^(0|[1-9]\d{0,3})(\.\d{1,2})?$/', message: 'Invalid number. Enter a value between 0 and 9999.99 with up to 2 decimal places (e.g. 42 or 42.5).')]
     #[Groups(['measurement:read', 'measurement:create', 'measurement:update'])]
     #[ORM\Column(type: Types::DECIMAL, precision: 6, scale: 2)]
     private ?string $value = null;

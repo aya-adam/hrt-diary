@@ -505,7 +505,7 @@ class MeasurementResourceTest extends ApiTestCase
             '@type' => 'ConstraintViolation',
             'violations' => [[
                 'propertyPath' => 'value',
-                'message' => 'Invalid number. Enter a value between 0 and 9999 with up to 2 decimal places (e.g. 42 or 42.5).',
+                'message' => 'Invalid number. Enter a value between 0 and 9999.99 with up to 2 decimal places (e.g. 42 or 42.5).',
             ]],
         ]);
     }
@@ -886,7 +886,7 @@ class MeasurementResourceTest extends ApiTestCase
             '@type' => 'ConstraintViolation',
             'violations' => [[
                 'propertyPath' => 'value',
-                'message' => 'Invalid number. Enter a value between 0 and 9999 with up to 2 decimal places (e.g. 42 or 42.5).',
+                'message' => 'Invalid number. Enter a value between 0 and 9999.99 with up to 2 decimal places (e.g. 42 or 42.5).',
             ]],
         ]);
     }
