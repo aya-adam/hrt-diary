@@ -6,7 +6,6 @@ use App\Entity\Hormone;
 use App\Entity\Measurement;
 use App\Entity\Unit;
 use Zenstruck\Foundry\Persistence\PersistentObjectFactory;
-use Zenstruck\Foundry\Persistence\RepositoryDecorator;
 
 use function Zenstruck\Foundry\Persistence\repository;
 
@@ -15,19 +14,12 @@ use function Zenstruck\Foundry\Persistence\repository;
  */
 final class MeasurementFactory extends PersistentObjectFactory
 {
-    private RepositoryDecorator $hormoneRepository;
-    private RepositoryDecorator $unitRepository;
-
     /**
      * @see https://symfony.com/bundles/ZenstruckFoundryBundle/current/index.html#factories-as-services
      *
      * @todo inject services if required
      */
-    public function __construct()
-    {
-        $this->hormoneRepository = repository(Hormone::class);
-        $this->unitRepository = repository(Unit::class);
-    }
+    public function __construct() {}
 
     #[\Override]
     public static function class(): string
@@ -44,9 +36,9 @@ final class MeasurementFactory extends PersistentObjectFactory
     protected function defaults(): array|callable
     {
         return [
-            'hormone' => $this->hormoneRepository->random(),
+            'hormone' => repository(Hormone::class)->random(),
             'labResult' => LabResultFactory::new(),
-            'unit' => $this->unitRepository->random(),
+            'unit' => repository(Unit::class)->random(),
             'value' => self::faker()->randomFloat(2, 0, 9999.99),
         ];
     }
