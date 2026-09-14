@@ -6,8 +6,10 @@ use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
 use App\Entity\Hormone;
 use App\Entity\LabResult;
 use App\Entity\Measurement;
+use App\Entity\ReferenceRange;
 use App\Entity\Unit;
 use App\Entity\User;
+use App\Factory\MeasurementFactory;
 use App\Tests\Story\MeasurementsStory;
 use App\Tests\Support\AuthenticatedClientTrait;
 use Zenstruck\Foundry\Attribute\WithStory;
@@ -119,6 +121,41 @@ class MeasurementResourceTest extends ApiTestCase
             'labResult' => "/lab_results/{$labResult->getId()->toRfc4122()}",
             'unit' => "/units/{$unit->getId()->toRfc4122()}",
             'hormone' => "/hormones/{$hormone->getId()->toRfc4122()}",
+            'value' => '1234.56',
+        ]);
+        $this->assertMatchesRegularExpression('/^\/measurements\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
+        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
+        $this->assertMatchesResourceItemJsonSchema(Measurement::class);
+    }
+    
+    public function testPostCreatesMeasurementWithReferenceRange(): void
+    {
+        $user = repository(User::class)->random();
+        $labResult = repository(LabResult::class)->random(['user' => $user]);
+        $unit = repository(Unit::class)->random();
+        $hormone = repository(Hormone::class)->random();
+        $referenceRange = repository(ReferenceRange::class)->random();
+
+        $response = self::createAuthenticatedClient($user)->request('POST', '/measurements', ['json' => [
+            'labResult' => "/lab_results/{$labResult->getId()->toRfc4122()}",
+            'unit' => "/units/{$unit->getId()->toRfc4122()}",
+            'hormone' => "/hormones/{$hormone->getId()->toRfc4122()}",
+            'referenceRange' => "/reference_ranges/{$referenceRange->getId()->toRfc4122()}",
+            'value' => '1234.56',
+        ]]);
+
+        $this->assertResponseStatusCodeSame(201);
+        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
+        $this->assertJsonContains([
+            '@context' => '/contexts/Measurement',
+            '@type' => 'Measurement',
+            'labResult' => "/lab_results/{$labResult->getId()->toRfc4122()}",
+            'unit' => "/units/{$unit->getId()->toRfc4122()}",
+            'hormone' => "/hormones/{$hormone->getId()->toRfc4122()}",
+            'referenceRange' => "/reference_ranges/{$referenceRange->getId()->toRfc4122()}",
             'value' => '1234.56',
         ]);
         $this->assertMatchesRegularExpression('/^\/measurements\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
@@ -538,6 +575,46 @@ class MeasurementResourceTest extends ApiTestCase
             'hormone' => "/hormones/{$hormone->getId()->toRfc4122()}",
             'value' => '1234.56',
         ]);
+        $this->assertMatchesRegularExpression('/^\/measurements\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
+        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
+        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
+        $this->assertMatchesResourceItemJsonSchema(Measurement::class);
+    }
+    
+    public function testPatchRemovesReferenceRangeFromMeasurement(): void
+    {
+        $user = repository(User::class)->random();
+        $referenceRange = repository(ReferenceRange::class)->random(['user' => null]);
+        $labResult = repository(LabResult::class)->random(['user' => $user]);
+        $unit = repository(Unit::class)->random();
+        $hormone = repository(Hormone::class)->random();
+        
+        $measurement = MeasurementFactory::createOne(['user' => $user, 'referenceRange' => $referenceRange]);
+
+        $response = self::createAuthenticatedClient($user)->request('PATCH', "/measurements/{$measurement->getId()->toRfc4122()}", [
+            'headers' => ['content-type' => 'application/merge-patch+json'],
+            'json' => [
+                'labResult' => "/lab_results/{$labResult->getId()->toRfc4122()}",
+                'unit' => "/units/{$unit->getId()->toRfc4122()}",
+                'hormone' => "/hormones/{$hormone->getId()->toRfc4122()}",
+                'referenceRange' => null,
+                'value' => '1234.56',
+            ],
+        ]);
+
+        $this->assertResponseStatusCodeSame(200);
+        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
+        $this->assertJsonContains([
+            '@context' => '/contexts/Measurement',
+            '@type' => 'Measurement',
+            'labResult' => "/lab_results/{$labResult->getId()->toRfc4122()}",
+            'unit' => "/units/{$unit->getId()->toRfc4122()}",
+            'hormone' => "/hormones/{$hormone->getId()->toRfc4122()}",
+            'value' => '1234.56',
+        ]);
+        $this->assertNull($response->toArray()['referenceRange']);
         $this->assertMatchesRegularExpression('/^\/measurements\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
         $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
         $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);

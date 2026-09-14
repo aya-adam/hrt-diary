@@ -40,6 +40,13 @@ class Hormone
     #[ORM\OneToMany(targetEntity: Measurement::class, mappedBy: 'hormone', orphanRemoval: true)]
     private Collection $measurements;
 
+    /**
+     * @var Collection<int, ReferenceRange>
+     */
+    #[Groups(['hormone:read'])]
+    #[ORM\OneToMany(targetEntity: ReferenceRange::class, mappedBy: 'hormone', orphanRemoval: true)]
+    private Collection $referenceRanges;
+
     #[Groups(['hormone:read'])]
     #[ORM\Column(length: 100)]
     private ?string $name = null;
@@ -56,6 +63,7 @@ class Hormone
     public function __construct()
     {
         $this->measurements = new ArrayCollection();
+        $this->referenceRanges = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -87,6 +95,36 @@ class Hormone
             // set the owning side to null (unless already changed)
             if ($measurement->getHormone() === $this) {
                 $measurement->setHormone(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ReferenceRange>
+     */
+    public function getReferenceRanges(): Collection
+    {
+        return $this->referenceRanges;
+    }
+
+    public function addReferenceRange(ReferenceRange $referenceRange): static
+    {
+        if (!$this->referenceRanges->contains($referenceRange)) {
+            $this->referenceRanges->add($referenceRange);
+            $referenceRange->setHormone($this);
+        }
+
+        return $this;
+    }
+
+    public function removeReferenceRange(ReferenceRange $referenceRange): static
+    {
+        if ($this->referenceRanges->removeElement($referenceRange)) {
+            // set the owning side to null (unless already changed)
+            if ($referenceRange->getHormone() === $this) {
+                $referenceRange->setHormone(null);
             }
         }
 

@@ -10,6 +10,7 @@ use ApiPlatform\Metadata\Operation;
 use App\Entity\LabResult;
 use App\Entity\Measurement;
 use App\Entity\Post;
+use App\Entity\ReferenceRange;
 use App\Entity\User;
 use Override;
 use Symfony\Bridge\Doctrine\Types\UuidType;
@@ -46,9 +47,15 @@ final class OwnerExtension implements QueryCollectionExtensionInterface, QueryIt
         }
 
         $alias = $queryBuilder->getRootAliases()[0];
-        $resourceClass === User::class
-            ? $queryBuilder->andWhere(sprintf('%s.id = :user', $alias))
-            : $queryBuilder->andWhere(sprintf('%s.user = :user', $alias));
+
+        if ($resourceClass === User::class) {
+            $queryBuilder->andWhere(sprintf('%s.id = :user', $alias));
+        } elseif ($resourceClass === ReferenceRange::class) {
+            $queryBuilder->andWhere($queryBuilder->expr()->orX(sprintf('%s.user = :user', $alias), sprintf('%s.user IS NULL', $alias)));
+        } else {
+            $queryBuilder->andWhere(sprintf('%s.user = :user', $alias));
+        }
+
         $queryBuilder->setParameter('user', $user->getId(), UuidType::NAME);
     }
 
@@ -58,6 +65,7 @@ final class OwnerExtension implements QueryCollectionExtensionInterface, QueryIt
             LabResult::class,
             Measurement::class,
             Post::class,
+            ReferenceRange::class,
             User::class,
         ];
     }

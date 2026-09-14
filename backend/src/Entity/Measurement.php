@@ -83,6 +83,11 @@ class Measurement
     #[ORM\ManyToOne(inversedBy: 'measurements')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Hormone $hormone = null;
+    
+    #[Assert\NotBlank(allowNull: true)]
+    #[Groups(['measurement:read', 'measurement:create', 'measurement:update'])]
+    #[ORM\ManyToOne]
+    private ?ReferenceRange $referenceRange = null;
 
     #[Assert\NotBlank]
     #[Assert\Type('string')]
@@ -151,6 +156,18 @@ class Measurement
     public function setHormone(?Hormone $hormone): static
     {
         $this->hormone = $hormone;
+
+        return $this;
+    }
+
+    public function getReferenceRange(): ?ReferenceRange
+    {
+        return $this->referenceRange;
+    }
+
+    public function setReferenceRange(?ReferenceRange $referenceRange): static
+    {
+        $this->referenceRange = $referenceRange;
 
         return $this;
     }

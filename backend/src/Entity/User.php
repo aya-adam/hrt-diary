@@ -82,6 +82,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: PostEntity::class, mappedBy: 'user', orphanRemoval: true)]
     private Collection $posts;
 
+    /**
+     * @var Collection<int, ReferenceRange>
+     */
+    #[ORM\OneToMany(targetEntity: ReferenceRange::class, mappedBy: 'user')]
+    private Collection $referenceRanges;
+
     #[Assert\NotBlank]
     #[Assert\Email]
     #[Assert\Length(max: 180)]
@@ -124,6 +130,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->labResults = new ArrayCollection();
         $this->measurements = new ArrayCollection();
         $this->posts = new ArrayCollection();
+        $this->referenceRanges = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -215,6 +222,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             // set the owning side to null (unless already changed)
             if ($post->getUser() === $this) {
                 $post->setUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ReferenceRange>
+     */
+    public function getReferenceRanges(): Collection
+    {
+        return $this->referenceRanges;
+    }
+
+    public function addReferenceRange(ReferenceRange $referenceRange): static
+    {
+        if (!$this->referenceRanges->contains($referenceRange)) {
+            $this->referenceRanges->add($referenceRange);
+            $referenceRange->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeReferenceRange(ReferenceRange $referenceRange): static
+    {
+        if ($this->referenceRanges->removeElement($referenceRange)) {
+            // set the owning side to null (unless already changed)
+            if ($referenceRange->getUser() === $this) {
+                $referenceRange->setUser(null);
             }
         }
 

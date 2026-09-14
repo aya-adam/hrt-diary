@@ -4,9 +4,11 @@ namespace App\Service;
 
 use App\Entity\Hormone;
 use App\Entity\QuantityType;
+use App\Entity\ReferenceRange;
 use App\Entity\Unit;
 use App\Repository\HormoneRepository;
 use App\Repository\QuantityTypeRepository;
+use App\Repository\ReferenceRangeRepository;
 use App\Repository\UnitRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -45,7 +47,9 @@ final class DefaultDataSeeder
                 'hormones' => [
                     ['name' => 'Sex Hormone-Binding Globulin', 'commonName' => 'SHBG'],
                     ['name' => 'Progesterone', 'commonName' => 'Prog'],
-                    ['name' => 'Testosterone', 'commonName' => 'T'],
+                    ['name' => 'Testosterone', 'commonName' => 'T', 'referenceRange' => [
+                        ['name' => 'WPATH SOC8', 'lowerLimit' => '0', 'upperLimit' => '1.73', 'notes' => 'WPATH = World Professional Association for Transgender Healtz / SOC8 = Standards of Care 8th Version'],
+                    ]],
                     ['name' => 'Dihydrotestosterone', 'commonName' => 'DHT'],
                 ]
             ],
@@ -53,7 +57,9 @@ final class DefaultDataSeeder
                 'symbol' => 'pmol/L',
                 'label' => 'Picomoles per litre',
                 'hormones' => [
-                    ['name' => 'Estradiol', 'commonName' => 'E2'],
+                    ['name' => 'Estradiol', 'commonName' => 'E2', 'referenceRange' => [
+                        ['name' => 'WPATH SOC8', 'lowerLimit' => '367.12', 'upperLimit' => '734.25', 'notes' => 'WPATH = World Professional Association for Transgender Healtz / SOC8 = Standards of Care 8th Version'],
+                    ]],
                 ]
             ],
         ],
@@ -133,6 +139,7 @@ final class DefaultDataSeeder
         private readonly HormoneRepository $hormoneRepository,
         private readonly QuantityTypeRepository $quantityTypeRepository,
         private readonly UnitRepository $unitRepository,
+        private readonly ReferenceRangeRepository $referenceRangeRepository,
     ) {}
 
     public function seed(): void
@@ -148,8 +155,14 @@ final class DefaultDataSeeder
                 foreach ($units as $unitData) {
                     $unit = $this->seedUnit($quantityType, $unitData['symbol'], $unitData['label']);
 
-                    foreach ($unitData['hormones'] as $hormone) {
-                        $this->seedHormone($unit, $hormone['name'], $hormone['commonName']);
+                    foreach ($unitData['hormones'] as $hormoneData) {
+                        $hormone = $this->seedHormone($unit, $hormoneData['name'], $hormoneData['commonName']);
+
+                        if (isset($hormoneData['referenceRange']) && !empty($hormoneData['referenceRange'])) {
+                            foreach ($hormoneData['referenceRange'] as $referenceRangeData) {
+                                $this->seedReferenceRange($hormone, $referenceRangeData['name'], $referenceRangeData['lowerLimit'], $referenceRangeData['upperLimit'], $referenceRangeData['notes']);
+                            }
+                        }
                     }
                 }
             }
@@ -186,7 +199,7 @@ final class DefaultDataSeeder
 
         return $hormone;
     }
-    
+
     private function seedQuantityType(string $label): QuantityType
     {
         $existing = $this->quantityTypeRepository->findOneBy(['label' => $label]);
@@ -217,5 +230,25 @@ final class DefaultDataSeeder
         $this->em->persist($unit);
 
         return $unit;
+    }
+
+    private function seedReferenceRange(Hormone $hormone, string $name, string $lowerLimit, string $upperLimit, ?string $notes): ReferenceRange
+    {
+        $existing = $this->referenceRangeRepository->findOneBy(['hormone' => $hormone, 'name' => $name]);
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        $referenceRange = new ReferenceRange();
+        $referenceRange->setHormone($hormone);
+        $referenceRange->setUnit($hormone->getDefaultUnit());
+        $referenceRange->setName($name);
+        $referenceRange->setLowerLimit($lowerLimit);
+        $referenceRange->setUpperLimit($upperLimit);
+        if (!empty($notes)) $referenceRange->setNotes($notes);
+        $this->em->persist($referenceRange);
+
+        return $referenceRange;
     }
 }
