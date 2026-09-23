@@ -38,11 +38,12 @@ final class ReferenceRangeFactory extends PersistentObjectFactory
         $lowerLimit = self::faker()->randomFloat(2, 0, 5000);
 
         return [
+            'user' => UserFactory::new(),
             'hormone' => repository(Hormone::class)->random(),
             'unit' => repository(Unit::class)->random(),
             'name' => self::faker()->text(255),
-            'lowerLimit' => $lowerLimit,
-            'upperLimit' => self::faker()->randomFloat(2, $lowerLimit + 1, 9999.99),
+            'lowerLimit' => number_format($lowerLimit, 2, '.', ''),
+            'upperLimit' => number_format(self::faker()->randomFloat(2, $lowerLimit + 1, 9999.99), 2, '.', ''),
             'notes' => self::faker()->paragraphs(self::faker()->numberBetween(1, 3), true),
         ];
     }
