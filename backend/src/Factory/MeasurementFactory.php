@@ -36,10 +36,11 @@ final class MeasurementFactory extends PersistentObjectFactory
     protected function defaults(): array|callable
     {
         return [
+            'user' => UserFactory::new(),
             'hormone' => repository(Hormone::class)->random(),
             'labResult' => LabResultFactory::new(),
             'unit' => repository(Unit::class)->random(),
-            'value' => self::faker()->randomFloat(2, 0, 9999.99),
+            'value' => number_format(self::faker()->randomFloat(2, 0, 9999.99), 2, '.', ''),
         ];
     }
 
