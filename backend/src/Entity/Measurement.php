@@ -2,14 +2,11 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Doctrine\Orm\Filter\IriFilter;
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Delete;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
-use ApiPlatform\Metadata\Patch;
-use ApiPlatform\Metadata\Post;
-use ApiPlatform\Metadata\QueryParameter;
+use ApiPlatform\Metadata\GraphQl\DeleteMutation;
+use ApiPlatform\Metadata\GraphQl\Mutation;
+use ApiPlatform\Metadata\GraphQl\Query;
+use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use App\Repository\MeasurementRepository;
 use App\State\MeasurementStateProcessor;
 use Doctrine\DBAL\Types\Types;
@@ -22,38 +19,36 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: MeasurementRepository::class)]
 #[ApiResource(
-    operations: [
-        new Get(
-            normalizationContext: ['groups' => ['measurement:read']],
-            security: 'object.getUser() == user or is_granted(\'ROLE_ADMIN\')',
+    security: 'is_granted(\'IS_AUTHENTICATED\')',
+    operations: [],
+    graphQlOperations: [
+        new Query(
+            normalizationContext: ['groups' => ['read']],
         ),
-        new GetCollection(
-            normalizationContext: ['groups' => ['measurement:read']],
-            parameters: [
-                'hormone' => new QueryParameter(filter: new IriFilter()),
-                'labResult' => new QueryParameter(filter: new IriFilter()),
-            ],
+        new QueryCollection(
+            normalizationContext: ['groups' => ['read']],
         ),
-        new Post(
-            normalizationContext: ['groups' => ['measurement:read']],
+        new Mutation(
+            name: 'create',
+            normalizationContext: ['groups' => ['read']],
             denormalizationContext: ['groups' => ['measurement:create']],
             processor: MeasurementStateProcessor::class,
         ),
-        new Patch(
-            normalizationContext: ['groups' => ['measurement:read']],
+        new Mutation(
+            name: 'update',
+            normalizationContext: ['groups' => ['read']],
             denormalizationContext: ['groups' => ['measurement:update']],
-            security: 'object.getUser() == user or is_granted(\'ROLE_ADMIN\')',
             processor: MeasurementStateProcessor::class,
         ),
-        new Delete(
-            security: 'object.getUser() == user or is_granted(\'ROLE_ADMIN\')',
+        new DeleteMutation(
+            name: 'delete',
             processor: MeasurementStateProcessor::class,
         ),
     ],
 )]
 class Measurement
 {
-    #[Groups(['measurement:read'])]
+    #[Groups(['read'])]
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
@@ -65,7 +60,7 @@ class Measurement
     private ?User $user = null;
 
     #[Assert\NotBlank]
-    #[Groups(['measurement:read', 'measurement:create', 'measurement:update'])]
+    #[Groups(['read', 'measurement:create', 'measurement:update'])]
     #[ORM\ManyToOne(inversedBy: 'measurements')]
     #[ORM\JoinColumn(nullable: false)]
     private ?LabResult $labResult = null;
@@ -73,19 +68,19 @@ class Measurement
     #[Assert\DisableAutoMapping]
     #[Assert\NotBlank(allowNull: true)]
     #[Assert\Type(Unit::class)]
-    #[Groups(['measurement:read', 'measurement:create', 'measurement:update'])]
+    #[Groups(['read', 'measurement:create', 'measurement:update', 'post:create'])]
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
     private ?Unit $unit = null;
 
     #[Assert\NotBlank]
-    #[Groups(['measurement:read', 'measurement:create', 'measurement:update'])]
+    #[Groups(['read', 'measurement:create', 'measurement:update', 'post:create'])]
     #[ORM\ManyToOne(inversedBy: 'measurements')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Hormone $hormone = null;
-    
+
     #[Assert\NotBlank(allowNull: true)]
-    #[Groups(['measurement:read', 'measurement:create', 'measurement:update'])]
+    #[Groups(['read', 'measurement:create', 'measurement:update', 'post:create'])]
     #[ORM\ManyToOne]
     private ?ReferenceRange $referenceRange = null;
 
@@ -93,16 +88,16 @@ class Measurement
     #[Assert\Type('string')]
     #[Assert\Type('numeric')]
     #[Assert\Regex('/^(0|[1-9]\d{0,3})(\.\d{1,2})?$/', message: 'Invalid number. Enter a value between 0 and 9999.99 with up to 2 decimal places (e.g. 42 or 42.5).')]
-    #[Groups(['measurement:read', 'measurement:create', 'measurement:update'])]
+    #[Groups(['read', 'measurement:create', 'measurement:update', 'post:create'])]
     #[ORM\Column(type: Types::DECIMAL, precision: 6, scale: 2)]
     private ?string $value = null;
 
-    #[Groups(['measurement:read'])]
+    #[Groups(['read'])]
     #[ORM\Column]
     #[Gedmo\Timestampable(on: 'create')]
     private ?\DateTimeImmutable $createdAt = null;
 
-    #[Groups(['measurement:read'])]
+    #[Groups(['read'])]
     #[ORM\Column]
     #[Gedmo\Timestampable(on: 'update')]
     private ?\DateTimeImmutable $updatedAt = null;
@@ -184,10 +179,10 @@ class Measurement
         return $this;
     }
 
-    #[Groups(['measurement:read'])]
+    #[Groups(['read'])]
     public function getDrawnAt(): ?\DateTimeImmutable
     {
-        return $this->labResult->getCreatedAt();
+        return $this->labResult->getDrawnAt();
     }
 
     public function getCreatedAt(): ?\DateTimeImmutable

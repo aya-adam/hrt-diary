@@ -3,16 +3,17 @@
 namespace App\Tests\Api;
 
 use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
-use App\Entity\QuantityType;
 use App\Entity\Unit;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
+use App\Tests\Support\GraphQlTestTrait;
+use App\Tests\Support\RegexTrait;
 
 use function Zenstruck\Foundry\Persistence\repository;
 
 class UnitResourceTest extends ApiTestCase
 {
-    use AuthenticatedClientTrait;
+    use AuthenticatedClientTrait, GraphQlTestTrait, RegexTrait;
 
     /**
      * If you're using RecreateDatabaseTrait, RefreshDatabaseTrait, ReloadDatabaseTrait from theofidry/AliceBundle, you
@@ -28,103 +29,193 @@ class UnitResourceTest extends ApiTestCase
     {
         $user = UserFactory::createOne();
 
-        $response = self::createAuthenticatedClient($user)->request('GET', '/units');
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains(['totalItems' => 19]);
-        $this->assertCount(19, $response->toArray()['member']);
-        $this->assertMatchesResourceCollectionJsonSchema(Unit::class);
+        $query = <<<'GQL'
+            query Units {
+                units {
+                    id
+                    symbol
+                    label
+                }
+            }
+        GQL;
+
+        $body = $this->executeGraphQl($client, $query, [], 'Units')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertCount(19, $body['data']['units']);
+
+        foreach ($body['data']['units'] as $unit) {
+            $this->assertMatchesIri($unit['id'], Unit::class);
+            $this->assertIsString($unit['symbol']);
+            $this->assertIsString($unit['label']);
+        }
     }
 
-    public function testGetCollectionReturns401ForAnonymousUser(): void
+    public function testGetCollectionReturns403ForAnonymousUser(): void
     {
-        self::createClient()->request('GET', '/units');
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
+        $query = <<<'GQL'
+            query Units {
+                units {
+                    id
+                    symbol
+                    label
+                }
+            }
+        GQL;
+
+        $body = $this->executeGraphQl($client, $query, [], 'Units')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 403);
+        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlDebugMessage($body, 'Access Denied.');
+        $this->assertNull($body['data']['units']);
     }
 
     public function testGetItemReturnsUnit(): void
     {
-        $unitRespository = repository(Unit::class);
-        $unit = $unitRespository->first();
-
         $user = UserFactory::createOne();
+        $unit = repository(Unit::class)->random();
 
-        self::createAuthenticatedClient($user)->request('GET', "/units/{$unit->getId()->toRfc4122()}");
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertMatchesResourceItemJsonSchema(Unit::class);
+        $query = <<<'GQL'
+            query Unit($id: ID!) {
+                unit(id: $id) {
+                    id
+                    symbol
+                    label
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($unit),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'Unit')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertSame($this->getIriFromResource($unit), $body['data']['unit']['id']);
+        $this->assertSame($unit->getSymbol(), $body['data']['unit']['symbol']);
+        $this->assertSame($unit->getLabel(), $body['data']['unit']['label']);
     }
 
-    public function testGetItemReturns401ForAnonymousUser(): void
+    public function testGetItemReturns403ForAnonymousUser(): void
     {
-        $unitRespository = repository(Unit::class);
-        $unit = $unitRespository->first();
+        $unit = repository(Unit::class)->random();
 
-        self::createClient()->request('GET', "/units/{$unit->getId()->toRfc4122()}");
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
+        $query = <<<'GQL'
+            query Unit($id: ID!) {
+                unit(id: $id) {
+                    id
+                    symbol
+                    label
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($unit),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'Unit')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 403);
+        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlDebugMessage($body, 'Access Denied.');
+        $this->assertNull($body['data']['unit']);
     }
 
-    public function testPostReturns405(): void
+    public function testPostReturnsError(): void
     {
-        $quantityTypeRespository = repository(QuantityType::class);
-        $quantityType = $quantityTypeRespository->first();
-
         $user = UserFactory::createOne();
 
-        self::createAuthenticatedClient($user)->request('POST', '/units', ['json' => [
-            'quantityType' => "/quantity_types/{$quantityType->getId()->toRfc4122()}",
+        $client = self::createAuthenticatedClient($user);
+
+        $query = <<<'GQL'
+            mutation CreateUnit($symbol: String!, $label: String!) {
+                createUnit(input: { symbol: $symbol, label: $label }) {
+                    unit {
+                        id
+                        symbol
+                        label
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
             'symbol' => 'km/h',
             'label' => 'Kilometers per hour',
-        ]]);
+        ];
 
-        $this->assertResponseStatusCodeSame(405);
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateUnit')->toArray(false);
+
+        $this->assertGraphQlHasErrors($body);
+        $this->assertNull($body['data']);
     }
 
-    public function testPatchReturns405(): void
+    public function testPatchReturnsError(): void
     {
-        $quantityTypeRespository = repository(QuantityType::class);
-        $quantityType = $quantityTypeRespository->first();
-
-        $unitRespository = repository(Unit::class);
-        $unit = $unitRespository->first();
-
         $user = UserFactory::createOne();
+        $unit = repository(Unit::class)->random();
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/units/{$unit->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'quantityType' => "/quantity_types/{$quantityType->getId()->toRfc4122()}",
-                'symbol' => 'km/h',
-                'label' => 'Kilometers per hour',
-            ]
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(405);
+        $query = <<<'GQL'
+            mutation UpdateUnit($id: ID!, $symbol: String!, $label: String!) {
+                updateUnit(input: { id: $id, symbol: $symbol, label: $label }) {
+                    unit {
+                        id
+                        symbol
+                        label
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($unit),
+            'symbol' => 'km/h',
+            'label' => 'Kilometers per hour',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUnit')->toArray(false);
+
+        $this->assertGraphQlHasErrors($body);
+        $this->assertNull($body['data']);
     }
 
-    public function testDeleteReturns405(): void
+    public function testDeleteReturnsError(): void
     {
-        $unitRespository = repository(Unit::class);
-        $unit = $unitRespository->first();
-
         $user = UserFactory::createOne();
+        $unit = repository(Unit::class)->random();
 
-        self::createAuthenticatedClient($user)->request('DELETE', "/units/{$unit->getId()->toRfc4122()}");
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(405);
+        $query = <<<'GQL'
+            mutation DeleteUnit($id: ID!) {
+                deleteUnit(input: { id: $id }) {
+                    unit {
+                        id
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($unit),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'DeleteUnit')->toArray(false);
+
+        $this->assertGraphQlHasErrors($body);
+        $this->assertNull($body['data']);
     }
 }

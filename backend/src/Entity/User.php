@@ -3,11 +3,10 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Delete;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
-use ApiPlatform\Metadata\Patch;
-use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\GraphQl\DeleteMutation;
+use ApiPlatform\Metadata\GraphQl\Mutation;
+use ApiPlatform\Metadata\GraphQl\Query;
+use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use App\Entity\Post as PostEntity;
 use App\Repository\UserRepository;
 use App\State\UserStateProcessor;
@@ -28,36 +27,41 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
 #[UniqueEntity(fields: 'email', identifierFieldNames: ['id'], message: 'This email is already in use.')]
 #[ApiResource(
-    operations: [
-        new Get(
-            normalizationContext: ['groups' => ['user:read']],
-            security: 'object == user or is_granted(\'ROLE_ADMIN\')',
+    operations: [],
+    graphQlOperations: [
+        new Query(
+            normalizationContext: ['groups' => ['read']],
+            security: 'is_granted(\'IS_AUTHENTICATED\')',
         ),
-        new GetCollection(
-            normalizationContext: ['groups' => ['user:read']],
+        new QueryCollection(
+            normalizationContext: ['groups' => ['read']],
+            security: 'is_granted(\'IS_AUTHENTICATED\')',
         ),
-        new Post(
-            normalizationContext: ['groups' => ['user:read']],
+        new Mutation(
+            name: 'create',
+            normalizationContext: ['groups' => ['read']],
             denormalizationContext: ['groups' => ['user:create']],
             validationContext: ['groups' => ['Default', 'user:create']],
             processor: UserStateProcessor::class,
         ),
-        new Patch(
-            normalizationContext: ['groups' => ['user:read']],
+        new Mutation(
+            name: 'update',
+            normalizationContext: ['groups' => ['read']],
             denormalizationContext: ['groups' => ['user:update']],
-            security: 'object == user or is_granted(\'ROLE_ADMIN\')',
             validationContext: ['groups' => ['Default', 'user:update']],
+            security: 'is_granted(\'IS_AUTHENTICATED\')',
             processor: UserStateProcessor::class,
         ),
-        new Delete(
-            security: 'object == user or is_granted(\'ROLE_ADMIN\')',
+        new DeleteMutation(
+            name: 'delete',
+            security: 'is_granted(\'IS_AUTHENTICATED\')',
             processor: UserStateProcessor::class,
         ),
     ],
 )]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
-    #[Groups(['user:read'])]
+    #[Groups(['read', 'user:login:read'])]
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
@@ -67,37 +71,42 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @var Collection<int, LabResult>
      */
+    #[Groups(['read'])]
     #[ORM\OneToMany(targetEntity: LabResult::class, mappedBy: 'user', orphanRemoval: true)]
     private Collection $labResults;
 
     /**
      * @var Collection<int, Measurement>
      */
+    #[Groups(['read'])]
     #[ORM\OneToMany(targetEntity: Measurement::class, mappedBy: 'user', orphanRemoval: true)]
     private Collection $measurements;
 
     /**
      * @var Collection<int, PostEntity>
      */
+    #[Groups(['read'])]
     #[ORM\OneToMany(targetEntity: PostEntity::class, mappedBy: 'user', orphanRemoval: true)]
     private Collection $posts;
 
     /**
      * @var Collection<int, ReferenceRange>
      */
+    #[Groups(['read'])]
     #[ORM\OneToMany(targetEntity: ReferenceRange::class, mappedBy: 'user')]
     private Collection $referenceRanges;
 
     #[Assert\NotBlank]
     #[Assert\Email]
     #[Assert\Length(max: 180)]
-    #[Groups(['user:read', 'user:create', 'user:update'])]
+    #[Groups(['read', 'user:create', 'user:login:read', 'user:update'])]
     #[ORM\Column(length: 180)]
     private ?string $email = null;
 
     /**
      * @var list<string> The user roles
      */
+    #[Groups(['read'])]
     #[ORM\Column]
     private array $roles = [];
 
@@ -115,12 +124,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:create', 'user:update'])]
     private ?string $plainPassword = null;
 
-    #[Groups(['user:read'])]
+    #[Groups(['read', 'user:login:read'])]
     #[ORM\Column]
     #[Gedmo\Timestampable(on: 'create')]
     private ?\DateTimeImmutable $createdAt = null;
 
-    #[Groups(['user:read'])]
+    #[Groups(['read', 'user:login:read'])]
     #[ORM\Column]
     #[Gedmo\Timestampable(on: 'update')]
     private ?\DateTimeImmutable $updatedAt = null;

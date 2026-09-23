@@ -3,8 +3,8 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\GraphQl\Query;
+use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use App\Repository\HormoneRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -15,18 +15,17 @@ use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: HormoneRepository::class)]
 #[ApiResource(
-    operations: [
-        new Get(
-            normalizationContext: ['groups' => ['hormone:read']],
-        ),
-        new GetCollection(
-            normalizationContext: ['groups' => ['hormone:read']],
-        ),
+    security: 'is_granted(\'IS_AUTHENTICATED\')',
+    normalizationContext: ['groups' => ['read']],
+    operations: [],
+    graphQlOperations: [
+        new Query(),
+        new QueryCollection(),
     ],
 )]
 class Hormone
 {
-    #[Groups(['hormone:read'])]
+    #[Groups(['read'])]
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
@@ -36,26 +35,26 @@ class Hormone
     /**
      * @var Collection<int, Measurement>
      */
-    #[Groups(['hormone:read'])]
+    #[Groups(['read'])]
     #[ORM\OneToMany(targetEntity: Measurement::class, mappedBy: 'hormone', orphanRemoval: true)]
     private Collection $measurements;
 
     /**
      * @var Collection<int, ReferenceRange>
      */
-    #[Groups(['hormone:read'])]
+    #[Groups(['read'])]
     #[ORM\OneToMany(targetEntity: ReferenceRange::class, mappedBy: 'hormone', orphanRemoval: true)]
     private Collection $referenceRanges;
 
-    #[Groups(['hormone:read'])]
+    #[Groups(['read'])]
     #[ORM\Column(length: 100)]
     private ?string $name = null;
 
-    #[Groups(['hormone:read'])]
+    #[Groups(['read'])]
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $commonName = null;
 
-    #[Groups(['hormone:read'])]
+    #[Groups(['read'])]
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
     private ?Unit $defaultUnit = null;

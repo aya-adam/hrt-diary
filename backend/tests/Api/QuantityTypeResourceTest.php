@@ -7,12 +7,15 @@ use App\Entity\QuantityType;
 use App\Entity\Unit;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
+use App\Tests\Support\GraphQlTestTrait;
+use App\Tests\Support\RegexTrait;
+use Override;
 
 use function Zenstruck\Foundry\Persistence\repository;
 
 class QuantityTypeResourceTest extends ApiTestCase
 {
-    use AuthenticatedClientTrait;
+    use AuthenticatedClientTrait, GraphQlTestTrait, RegexTrait;
 
     /**
      * If you're using RecreateDatabaseTrait, RefreshDatabaseTrait, ReloadDatabaseTrait from theofidry/AliceBundle, you
@@ -24,115 +27,203 @@ class QuantityTypeResourceTest extends ApiTestCase
      */
     protected static ?bool $alwaysBootKernel = true;
 
-    public function testGetCollectionReturnsQuyntityTypes(): void
+    #[Override]
+    protected function setUp(): void
     {
-        $user = UserFactory::createOne();
+        parent::setUp();
 
-        $response = self::createAuthenticatedClient($user)->request('GET', '/quantity_types');
-
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains(['totalItems' => 3]);
-        $this->assertCount(3, $response->toArray()['member']);
-        $this->assertMatchesResourceCollectionJsonSchema(QuantityType::class);
+        UserFactory::createMany(10);
     }
 
-    public function testGetCollectionReturns401ForAnonymousUser(): void
+    public function testGetCollectionReturnsQuantityTypes(): void
     {
-        self::createClient()->request('GET', '/quantity_types');
+        $user = UserFactory::random();
 
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
+        $client = self::createAuthenticatedClient($user);
+
+        $query = <<<'GQL'
+            query QuantityTypes {
+                quantityTypes {
+                    id
+                    label
+                    slug
+                }
+            }
+        GQL;
+
+        $body = $this->executeGraphQl($client, $query, [], 'QuantityTypes')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertCount(3, $body['data']['quantityTypes']);
+
+        foreach ($body['data']['quantityTypes'] as $unit) {
+            $this->assertMatchesIri($unit['id'], QuantityType::class);
+            $this->assertIsString($unit['label']);
+            $this->assertIsString($unit['slug']);
+        }
     }
 
-    public function testGetItemReturnsQuyntityType(): void
+    public function testGetCollectionReturns403ForAnonymousUser(): void
     {
-        $quantityTypeRespository = repository(QuantityType::class);
-        $quantityType = $quantityTypeRespository->first();
+        $client = self::createClient();
 
-        $user = UserFactory::createOne();
+        $query = <<<'GQL'
+            query QuantityTypes {
+                quantityTypes {
+                    id
+                    label
+                    slug
+                }
+            }
+        GQL;
 
-        self::createAuthenticatedClient($user)->request('GET', "/quantity_types/{$quantityType->getId()->toRfc4122()}");
+        $body = $this->executeGraphQl($client, $query, [], 'QuantityTypes')->toArray(false);
 
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertMatchesResourceItemJsonSchema(QuantityType::class);
+        $this->assertGraphQlErrorStatus($body, 403);
+        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlDebugMessage($body, 'Access Denied.');
+        $this->assertNull($body['data']['quantityTypes']);
+    }
+
+    public function testGetItemReturnsQuantityType(): void
+    {
+        $user = UserFactory::random();
+        $quantityType = repository(QuantityType::class)->random();
+
+        $client = self::createAuthenticatedClient($user);
+
+        $query = <<<'GQL'
+            query QuantityType($id: ID!) {
+                quantityType(id: $id) {
+                    id
+                    label
+                    slug
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($quantityType),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'QuantityType')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertSame($this->getIriFromResource($quantityType), $body['data']['quantityType']['id']);
+        $this->assertSame($quantityType->getLabel(), $body['data']['quantityType']['label']);
+        $this->assertSame($quantityType->getSlug(), $body['data']['quantityType']['slug']);
     }
 
     public function testGetItemReturns401ForAnonymousUser(): void
     {
-        $quantityTypeRespository = repository(QuantityType::class);
-        $quantityType = $quantityTypeRespository->first();
+        $quantityType = repository(QuantityType::class)->random();
 
-        self::createClient()->request('GET', "/quantity_types/{$quantityType->getId()->toRfc4122()}");
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
+        $query = <<<'GQL'
+            query QuantityType($id: ID!) {
+                quantityType(id: $id) {
+                    id
+                    label
+                    slug
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($quantityType),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'QuantityType')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 403);
+        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlDebugMessage($body, 'Access Denied.');
+        $this->assertNull($body['data']['quantityType']);
     }
 
     public function testPostReturns405(): void
     {
-        $unitRespository = repository(Unit::class);
-        $units = $unitRespository->findAll();
+        $user = UserFactory::random();
 
-        $user = UserFactory::createOne();
+        $client = self::createAuthenticatedClient($user);
 
-        self::createAuthenticatedClient($user)->request('POST', '/quantity_types', ['json' => [
-            'units' => [
-                "/units/{$units[0]->getId()->toRfc4122()}",
-                "/units/{$units[1]->getId()->toRfc4122()}",
-                "/units/{$units[2]->getId()->toRfc4122()}",
-                "/units/{$units[3]->getId()->toRfc4122()}",
-            ],
-            'label' => 'Acceleration',
-        ]]);
+        $query = <<<'GQL'
+            mutation CreateQuantityType($label: String!) {
+                createQuantityType(input: { label: $label }) {
+                    quantityType {
+                        id
+                        label
+                        slug
+                    }
+                }
+            }
+        GQL;
 
-        $this->assertResponseStatusCodeSame(405);
+        $variables = [
+            'label' => 'New quantity type label',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateQuantityType')->toArray(false);
+
+        $this->assertGraphQlHasErrors($body);
+        $this->assertNull($body['data']);
     }
 
     public function testPatchReturns405(): void
     {
-        $quantityTypeRespository = repository(QuantityType::class);
-        $quantityType = $quantityTypeRespository->first();
+        $user = UserFactory::random();
+        $quantityType = repository(QuantityType::class)->random();
 
-        $unitRespository = repository(Unit::class);
-        $units = $unitRespository->findAll();
+        $client = self::createAuthenticatedClient($user);
 
-        $user = UserFactory::createOne();
+        $query = <<<'GQL'
+            mutation UpdateQuantityType($id: ID!, $label: String!) {
+                updateQuantityType(input: { id: $id, label: $label }) {
+                    quantityType {
+                        id
+                        label
+                        slug
+                    }
+                }
+            }
+        GQL;
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/quantity_types/{$quantityType->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'units' => [
-                    "/units/{$units[0]->getId()->toRfc4122()}",
-                    "/units/{$units[1]->getId()->toRfc4122()}",
-                    "/units/{$units[2]->getId()->toRfc4122()}",
-                    "/units/{$units[3]->getId()->toRfc4122()}",
-                ],
-                'label' => 'Acceleration',
-            ]
-        ]);
+        $variables = [
+            'id' => $this->getIriFromResource($quantityType),
+            'label' => 'Updated quantity type label',
+        ];
 
-        $this->assertResponseStatusCodeSame(405);
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateQuantityType')->toArray(false);
+
+        $this->assertGraphQlHasErrors($body);
+        $this->assertNull($body['data']);
     }
 
     public function testDeleteReturns405(): void
     {
-        $unitRespository = repository(Unit::class);
-        $unit = $unitRespository->first();
+        $user = UserFactory::random();
+        $quantityType = repository(QuantityType::class)->random();
 
-        $user = UserFactory::createOne();
+        $client = self::createAuthenticatedClient($user);
 
-        self::createAuthenticatedClient($user)->request('DELETE', "/quantity_types/{$unit->getId()->toRfc4122()}");
+        $query = <<<'GQL'
+            mutation DeleteQuantityType($id: ID!) {
+                deleteQuantityType(input: { id: $id }) {
+                    quantityType {
+                        id
+                    }
+                }
+            }
+        GQL;
 
-        $this->assertResponseStatusCodeSame(405);
+        $variables = [
+            'id' => $this->getIriFromResource($quantityType),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'DeleteQuantityType')->toArray(false);
+
+        $this->assertGraphQlHasErrors($body);
+        $this->assertNull($body['data']);
     }
 }

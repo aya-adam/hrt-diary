@@ -3,10 +3,10 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Delete;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
-use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\GraphQl\DeleteMutation;
+use ApiPlatform\Metadata\GraphQl\Mutation;
+use ApiPlatform\Metadata\GraphQl\Query;
+use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use App\Repository\PostRepository;
 use App\State\PostStateProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -21,34 +21,36 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: PostRepository::class)]
 #[ApiResource(
-    operations: [
-        new Get(
-            normalizationContext: ['groups' => ['post:read']],
-            security: 'object.getUser() == user or is_granted(\'ROLE_ADMIN\')',
+    security: 'is_granted(\'IS_AUTHENTICATED\')',
+    operations: [],
+    graphQlOperations: [
+        new Query(
+            normalizationContext: ['groups' => ['read']],
         ),
-        new GetCollection(
-            normalizationContext: ['groups' => ['post:read']],
+        new QueryCollection(
+            normalizationContext: ['groups' => ['read']],
         ),
-        new \ApiPlatform\Metadata\Post(
-            normalizationContext: ['groups' => ['post:read']],
+        new Mutation(
+            name: 'create',
+            normalizationContext: ['groups' => ['read']],
             denormalizationContext: ['groups' => ['post:create']],
             processor: PostStateProcessor::class,
         ),
-        new Patch(
-            normalizationContext: ['groups' => ['post:read']],
+        new Mutation(
+            name: 'update',
+            normalizationContext: ['groups' => ['read']],
             denormalizationContext: ['groups' => ['post:update']],
-            security: 'object.getUser() == user or is_granted(\'ROLE_ADMIN\')',
             processor: PostStateProcessor::class,
         ),
-        new Delete(
-            security: 'object.getUser() == user or is_granted(\'ROLE_ADMIN\')',
+        new DeleteMutation(
+            name: 'delete',
             processor: PostStateProcessor::class,
         ),
     ],
 )]
 class Post
 {
-    #[Groups(['post:read'])]
+    #[Groups(['read'])]
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
@@ -62,24 +64,24 @@ class Post
     /**
      * @var Collection<int, LabResult>
      */
-    #[Groups(['post:read', 'post:create', 'post:update'])]
+    #[Groups(['read', 'post:create', 'post:update'])]
     #[ORM\ManyToMany(targetEntity: LabResult::class, mappedBy: 'posts')]
     private Collection $labResults;
 
     #[Assert\NotBlank]
     #[Assert\Length(max: 255)]
-    #[Groups(['post:read', 'post:create', 'post:update'])]
+    #[Groups(['read', 'post:create', 'post:update'])]
     #[ORM\Column(length: 255)]
     private ?string $title = null;
 
     #[Assert\NotBlank(allowNull: true)]
     #[Assert\Length(max: 255)]
-    #[Groups(['post:read', 'post:create', 'post:update'])]
+    #[Groups(['read', 'post:create', 'post:update'])]
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $excerpt = null;
 
     #[Assert\NotBlank(allowNull: true)]
-    #[Groups(['post:read', 'post:create', 'post:update'])]
+    #[Groups(['read', 'post:create', 'post:update'])]
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $text = null;
 
@@ -87,16 +89,16 @@ class Post
     #[Groups(['post:create', 'post:update'])]
     private ?bool $published = null;
 
-    #[Groups(['post:read'])]
+    #[Groups(['read'])]
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $publishedAt = null;
 
-    #[Groups(['post:read'])]
+    #[Groups(['read'])]
     #[ORM\Column]
     #[Gedmo\Timestampable(on: 'create')]
     private ?\DateTimeImmutable $createdAt = null;
 
-    #[Groups(['post:read'])]
+    #[Groups(['read'])]
     #[ORM\Column]
     #[Gedmo\Timestampable(on: 'update')]
     private ?\DateTimeImmutable $updatedAt = null;

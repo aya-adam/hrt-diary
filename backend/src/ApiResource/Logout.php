@@ -21,6 +21,7 @@ use App\Controller\LogoutController;
                 summary: 'Invalidates the access_token / refresh_token cookies',
             ),
         )
-    ]
+    ],
+    graphQlOperations: [],
 )]
 class Logout {}

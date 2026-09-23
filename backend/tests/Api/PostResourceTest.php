@@ -4,16 +4,18 @@ namespace App\Tests\Api;
 
 use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
 use App\Entity\Post;
-use App\Factory\LabResultFactory;
 use App\Factory\PostFactory;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
+use App\Tests\Support\GraphQlTestTrait;
+use App\Tests\Support\RegexTrait;
+use Override;
 
 use function Zenstruck\Foundry\faker;
 
 class PostResourceTest extends ApiTestCase
 {
-    use AuthenticatedClientTrait;
+    use AuthenticatedClientTrait, GraphQlTestTrait, RegexTrait;
 
     /**
      * If you're using RecreateDatabaseTrait, RefreshDatabaseTrait, ReloadDatabaseTrait from theofidry/AliceBundle, you
@@ -25,752 +27,1055 @@ class PostResourceTest extends ApiTestCase
      */
     protected static ?bool $alwaysBootKernel = true;
 
-    public function testGetCollectionReturnsOwnedPostsAsRegularUser(): void
+    #[Override]
+    public function setUp(): void
     {
-        $user = UserFactory::createOne();
+        parent::setUp();
 
-        PostFactory::createMany(20, ['user' => $user]);
-        PostFactory::createMany(20);
+        UserFactory::createMany(10);
 
-        $response = self::createAuthenticatedClient($user)->request('GET', '/posts');
-
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains(['totalItems' => 20]);
-        $this->assertCount(20, $response->toArray()['member']);
-        $this->assertMatchesResourceCollectionJsonSchema(Post::class);
+        foreach (UserFactory::all() as $user) {
+            PostFactory::createMany(10, ['user' => $user]);
+        }
     }
 
-    public function testGetCollectionReturns401ForAnonymousUser(): void
+    public function testGetCollectionReturnsOwnedPostsAsRegularUser(): void
     {
-        PostFactory::createMany(20);
+        $user = UserFactory::random();
 
-        self::createClient()->request('GET', '/posts');
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
+        $query = <<<'GQL'
+            query Posts {
+                posts {
+                    id
+                    title
+                    excerpt
+                    text
+                    publishedAt
+                    createdAt
+                    updatedAt
+                }
+            }
+        GQL;
+
+        $body = $this->executeGraphQl($client, $query, [], 'Posts')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertCount(10, $body['data']['posts']);
+
+        foreach ($body['data']['posts'] as $post) {
+            $this->assertMatchesIri($post['id'], Post::class);
+            $this->assertIsString($post['title']);
+            $this->assertArrayHasKey('excerpt', $post);
+            $this->assertArrayHasKey('text', $post);
+            $this->assertArrayHasKey('publishedAt', $post);
+            $this->assertMatchesDate($post['createdAt']);
+            $this->assertMatchesDate($post['updatedAt']);
+        }
+    }
+
+    public function testGetCollectionReturns403ForAnonymousUser(): void
+    {
+        $client = self::createClient();
+
+        $query = <<<'GQL'
+            query Posts {
+                posts {
+                    id
+                    title
+                    excerpt
+                    text
+                    publishedAt
+                    createdAt
+                    updatedAt
+                }
+            }
+        GQL;
+
+        $body = $this->executeGraphQl($client, $query, [], 'Posts')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 403);
+        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlDebugMessage($body, 'Access Denied.');
+        $this->assertNull($body['data']['posts']);
     }
 
     public function testGetItemReturnsOwnedPostAsRegularUser(): void
     {
-        $user = UserFactory::createOne();
-        $post = PostFactory::createOne(['user' => $user]);
+        $user = UserFactory::random();
+        $post = PostFactory::random(['user' => $user]);
 
-        self::createAuthenticatedClient($user)->request('GET', "/posts/{$post->getId()->toRfc4122()}");
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertMatchesResourceItemJsonSchema(Post::class);
+        $query = <<<'GQL'
+            query Post($id: ID!) {
+                post(id: $id) {
+                    id
+                    title
+                    excerpt
+                    text
+                    publishedAt
+                    createdAt
+                    updatedAt
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($post),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'Post')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertSame($this->getIriFromResource($post), $body['data']['post']['id']);
+        $this->assertSame($post->getTitle(), $body['data']['post']['title']);
+        $this->assertSame($post->getExcerpt(), $body['data']['post']['excerpt']);
+        $this->assertSame($post->getText(), $body['data']['post']['text']);
+        $this->assertSame($post->getCreatedAt()->format('c'), $body['data']['post']['createdAt']);
+        $this->assertSame($post->getUpdatedAt()->format('c'), $body['data']['post']['updatedAt']);
     }
 
-    public function testGetItemReturns404ForNonOwnerAsRegularUser(): void
+    public function testGetItemReturnsNullForNonOwnerAsRegularUser(): void
     {
-        $user = UserFactory::createOne();
-        $post = PostFactory::createOne(['user' => UserFactory::createOne()]);
+        [$user1, $user2] = UserFactory::randomSet(2);
+        $post = PostFactory::random(['user' => $user2]);
 
-        self::createAuthenticatedClient($user)->request('GET', "/posts/{$post->getId()->toRfc4122()}");
+        $client = self::createAuthenticatedClient($user1);
 
-        $this->assertResponseStatusCodeSame(404);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $query = <<<'GQL'
+            query Post($id: ID!) {
+                post(id: $id) {
+                    id
+                    title
+                    excerpt
+                    text
+                    publishedAt
+                    createdAt
+                    updatedAt
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($post),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'Post')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertNull($body['data']['post']);
     }
 
-    public function testGetItemReturns401ForAnonymousUser(): void
+    public function testGetItemReturns403ForAnonymousUser(): void
     {
-        $post = PostFactory::createOne();
+        $post = PostFactory::random();
 
-        self::createClient()->request('GET', "/posts/{$post->getId()->toRfc4122()}");
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
+        $query = <<<'GQL'
+            query Post($id: ID!) {
+                post(id: $id) {
+                    id
+                    title
+                    excerpt
+                    text
+                    publishedAt
+                    createdAt
+                    updatedAt
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($post),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'Post')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 403);
+        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlDebugMessage($body, 'Access Denied.');
+        $this->assertNull($body['data']['post']);
     }
 
     public function testPostCreatesPost(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        $response = self::createAuthenticatedClient($user)->request('POST', '/posts', ['json' => [
-            'title' => 'Test Post Title',
-            'excerpt' => 'Test Post Excerpt',
-            'text' => 'Test Post Text',
-        ]]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(201);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/Post',
-            '@type' => 'Post',
-            'title' => 'Test Post Title',
-            'excerpt' => 'Test Post Excerpt',
-            'text' => 'Test Post Text',
-        ]);
-        $this->assertNull($response->toArray()['publishedAt']);
-        $this->assertMatchesRegularExpression('/^\/posts\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
-        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-        $this->assertMatchesResourceItemJsonSchema(Post::class);
+        $query = <<<'GQL'
+            mutation CreatePost($title: String!, $excerpt: String, $text: String) {
+                createPost(input: { title: $title, excerpt: $excerpt, text: $text }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'title' => 'New post title',
+            'excerpt' => 'New post excerpt',
+            'text' => 'New post text',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreatePost')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertMatchesIri($body['data']['createPost']['post']['id'], Post::class);
+        $this->assertSame('New post title', $body['data']['createPost']['post']['title']);
+        $this->assertSame('New post excerpt', $body['data']['createPost']['post']['excerpt']);
+        $this->assertSame('New post text', $body['data']['createPost']['post']['text']);
+        $this->assertNull($body['data']['createPost']['post']['publishedAt']);
+        $this->assertMatchesDate($body['data']['createPost']['post']['createdAt']);
+        $this->assertMatchesDate($body['data']['createPost']['post']['updatedAt']);
     }
 
     public function testPostCreatesPublishedPost(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        $response = self::createAuthenticatedClient($user)->request('POST', '/posts', ['json' => [
-            'title' => 'Test Post Title',
-            'excerpt' => 'Test Post Excerpt',
-            'text' => 'Test Post Text',
+        $client = self::createAuthenticatedClient($user);
+
+        $query = <<<'GQL'
+            mutation CreatePost($title: String!, $excerpt: String, $text: String, $published: Boolean) {
+                createPost(input: { title: $title, excerpt: $excerpt, text: $text, published: $published }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'title' => 'New post title',
+            'excerpt' => 'New post excerpt',
+            'text' => 'New post text',
             'published' => true,
-        ]]);
+        ];
 
-        $this->assertResponseStatusCodeSame(201);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/Post',
-            '@type' => 'Post',
-            'title' => 'Test Post Title',
-            'excerpt' => 'Test Post Excerpt',
-            'text' => 'Test Post Text',
-        ]);
-        $this->assertMatchesRegularExpression('/^\/posts\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
-        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['publishedAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-        $this->assertMatchesResourceItemJsonSchema(Post::class);
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreatePost')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertMatchesIri($body['data']['createPost']['post']['id'], Post::class);
+        $this->assertSame('New post title', $body['data']['createPost']['post']['title']);
+        $this->assertSame('New post excerpt', $body['data']['createPost']['post']['excerpt']);
+        $this->assertSame('New post text', $body['data']['createPost']['post']['text']);
+        $this->assertMatchesDate($body['data']['createPost']['post']['publishedAt']);
+        $this->assertMatchesDate($body['data']['createPost']['post']['createdAt']);
+        $this->assertMatchesDate($body['data']['createPost']['post']['updatedAt']);
     }
 
-    public function testPostCreatesPostWithLabResults(): void
+    public function testPostReturns403ForAnonymousUser(): void
     {
-        $user = UserFactory::createOne();
-        $labResults = LabResultFactory::createMany(3, ['user' => $user]);
+        $client = self::createClient();
 
-        $response = self::createAuthenticatedClient($user)->request('POST', '/posts', ['json' => [
-            'labResults' => [
-                "/lab_results/{$labResults[0]->getId()->toRfc4122()}",
-                "/lab_results/{$labResults[1]->getId()->toRfc4122()}",
-                "/lab_results/{$labResults[2]->getId()->toRfc4122()}",
-            ],
-            'title' => 'Test Post Title',
-            'excerpt' => 'Test Post Excerpt',
-            'text' => 'Test Post Text',
-        ]]);
+        $query = <<<'GQL'
+            mutation CreatePost($title: String!, $excerpt: String, $text: String, $published: Boolean) {
+                createPost(input: { title: $title, excerpt: $excerpt, text: $text, published: $published }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
 
-        $this->assertResponseStatusCodeSame(201);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/Post',
-            '@type' => 'Post',
-            'labResults' => [
-                "/lab_results/{$labResults[0]->getId()->toRfc4122()}",
-                "/lab_results/{$labResults[1]->getId()->toRfc4122()}",
-                "/lab_results/{$labResults[2]->getId()->toRfc4122()}",
-            ],
-            'title' => 'Test Post Title',
-            'excerpt' => 'Test Post Excerpt',
-            'text' => 'Test Post Text',
-        ]);
-        $this->assertNull($response->toArray()['publishedAt']);
-        $this->assertMatchesRegularExpression('/^\/posts\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
-        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-        $this->assertMatchesResourceItemJsonSchema(Post::class);
-    }
+        $variables = [
+            'title' => 'New post title',
+            'excerpt' => 'New post excerpt',
+            'text' => 'New post text',
+            'published' => false,
+        ];
 
-    public function testPostCreatesPublidhedPostWithLabResults(): void
-    {
-        $user = UserFactory::createOne();
-        $labResults = LabResultFactory::createMany(3, ['user' => $user]);
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreatePost')->toArray(false);
 
-        $response = self::createAuthenticatedClient($user)->request('POST', '/posts', ['json' => [
-            'labResults' => [
-                "/lab_results/{$labResults[0]->getId()->toRfc4122()}",
-                "/lab_results/{$labResults[1]->getId()->toRfc4122()}",
-                "/lab_results/{$labResults[2]->getId()->toRfc4122()}",
-            ],
-            'title' => 'Test Post Title',
-            'excerpt' => 'Test Post Excerpt',
-            'text' => 'Test Post Text',
-            'published' => true,
-        ]]);
-
-        $this->assertResponseStatusCodeSame(201);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/Post',
-            '@type' => 'Post',
-            'labResults' => [
-                "/lab_results/{$labResults[0]->getId()->toRfc4122()}",
-                "/lab_results/{$labResults[1]->getId()->toRfc4122()}",
-                "/lab_results/{$labResults[2]->getId()->toRfc4122()}",
-            ],
-            'title' => 'Test Post Title',
-            'excerpt' => 'Test Post Excerpt',
-            'text' => 'Test Post Text',
-        ]);
-        $this->assertMatchesRegularExpression('/^\/posts\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
-        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['publishedAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-        $this->assertMatchesResourceItemJsonSchema(Post::class);
-    }
-
-    public function testPostReturns401ForAnonymousUser(): void
-    {
-        self::createClient()->request('POST', '/posts', ['json' => [
-            'title' => 'Test Post Title',
-            'excerpt' => 'Test Post Excerpt',
-            'text' => 'Test Post Text',
-            'published' => true,
-        ]]);
-
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
-    }
-
-    public function testPostReturns422WhenLabResultsAreNotOwned(): void
-    {
-        $user = UserFactory::createOne();
-        $labResult = LabResultFactory::createOne(['user' => UserFactory::createOne()]);
-
-        self::createAuthenticatedClient($user)->request('POST', '/posts', ['json' => [
-            'labResults' => ["/lab_results/{$labResult->getId()->toRfc4122()}"],
-            'title' => 'Test Post Title',
-            'excerpt' => 'Test Post Excerpt',
-            'text' => 'Test Post Text',
-        ]]);
-
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'labResults[0]',
-                'message' => 'This value should be of type LabResult.',
-            ]],
-        ]);
+        $this->assertGraphQlErrorStatus($body, 403);
+        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlDebugMessage($body, 'Access Denied.');
+        $this->assertNull($body['data']['createPost']);
     }
 
     public function testPostReturns422WhenTitleIsMissing(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        self::createAuthenticatedClient($user)->request('POST', '/posts', ['json' => [
-            'excerpt' => 'Test Post Excerpt',
-            'text' => 'Test Post Text',
-        ]]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'title',
-                'message' => 'This value should not be blank.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation CreatePost($excerpt: String, $text: String, $published: Boolean) {
+                createPost(input: { excerpt: $excerpt, text: $text, published: $published }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'excerpt' => 'New post excerpt',
+            'text' => 'New post text',
+            'published' => false,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreatePost')->toArray(false);
+
+        $this->assertGraphQlErrorMessage($body, 'Field createPostInput.title of required type String! was not provided.');
     }
 
     public function testPostReturns422WhenTitleIsBlank(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        self::createAuthenticatedClient($user)->request('POST', '/posts', ['json' => [
+        $client = self::createAuthenticatedClient($user);
+
+        $query = <<<'GQL'
+            mutation CreatePost($title: String!, $excerpt: String, $text: String, $published: Boolean) {
+                createPost(input: { title: $title, excerpt: $excerpt, text: $text, published: $published }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
             'title' => '',
-            'excerpt' => 'Test Post Excerpt',
-            'text' => 'Test Post Text',
-        ]]);
+            'excerpt' => 'New post excerpt',
+            'text' => 'New post text',
+            'published' => false,
+        ];
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'title',
-                'message' => 'This value should not be blank.',
-            ]],
-        ]);
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreatePost')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'title', 'This value should not be blank.');
+        $this->assertNull($body['data']['createPost']);
     }
 
     public function testPostReturns422WhenTitleIsTooLong(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        self::createAuthenticatedClient($user)->request('POST', '/posts', ['json' => [
+        $client = self::createAuthenticatedClient($user);
+
+        $query = <<<'GQL'
+            mutation CreatePost($title: String!, $excerpt: String, $text: String, $published: Boolean) {
+                createPost(input: { title: $title, excerpt: $excerpt, text: $text, published: $published }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
             'title' => faker()->text(1000),
-            'excerpt' => 'Test Post Excerpt',
-            'text' => 'Test Post Text',
-        ]]);
+            'excerpt' => 'New post excerpt',
+            'text' => 'New post text',
+            'published' => false,
+        ];
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'title',
-                'message' => 'This value is too long. It should have 255 characters or less.',
-            ]],
-        ]);
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreatePost')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'title', 'This value is too long. It should have 255 characters or less.');
+        $this->assertNull($body['data']['createPost']);
     }
 
     public function testPostReturns422WhenExcerptIsBlank(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        self::createAuthenticatedClient($user)->request('POST', '/posts', ['json' => [
-            'title' => 'Test Post Title',
+        $client = self::createAuthenticatedClient($user);
+
+        $query = <<<'GQL'
+            mutation CreatePost($title: String!, $excerpt: String, $text: String, $published: Boolean) {
+                createPost(input: { title: $title, excerpt: $excerpt, text: $text, published: $published }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'title' => 'New post title',
             'excerpt' => '',
-            'text' => 'Test Post Text',
-        ]]);
+            'text' => 'New post text',
+            'published' => false,
+        ];
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'excerpt',
-                'message' => 'This value should not be blank.',
-            ]],
-        ]);
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreatePost')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'excerpt', 'This value should not be blank.');
+        $this->assertNull($body['data']['createPost']);
     }
 
     public function testPostReturns422WhenExcerptIsTooLong(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        self::createAuthenticatedClient($user)->request('POST', '/posts', ['json' => [
-            'title' => 'Test Post Title',
+        $client = self::createAuthenticatedClient($user);
+
+        $query = <<<'GQL'
+            mutation CreatePost($title: String!, $excerpt: String, $text: String, $published: Boolean) {
+                createPost(input: { title: $title, excerpt: $excerpt, text: $text, published: $published }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'title' => 'New post title',
             'excerpt' => faker()->text(1000),
-            'text' => 'Test Post Text',
-        ]]);
+            'text' => 'New post text',
+            'published' => false,
+        ];
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'excerpt',
-                'message' => 'This value is too long. It should have 255 characters or less.',
-            ]],
-        ]);
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreatePost')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'excerpt', 'This value is too long. It should have 255 characters or less.');
+        $this->assertNull($body['data']['createPost']);
     }
 
     public function testPostReturns422WhenTextIsBlank(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        self::createAuthenticatedClient($user)->request('POST', '/posts', ['json' => [
-            'title' => 'Test Post Title',
-            'excerpt' => 'Test Post Excerpt',
+        $client = self::createAuthenticatedClient($user);
+
+        $query = <<<'GQL'
+            mutation CreatePost($title: String!, $excerpt: String, $text: String, $published: Boolean) {
+                createPost(input: { title: $title, excerpt: $excerpt, text: $text, published: $published }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'title' => 'New post title',
+            'excerpt' => 'New post excerpt',
             'text' => '',
-        ]]);
+            'published' => false,
+        ];
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'text',
-                'message' => 'This value should not be blank.',
-            ]],
-        ]);
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreatePost')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'text', 'This value should not be blank.');
+        $this->assertNull($body['data']['createPost']);
     }
 
     public function testPostReturns422WhenPublishedIsNotBooleanOrNull(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        self::createAuthenticatedClient($user)->request('POST', '/posts', ['json' => [
-            'title' => 'Test Post Title',
-            'excerpt' => 'Test Post Excerpt',
-            'text' => 'Test Post Text',
+        $client = self::createAuthenticatedClient($user);
+
+        $query = <<<'GQL'
+            mutation CreatePost($title: String!, $excerpt: String, $text: String, $published: Boolean) {
+                createPost(input: { title: $title, excerpt: $excerpt, text: $text, published: $published }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'title' => 'New post title',
+            'excerpt' => 'New post excerpt',
+            'text' => 'New post text',
             'published' => 'true',
-        ]]);
+        ];
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'published',
-                'message' => 'This value should be of type bool|null.',
-            ]],
-        ]);
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreatePost')->toArray(false);
+
+        $this->assertGraphQlErrorMessage($body, 'Variable "$published" got invalid value "true"; Boolean cannot represent a non boolean value: "true"');
     }
 
     public function testPatchUpdatesPost(): void
     {
-        $user = UserFactory::createOne();
-        $post = PostFactory::createOne(['user' => $user]);
+        $user = UserFactory::random();
+        $post = PostFactory::random(['user' => $user]);
 
-        $response = self::createAuthenticatedClient($user)->request('PATCH', "/posts/{$post->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'title' => 'New Post Title',
-                'excerpt' => 'New Post Excerpt',
-                'text' => 'New Post Text',
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/Post',
-            '@type' => 'Post',
-            'title' => 'New Post Title',
-            'excerpt' => 'New Post Excerpt',
-            'text' => 'New Post Text',
-        ]);
-        $this->assertNull($response->toArray()['publishedAt']);
-        $this->assertMatchesRegularExpression('/^\/posts\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
-        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-        $this->assertMatchesResourceItemJsonSchema(Post::class);
+        $query = <<<'GQL'
+            mutation UpdatePost($id: ID!, $title: String!, $excerpt: String, $text: String, $published: Boolean) {
+                updatePost(input: { id: $id, title: $title, excerpt: $excerpt, text: $text, published: $published }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($post),
+            'title' => 'Updated post title',
+            'excerpt' => 'Updated post excerpt',
+            'text' => 'Updated post text',
+            'published' => null,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertMatchesIri($body['data']['updatePost']['post']['id'], Post::class);
+        $this->assertSame('Updated post title', $body['data']['updatePost']['post']['title']);
+        $this->assertSame('Updated post excerpt', $body['data']['updatePost']['post']['excerpt']);
+        $this->assertSame('Updated post text', $body['data']['updatePost']['post']['text']);
+        $this->assertNull($body['data']['updatePost']['post']['publishedAt']);
+        $this->assertMatchesDate($body['data']['updatePost']['post']['createdAt']);
+        $this->assertMatchesDate($body['data']['updatePost']['post']['updatedAt']);
     }
 
     public function testPatchUpdatesPostToPublic(): void
     {
-        $user = UserFactory::createOne();
-        $post = PostFactory::createOne(['user' => $user]);
+        $user = UserFactory::random();
+        $post = PostFactory::random(['user' => $user]);
 
-        $response = self::createAuthenticatedClient($user)->request('PATCH', "/posts/{$post->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'title' => 'New Post Title',
-                'excerpt' => 'New Post Excerpt',
-                'text' => 'New Post Text',
-                'published' => true,
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/Post',
-            '@type' => 'Post',
-            'title' => 'New Post Title',
-            'excerpt' => 'New Post Excerpt',
-            'text' => 'New Post Text',
-        ]);
-        $this->assertMatchesRegularExpression('/^\/posts\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
-        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['publishedAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-        $this->assertMatchesResourceItemJsonSchema(Post::class);
+        $query = <<<'GQL'
+            mutation UpdatePost($id: ID!, $title: String!, $excerpt: String, $text: String, $published: Boolean) {
+                updatePost(input: { id: $id, title: $title, excerpt: $excerpt, text: $text, published: $published }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($post),
+            'title' => 'Updated post title',
+            'excerpt' => 'Updated post excerpt',
+            'text' => 'Updated post text',
+            'published' => true,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertMatchesIri($body['data']['updatePost']['post']['id'], Post::class);
+        $this->assertSame('Updated post title', $body['data']['updatePost']['post']['title']);
+        $this->assertSame('Updated post excerpt', $body['data']['updatePost']['post']['excerpt']);
+        $this->assertSame('Updated post text', $body['data']['updatePost']['post']['text']);
+        $this->assertMatchesDate($body['data']['updatePost']['post']['publishedAt']);
+        $this->assertMatchesDate($body['data']['updatePost']['post']['createdAt']);
+        $this->assertMatchesDate($body['data']['updatePost']['post']['updatedAt']);
     }
 
     public function testPatchUpdatesPostToPrivate(): void
     {
-        $user = UserFactory::createOne();
-        $post = PostFactory::new(['user' => $user])->published()->create();
+        $user = UserFactory::random();
+        $post = PostFactory::new()->published()->create(['user' => $user]);
 
-        $response = self::createAuthenticatedClient($user)->request('PATCH', "/posts/{$post->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'title' => 'New Post Title',
-                'excerpt' => 'New Post Excerpt',
-                'text' => 'New Post Text',
-                'published' => false,
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/Post',
-            '@type' => 'Post',
-            'title' => 'New Post Title',
-            'excerpt' => 'New Post Excerpt',
-            'text' => 'New Post Text',
-        ]);
-        $this->assertNull($response->toArray()['publishedAt']);
-        $this->assertMatchesRegularExpression('/^\/posts\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
-        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-        $this->assertMatchesResourceItemJsonSchema(Post::class);
+        $query = <<<'GQL'
+            mutation UpdatePost($id: ID!, $title: String!, $excerpt: String, $text: String, $published: Boolean) {
+                updatePost(input: { id: $id, title: $title, excerpt: $excerpt, text: $text, published: $published }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($post),
+            'title' => 'Updated post title',
+            'excerpt' => 'Updated post excerpt',
+            'text' => 'Updated post text',
+            'published' => false,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertMatchesIri($body['data']['updatePost']['post']['id'], Post::class);
+        $this->assertSame('Updated post title', $body['data']['updatePost']['post']['title']);
+        $this->assertSame('Updated post excerpt', $body['data']['updatePost']['post']['excerpt']);
+        $this->assertSame('Updated post text', $body['data']['updatePost']['post']['text']);
+        $this->assertNull($body['data']['updatePost']['post']['publishedAt']);
+        $this->assertMatchesDate($body['data']['updatePost']['post']['createdAt']);
+        $this->assertMatchesDate($body['data']['updatePost']['post']['updatedAt']);
     }
 
-    public function testPatchReturns401ForAnonymousUser(): void
+    public function testPatchReturns403ForAnonymousUser(): void
     {
-        $post = PostFactory::createOne();
+        $post = PostFactory::random();
 
-        self::createClient()->request('PATCH', "/posts/{$post->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'title' => 'New Post Title',
-                'excerpt' => 'New Post Excerpt',
-                'text' => 'New Post Text',
-                'published' => false,
-            ],
-        ]);
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
+        $query = <<<'GQL'
+            mutation UpdatePost($id: ID!, $title: String!, $excerpt: String, $text: String, $published: Boolean) {
+                updatePost(input: { id: $id, title: $title, excerpt: $excerpt, text: $text, published: $published }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($post),
+            'title' => 'Updated post title',
+            'excerpt' => 'Updated post excerpt',
+            'text' => 'Updated post text',
+            'published' => null,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 403);
+        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlDebugMessage($body, 'Access Denied.');
+        $this->assertNull($body['data']['updatePost']);
     }
 
     public function testPatchReturns404ForNonOwnerAsRegularUser(): void
     {
-        $user = UserFactory::createOne();
-        $post = PostFactory::createOne();
+        [$user1, $user2] = UserFactory::randomSet(2);
+        $post = PostFactory::random(['user' => $user2]);
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/posts/{$post->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'title' => 'New Post Title',
-                'excerpt' => 'New Post Excerpt',
-                'text' => 'New Post Text',
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user1);
 
-        $this->assertResponseStatusCodeSame(404);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-    }
+        $query = <<<'GQL'
+            mutation UpdatePost($id: ID!, $title: String!, $excerpt: String, $text: String, $published: Boolean) {
+                updatePost(input: { id: $id, title: $title, excerpt: $excerpt, text: $text, published: $published }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
 
-    public function testPatchReturns422WhenLabResultIsNotOwned(): void
-    {
-        $user = UserFactory::createOne();
-        $post = PostFactory::createOne(['user' => $user]);
-        $labResult = LabResultFactory::createOne();
+        $variables = [
+            'id' => $this->getIriFromResource($post),
+            'title' => 'Updated post title',
+            'excerpt' => 'Updated post excerpt',
+            'text' => 'Updated post text',
+            'published' => null,
+        ];
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/posts/{$post->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'labResults' => ["/lab_results/{$labResult->getId()->toRfc4122()}"],
-                'title' => 'New Post Title',
-                'excerpt' => 'New Post Excerpt',
-                'text' => 'New Post Text',
-            ],
-        ]);
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'labResults[0]',
-                'message' => 'This value should be of type LabResult.',
-            ]],
-        ]);
+        $this->assertGraphQlErrorStatus($body, 404);
+        $this->assertGraphQlErrorMessage($body, "Item \"{$this->getIriFromResource($post)}\" not found.");
+        $this->assertGraphQlDebugMessage($body, "Item \"{$this->getIriFromResource($post)}\" not found.");
+        $this->assertNull($body['data']['updatePost']);
     }
 
     public function testPatchReturns422WhenTitleIsBlank(): void
     {
-        $user = UserFactory::createOne();
-        $post = PostFactory::createOne(['user' => $user]);
+        $user = UserFactory::random();
+        $post = PostFactory::random(['user' => $user]);
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/posts/{$post->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'title' => '',
-                'excerpt' => 'New Post Excerpt',
-                'text' => 'New Post Text',
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'title',
-                'message' => 'This value should not be blank.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation UpdatePost($id: ID!, $title: String!, $excerpt: String, $text: String, $published: Boolean) {
+                updatePost(input: { id: $id, title: $title, excerpt: $excerpt, text: $text, published: $published }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($post),
+            'title' => '',
+            'excerpt' => 'Updated post excerpt',
+            'text' => 'Updated post text',
+            'published' => null,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'title', 'This value should not be blank.');
+        $this->assertNull($body['data']['updatePost']);
     }
 
     public function testPatchReturns422WhenTitleIsTooLong(): void
     {
-        $user = UserFactory::createOne();
-        $post = PostFactory::createOne(['user' => $user]);
+        $user = UserFactory::random();
+        $post = PostFactory::random(['user' => $user]);
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/posts/{$post->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'title' => faker()->text(1000),
-                'excerpt' => 'New Post Excerpt',
-                'text' => 'New Post Text',
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'title',
-                'message' => 'This value is too long. It should have 255 characters or less.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation UpdatePost($id: ID!, $title: String!, $excerpt: String, $text: String, $published: Boolean) {
+                updatePost(input: { id: $id, title: $title, excerpt: $excerpt, text: $text, published: $published }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($post),
+            'title' => faker()->text(1000),
+            'excerpt' => 'Updated post excerpt',
+            'text' => 'Updated post text',
+            'published' => null,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'title', 'This value is too long. It should have 255 characters or less.');
+        $this->assertNull($body['data']['updatePost']);
     }
 
     public function testPatchReturns422WhenExcerptIsBlank(): void
     {
-        $user = UserFactory::createOne();
-        $post = PostFactory::createOne(['user' => $user]);
+        $user = UserFactory::random();
+        $post = PostFactory::random(['user' => $user]);
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/posts/{$post->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'title' => 'New Post Title',
-                'excerpt' => '',
-                'text' => 'New Post Text',
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'excerpt',
-                'message' => 'This value should not be blank.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation UpdatePost($id: ID!, $title: String!, $excerpt: String, $text: String, $published: Boolean) {
+                updatePost(input: { id: $id, title: $title, excerpt: $excerpt, text: $text, published: $published }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($post),
+            'title' => 'Updated post title',
+            'excerpt' => '',
+            'text' => 'Updated post text',
+            'published' => null,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'excerpt', 'This value should not be blank.');
+        $this->assertNull($body['data']['updatePost']);
     }
 
     public function testPatchReturns422WhenExcerptIsTooLong(): void
     {
-        $user = UserFactory::createOne();
-        $post = PostFactory::createOne(['user' => $user]);
+        $user = UserFactory::random();
+        $post = PostFactory::random(['user' => $user]);
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/posts/{$post->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'title' => 'New Post Title',
-                'excerpt' => faker()->text(1000),
-                'text' => 'New Post Text',
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'excerpt',
-                'message' => 'This value is too long. It should have 255 characters or less.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation UpdatePost($id: ID!, $title: String!, $excerpt: String, $text: String, $published: Boolean) {
+                updatePost(input: { id: $id, title: $title, excerpt: $excerpt, text: $text, published: $published }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($post),
+            'title' => 'Updated post title',
+            'excerpt' => faker()->text(1000),
+            'text' => 'Updated post text',
+            'published' => null,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'excerpt', 'This value is too long. It should have 255 characters or less.');
+        $this->assertNull($body['data']['updatePost']);
     }
 
     public function testPatchReturns422WhenTextIsBlank(): void
     {
-        $user = UserFactory::createOne();
-        $post = PostFactory::createOne(['user' => $user]);
+        $user = UserFactory::random();
+        $post = PostFactory::random(['user' => $user]);
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/posts/{$post->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'title' => 'New Post Title',
-                'excerpt' => 'New Post Excerpt',
-                'text' => '',
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'text',
-                'message' => 'This value should not be blank.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation UpdatePost($id: ID!, $title: String!, $excerpt: String, $text: String, $published: Boolean) {
+                updatePost(input: { id: $id, title: $title, excerpt: $excerpt, text: $text, published: $published }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($post),
+            'title' => 'Updated post title',
+            'excerpt' => 'Updated post excerpt',
+            'text' => '',
+            'published' => null,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'text', 'This value should not be blank.');
+        $this->assertNull($body['data']['updatePost']);
     }
 
     public function testPatchReturns422WhenPublishedIsNotBooleanOrNull(): void
     {
-        $user = UserFactory::createOne();
-        $post = PostFactory::createOne(['user' => $user]);
+        $user = UserFactory::random();
+        $post = PostFactory::random(['user' => $user]);
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/posts/{$post->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'title' => 'New Post Title',
-                'excerpt' => 'New Post Excerpt',
-                'text' => 'New Post Text',
-                'published' => 'true',
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'published',
-                'message' => 'This value should be of type bool|null.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation UpdatePost($id: ID!, $title: String!, $excerpt: String, $text: String, $published: Boolean) {
+                updatePost(input: { id: $id, title: $title, excerpt: $excerpt, text: $text, published: $published }) {
+                    post {
+                        id
+                        title
+                        excerpt
+                        text
+                        publishedAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($post),
+            'title' => 'Updated post title',
+            'excerpt' => 'Updated post excerpt',
+            'text' => 'Updated post text',
+            'published' => 'true',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
+
+        $this->assertGraphQlErrorMessage($body, 'Variable "$published" got invalid value "true"; Boolean cannot represent a non boolean value: "true"');
     }
 
     public function testDeleteRemovesPost(): void
     {
-        $user = UserFactory::createOne();
-        $post = PostFactory::createOne(['user' => $user]);
+        $user = UserFactory::random();
+        $post = PostFactory::random(['user' => $user]);
 
-        self::createAuthenticatedClient($user)->request('DELETE', "/posts/{$post->getId()->toRfc4122()}");
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(204);
+        $query = <<<'GQL'
+            mutation DeletePost($id: ID!) {
+                deletePost(input: { id: $id }) {
+                    post {
+                        id
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($post),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'DeletePost')->toArray(false);
+
+        $this->assertNull(PostFactory::repository()->find($post->getId()));
+        $this->assertGraphQlHasNoErrors($body);
     }
 
     public function testDeleteReturns404ForNonOwnerAsRegularUser(): void
     {
-        $user = UserFactory::createOne();
-        $post = PostFactory::createOne(['user' => UserFactory::createOne()]);
+        [$user1, $user2] = UserFactory::randomSet(2);
+        $post = PostFactory::random(['user' => $user2]);
 
-        self::createAuthenticatedClient($user)->request('DELETE', "/posts/{$post->getId()->toRfc4122()}");
+        $client = self::createAuthenticatedClient($user1);
 
-        $this->assertResponseStatusCodeSame(404);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $query = <<<'GQL'
+            mutation DeletePost($id: ID!) {
+                deletePost(input: { id: $id }) {
+                    post {
+                        id
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($post),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'DeletePost')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 404);
+        $this->assertGraphQlErrorMessage($body, "Item \"{$this->getIriFromResource($post)}\" not found.");
+        $this->assertGraphQlDebugMessage($body, "Item \"{$this->getIriFromResource($post)}\" not found.");
+        $this->assertNull($body['data']['deletePost']);
     }
 
-    public function testDeleteReturns401ForAnonymousUser(): void
+    public function testDeleteReturns403ForAnonymousUser(): void
     {
-        $post = PostFactory::createOne();
+        $post = PostFactory::random();
 
-        self::createClient()->request('DELETE', "/posts/{$post->getId()->toRfc4122()}");
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
+        $query = <<<'GQL'
+            mutation DeletePost($id: ID!) {
+                deletePost(input: { id: $id }) {
+                    post {
+                        id
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($post),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'DeletePost')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 403);
+        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlDebugMessage($body, 'Access Denied.');
+        $this->assertNull($body['data']['deletePost']);
     }
 }

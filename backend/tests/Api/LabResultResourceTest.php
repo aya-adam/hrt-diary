@@ -8,10 +8,15 @@ use App\Factory\LabResultFactory;
 use App\Factory\PostFactory;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
+use App\Tests\Support\GraphQlTestTrait;
+use App\Tests\Support\RegexTrait;
+use Override;
+
+use function Zenstruck\Foundry\faker;
 
 class LabResultResourceTest extends ApiTestCase
 {
-    use AuthenticatedClientTrait;
+    use AuthenticatedClientTrait, GraphQlTestTrait, RegexTrait;
 
     /**
      * If you're using RecreateDatabaseTrait, RefreshDatabaseTrait, ReloadDatabaseTrait from theofidry/AliceBundle, you
@@ -23,621 +28,881 @@ class LabResultResourceTest extends ApiTestCase
      */
     protected static ?bool $alwaysBootKernel = true;
 
-    public function testGetCollectionReturnsOwnedLabResultsAsRegularUser(): void
+    #[Override]
+    public function setUp(): void
     {
-        $user = UserFactory::createOne();
-        LabResultFactory::createMany(20);
-        LabResultFactory::createMany(20, ['user' => $user]);
+        parent::setUp();
 
-        $response = self::createAuthenticatedClient($user)->request('GET', '/lab_results');
+        UserFactory::createMany(10);
 
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/LabResult',
-            '@id' => '/lab_results',
-            '@type' => 'Collection',
-            'totalItems' => 20,
-        ]);
-        $this->assertCount(20, $response->toArray()['member']);
-        $this->assertMatchesResourceCollectionJsonSchema(LabResult::class);
+        foreach (UserFactory::all() as $user) {
+            LabResultFactory::createMany(10, ['user' => $user]);
+        }
     }
 
-    public function testGetCollectionReturns401ForAnonymousUser(): void
+    public function testGetCollectionReturnsOwnedLabResultsAsRegularUser(): void
     {
-        LabResultFactory::createMany(20);
+        $user = UserFactory::random();
 
-        self::createClient()->request('GET', '/lab_results');
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
+        $query = <<<'GQL'
+            query LabResults {
+                labResults {
+                    id
+                    notes
+                    publishedAt
+                    drawnAt
+                    createdAt
+                    updatedAt
+                }
+            }
+        GQL;
+
+        $body = $this->executeGraphQl($client, $query, [], 'LabResults')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertCount(10, $body['data']['labResults']);
+
+        foreach ($body['data']['labResults'] as $labResults) {
+            $this->assertMatchesIri($labResults['id'], LabResult::class);
+            $this->assertArrayHasKey('notes', $labResults);
+            $this->assertArrayHasKey('publishedAt', $labResults);
+            $this->assertMatchesDate($labResults['drawnAt']);
+            $this->assertMatchesDate($labResults['createdAt']);
+            $this->assertMatchesDate($labResults['updatedAt']);
+        }
+    }
+
+    public function testGetCollectionReturns403ForAnonymousUser(): void
+    {
+        $client = self::createClient();
+
+        $query = <<<'GQL'
+            query LabResults {
+                labResults {
+                    id
+                    notes
+                    publishedAt
+                    drawnAt
+                    createdAt
+                    updatedAt
+                }
+            }
+        GQL;
+
+        $body = $this->executeGraphQl($client, $query, [], 'LabResults')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 403);
+        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlDebugMessage($body, 'Access Denied.');
+        $this->assertNull($body['data']['labResults']);
     }
 
     public function testGetItemReturnsOwnedLabResultsAsRegularUser(): void
     {
-        $user = UserFactory::createOne();
-        $labResult = LabResultFactory::createOne(['user' => $user]);
+        $user = UserFactory::random();
+        $labResult = LabResultFactory::random(['user' => $user]);
 
-        self::createAuthenticatedClient($user)->request('GET', "/lab_results/{$labResult->getId()->toRfc4122()}");
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertMatchesResourceItemJsonSchema(LabResult::class);
+        $query = <<<'GQL'
+            query LabResult($id: ID!) {
+                labResult(id: $id) {
+                    id
+                    notes
+                    publishedAt
+                    drawnAt
+                    createdAt
+                    updatedAt
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($labResult),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'LabResult')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertSame($this->getIriFromResource($labResult), $body['data']['labResult']['id']);
+        $this->assertSame($labResult->getNotes(), $body['data']['labResult']['notes']);
+        $this->assertSame($labResult->getPublishedAt(), $body['data']['labResult']['publishedAt']);
+        $this->assertSame($labResult->getDrawnAt()->format('c'), $body['data']['labResult']['drawnAt']);
+        $this->assertSame($labResult->getCreatedAt()->format('c'), $body['data']['labResult']['createdAt']);
+        $this->assertSame($labResult->getUpdatedAt()->format('c'), $body['data']['labResult']['updatedAt']);
     }
 
-    public function testGetItemReturns404ForNonOwnerAsRegularUser(): void
+    public function testGetItemReturnsNullForNonOwnerAsRegularUser(): void
     {
-        $user = UserFactory::createOne();
-        $labResult = LabResultFactory::createOne(['user' => UserFactory::createOne()]);
+        [$user1, $user2] = UserFactory::randomSet(2);
+        $labResult = LabResultFactory::random(['user' => $user2]);
 
-        self::createAuthenticatedClient($user)->request('GET', "/lab_results/{$labResult->getId()->toRfc4122()}");
+        $client = self::createAuthenticatedClient($user1);
 
-        $this->assertResponseStatusCodeSame(404);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $query = <<<'GQL'
+            query LabResult($id: ID!) {
+                labResult(id: $id) {
+                    id
+                    notes
+                    publishedAt
+                    drawnAt
+                    createdAt
+                    updatedAt
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($labResult),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'LabResult')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertNull($body['data']['labResult']);
     }
 
-    public function testGetItemReturns401ForAnonymousUser(): void
+    public function testGetItemReturns403ForAnonymousUser(): void
     {
-        $labResult = LabResultFactory::createOne();
+        $labResult = LabResultFactory::random();
 
-        self::createClient()->request('GET', "/lab_results/{$labResult->getId()->toRfc4122()}");
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
+        $query = <<<'GQL'
+            query LabResult($id: ID!) {
+                labResult(id: $id) {
+                    id
+                    notes
+                    publishedAt
+                    drawnAt
+                    createdAt
+                    updatedAt
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($labResult),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'LabResult')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 403);
+        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlDebugMessage($body, 'Access Denied.');
+        $this->assertNull($body['data']['labResult']);
     }
 
     public function testPostCreatesLabResult(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        $response = self::createAuthenticatedClient($user)->request('POST', '/lab_results', ['json' => [
-            'notes' => 'Test notes',
-            'drawnAt' => '2024-07-03T00:08:05+00:00',
-        ]]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(201);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/LabResult',
-            '@type' => 'LabResult',
-            'notes' => "Test notes",
-            'drawnAt' => "2024-07-03T00:08:05+00:00"
-        ]);
-        $this->assertNull($response->toArray()['publishedAt']);
-        $this->assertMatchesRegularExpression('/^\/lab_results\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
-        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-        $this->assertMatchesResourceItemJsonSchema(LabResult::class);
+        $query = <<<'GQL'
+            mutation CreateLabResult($notes: String, $published: Boolean, $drawnAt: String!) {
+                createLabResult(input: { notes: $notes, published: $published, drawnAt: $drawnAt }) {
+                    labResult {
+                        id
+                        notes
+                        publishedAt
+                        drawnAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+
+        $variables = [
+            'notes' => 'New lab notes',
+            'published' => false,
+            'drawnAt' => $drawnAt,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateLabResult')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertMatchesIri($body['data']['createLabResult']['labResult']['id'], LabResult::class);
+        $this->assertSame('New lab notes', $body['data']['createLabResult']['labResult']['notes']);
+        $this->assertNull($body['data']['createLabResult']['labResult']['publishedAt']);
+        $this->assertSame($drawnAt, $body['data']['createLabResult']['labResult']['drawnAt']);
+        $this->assertMatchesDate($body['data']['createLabResult']['labResult']['createdAt']);
+        $this->assertMatchesDate($body['data']['createLabResult']['labResult']['updatedAt']);
     }
 
     public function testPostCreatesPublishedLabResult(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        $response = self::createAuthenticatedClient($user)->request('POST', '/lab_results', ['json' => [
-            'notes' => 'Test notes',
-            'drawnAt' => '2024-07-03T00:08:05+00:00',
+        $client = self::createAuthenticatedClient($user);
+
+        $query = <<<'GQL'
+            mutation CreateLabResult($notes: String, $published: Boolean, $drawnAt: String!) {
+                createLabResult(input: { notes: $notes, published: $published, drawnAt: $drawnAt }) {
+                    labResult {
+                        id
+                        notes
+                        publishedAt
+                        drawnAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+
+        $variables = [
+            'notes' => 'New lab notes',
             'published' => true,
-        ]]);
+            'drawnAt' => $drawnAt,
+        ];
 
-        $this->assertResponseStatusCodeSame(201);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/LabResult',
-            '@type' => 'LabResult',
-            'notes' => "Test notes",
-            'drawnAt' => "2024-07-03T00:08:05+00:00"
-        ]);
-        $this->assertMatchesRegularExpression('/^\/lab_results\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
-        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['publishedAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-        $this->assertMatchesResourceItemJsonSchema(LabResult::class);
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateLabResult')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertMatchesIri($body['data']['createLabResult']['labResult']['id'], LabResult::class);
+        $this->assertSame('New lab notes', $body['data']['createLabResult']['labResult']['notes']);
+        $this->assertMatchesDate($body['data']['createLabResult']['labResult']['publishedAt']);
+        $this->assertSame($drawnAt, $body['data']['createLabResult']['labResult']['drawnAt']);
+        $this->assertMatchesDate($body['data']['createLabResult']['labResult']['createdAt']);
+        $this->assertMatchesDate($body['data']['createLabResult']['labResult']['updatedAt']);
     }
 
-    public function testPostCreatesLabResultAssignedToPosts(): void
+    public function testPostReturns403ForAnonymousUser(): void
     {
-        $user = UserFactory::createOne();
-        $posts = PostFactory::createMany(3, ['user' => $user]);
+        $client = self::createClient();
 
-        $response = self::createAuthenticatedClient($user)->request('POST', '/lab_results', ['json' => [
-            'posts' => [
-                "/posts/{$posts[0]->getId()->toRfc4122()}",
-                "/posts/{$posts[1]->getId()->toRfc4122()}",
-                "/posts/{$posts[2]->getId()->toRfc4122()}",
-            ],
-            'notes' => 'Test notes',
-            'drawnAt' => '2024-07-03T00:08:05+00:00',
-        ]]);
+        $query = <<<'GQL'
+            mutation CreateLabResult($notes: String, $published: Boolean, $drawnAt: String!) {
+                createLabResult(input: { notes: $notes, published: $published, drawnAt: $drawnAt }) {
+                    labResult {
+                        id
+                        notes
+                        publishedAt
+                        drawnAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
 
-        $this->assertResponseStatusCodeSame(201);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/LabResult',
-            '@type' => 'LabResult',
-            'posts' => [
-                "/posts/{$posts[0]->getId()->toRfc4122()}",
-                "/posts/{$posts[1]->getId()->toRfc4122()}",
-                "/posts/{$posts[2]->getId()->toRfc4122()}",
-            ],
-            'notes' => "Test notes",
-            'drawnAt' => "2024-07-03T00:08:05+00:00"
-        ]);
-        $this->assertNull($response->toArray()['publishedAt']);
-        $this->assertMatchesRegularExpression('/^\/lab_results\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
-        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-        $this->assertMatchesResourceItemJsonSchema(LabResult::class);
-    }
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
 
-    public function testPostCreatesPublidhedLabResultAssignedToPosts(): void
-    {
-        $user = UserFactory::createOne();
-        $posts = PostFactory::createMany(3, ['user' => $user]);
+        $variables = [
+            'notes' => 'New lab notes',
+            'published' => false,
+            'drawnAt' => $drawnAt,
+        ];
 
-        $response = self::createAuthenticatedClient($user)->request('POST', '/lab_results', ['json' => [
-            'posts' => [
-                "/posts/{$posts[0]->getId()->toRfc4122()}",
-                "/posts/{$posts[1]->getId()->toRfc4122()}",
-                "/posts/{$posts[2]->getId()->toRfc4122()}",
-            ],
-            'notes' => 'Test notes',
-            'drawnAt' => '2024-07-03T00:08:05+00:00',
-            'published' => true,
-        ]]);
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateLabResult')->toArray(false);
 
-        $this->assertResponseStatusCodeSame(201);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/LabResult',
-            '@type' => 'LabResult',
-            'posts' => [
-                "/posts/{$posts[0]->getId()->toRfc4122()}",
-                "/posts/{$posts[1]->getId()->toRfc4122()}",
-                "/posts/{$posts[2]->getId()->toRfc4122()}",
-            ],
-            'notes' => "Test notes",
-            'drawnAt' => "2024-07-03T00:08:05+00:00"
-        ]);
-        $this->assertMatchesRegularExpression('/^\/lab_results\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
-        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['publishedAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-        $this->assertMatchesResourceItemJsonSchema(LabResult::class);
-    }
-
-    public function testPostReturns401ForAnonymousUser(): void
-    {
-        self::createClient()->request('POST', '/lab_results', ['json' => [
-            'notes' => 'Test notes',
-            'drawnAt' => '2024-07-03T00:08:05+00:00',
-        ]]);
-
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
-    }
-
-    public function testPostReturns422WhenPostsAreNotOwned(): void
-    {
-        $user = UserFactory::createOne();
-        $posts = PostFactory::createMany(3);
-
-        self::createAuthenticatedClient($user)->request('POST', '/lab_results', ['json' => [
-            'posts' => [
-                "/posts/{$posts[0]->getId()->toRfc4122()}",
-                "/posts/{$posts[1]->getId()->toRfc4122()}",
-                "/posts/{$posts[2]->getId()->toRfc4122()}",
-            ],
-            'notes' => 'Test notes',
-            'drawnAt' => '2024-07-03T00:08:05+00:00',
-        ]]);
-
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'posts[0]',
-                'message' => 'This value should be of type Post.',
-            ]],
-        ]);
+        $this->assertGraphQlErrorStatus($body, 403);
+        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlDebugMessage($body, 'Access Denied.');
+        $this->assertNull($body['data']['createLabResult']);
     }
 
     public function testPostReturns422WhenDrawnAtIsMissing(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        self::createAuthenticatedClient($user)->request('POST', '/lab_results', ['json' => [
-            'notes' => 'Test notes',
-        ]]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'drawnAt',
-                'message' => 'This value should not be blank.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation CreateLabResult($notes: String, $published: Boolean) {
+                createLabResult(input: { notes: $notes, published: $published }) {
+                    labResult {
+                        id
+                        notes
+                        publishedAt
+                        drawnAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'notes' => 'New lab notes',
+            'published' => false,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateLabResult')->toArray(false);
+
+        $this->assertGraphQlErrorMessage($body, 'Field createLabResultInput.drawnAt of required type String! was not provided.');
     }
 
     public function testPostReturns422WhenDrawnAtIsBlank(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        self::createAuthenticatedClient($user)->request('POST', '/lab_results', ['json' => [
-            'notes' => 'Test notes',
+        $client = self::createAuthenticatedClient($user);
+
+        $query = <<<'GQL'
+            mutation CreateLabResult($notes: String, $published: Boolean, $drawnAt: String!) {
+                createLabResult(input: { notes: $notes, published: $published, drawnAt: $drawnAt }) {
+                    labResult {
+                        id
+                        notes
+                        publishedAt
+                        drawnAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'notes' => 'New lab notes',
+            'published' => false,
             'drawnAt' => '',
-        ]]);
+        ];
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'drawnAt',
-                'message' => 'This value should be of type string.',
-            ]],
-        ]);
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateLabResult')->toArray(false);
+
+        $this->assertGraphQlErrorMessage($body, 'The data is either not an string, an empty string, or null; you should pass a string that can be parsed with the passed format or a valid DateTime string.');
     }
 
     public function testPostReturns422WhenDrawnAtIsNotDateValue(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        self::createAuthenticatedClient($user)->request('POST', '/lab_results', ['json' => [
-            'notes' => 'Test notes',
-            'drawnAt' => 'invalid_datetime',
-        ]]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'drawnAt',
-                'message' => 'This value should be of type string.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation CreateLabResult($notes: String, $published: Boolean, $drawnAt: String!) {
+                createLabResult(input: { notes: $notes, published: $published, drawnAt: $drawnAt }) {
+                    labResult {
+                        id
+                        notes
+                        publishedAt
+                        drawnAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+
+        $variables = [
+            'notes' => 'New lab notes',
+            'published' => false,
+            'drawnAt' => 'invalid_date_value',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateLabResult')->toArray(false);
+
+        $this->assertGraphQlErrorMessage($body, 'Failed to parse time string (invalid_date_value) at position 0 (i): The timezone could not be found in the database');
     }
 
     public function testPostReturns422WhenNotesIsBlank(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        self::createAuthenticatedClient($user)->request('POST', '/lab_results', ['json' => [
+        $client = self::createAuthenticatedClient($user);
+
+        $query = <<<'GQL'
+            mutation CreateLabResult($notes: String, $published: Boolean, $drawnAt: String!) {
+                createLabResult(input: { notes: $notes, published: $published, drawnAt: $drawnAt }) {
+                    labResult {
+                        id
+                        notes
+                        publishedAt
+                        drawnAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+
+        $variables = [
             'notes' => '',
-            'drawnAt' => '2024-07-03T00:08:05+00:00',
-        ]]);
+            'published' => false,
+            'drawnAt' => $drawnAt,
+        ];
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'notes',
-                'message' => 'This value should not be blank.',
-            ]],
-        ]);
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateLabResult')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'notes', 'This value should not be blank.');
+        $this->assertNull($body['data']['createLabResult']);
     }
 
     public function testPostReturns422WhenPublishedIsNotBooleanOrNull(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        self::createAuthenticatedClient($user)->request('POST', '/lab_results', ['json' => [
-            'notes' => '',
-            'drawnAt' => '2024-07-03T00:08:05+00:00',
+        $client = self::createAuthenticatedClient($user);
+
+        $query = <<<'GQL'
+            mutation CreateLabResult($notes: String, $published: Boolean, $drawnAt: String!) {
+                createLabResult(input: { notes: $notes, published: $published, drawnAt: $drawnAt }) {
+                    labResult {
+                        id
+                        notes
+                        publishedAt
+                        drawnAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+
+        $variables = [
+            'notes' => 'New lab notes',
             'published' => 'true',
-        ]]);
+            'drawnAt' => $drawnAt,
+        ];
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'published',
-                'message' => 'This value should be of type bool|null.',
-            ]],
-        ]);
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateLabResult')->toArray(false);
+
+        $this->assertGraphQlErrorMessage($body, 'Variable "$published" got invalid value "true"; Boolean cannot represent a non boolean value: "true"');
     }
 
     public function testPatchUpdatesLabResult(): void
     {
-        $user = UserFactory::createOne();
-        $labResult = LabResultFactory::createOne(['user' => $user]);
+        $user = UserFactory::random();
+        $labResult = LabResultFactory::random(['user' => $user]);
 
-        $response = self::createAuthenticatedClient($user)->request('PATCH', "/lab_results/{$labResult->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'notes' => 'Updated Test Notes',
-                'drawnAt' => '2024-07-03T00:08:05+00:00',
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertNull($response->toArray()['publishedAt']);
-        $this->assertMatchesRegularExpression('/^\/lab_results\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
-        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-        $this->assertMatchesResourceItemJsonSchema(LabResult::class);
+        $query = <<<'GQL'
+            mutation UpdateLabResult($id: ID!, $notes: String, $published: Boolean, $drawnAt: String!) {
+                updateLabResult(input: { id: $id, notes: $notes, published: $published, drawnAt: $drawnAt }) {
+                    labResult {
+                        id
+                        notes
+                        publishedAt
+                        drawnAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+
+        $variables = [
+            'id' => $this->getIriFromResource($labResult),
+            'notes' => 'Updated lab notes',
+            'published' => null,
+            'drawnAt' => $drawnAt,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertMatchesIri($body['data']['updateLabResult']['labResult']['id'], LabResult::class);
+        $this->assertSame('Updated lab notes', $body['data']['updateLabResult']['labResult']['notes']);
+        $this->assertNull($body['data']['updateLabResult']['labResult']['publishedAt']);
+        $this->assertSame($drawnAt, $body['data']['updateLabResult']['labResult']['drawnAt']);
+        $this->assertMatchesDate($body['data']['updateLabResult']['labResult']['createdAt']);
+        $this->assertMatchesDate($body['data']['updateLabResult']['labResult']['updatedAt']);
     }
 
     public function testPatchUpdatesLabResultToPublic(): void
     {
-        $user = UserFactory::createOne();
-        $labResult = LabResultFactory::createOne(['user' => $user]);
+        $user = UserFactory::random();
+        $labResult = LabResultFactory::random(['user' => $user]);
 
-        $response = self::createAuthenticatedClient($user)->request('PATCH', "/lab_results/{$labResult->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'notes' => 'Updated Test Notes',
-                'drawnAt' => '2024-07-03T00:08:05+00:00',
-                'published' => true,
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertMatchesRegularExpression('/^\/lab_results\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
-        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['publishedAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-        $this->assertMatchesResourceItemJsonSchema(LabResult::class);
+        $query = <<<'GQL'
+            mutation UpdateLabResult($id: ID!, $notes: String, $published: Boolean, $drawnAt: String!) {
+                updateLabResult(input: { id: $id, notes: $notes, published: $published, drawnAt: $drawnAt }) {
+                    labResult {
+                        id
+                        notes
+                        publishedAt
+                        drawnAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+
+        $variables = [
+            'id' => $this->getIriFromResource($labResult),
+            'notes' => 'Updated lab notes',
+            'published' => true,
+            'drawnAt' => $drawnAt,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertMatchesIri($body['data']['updateLabResult']['labResult']['id'], LabResult::class);
+        $this->assertSame('Updated lab notes', $body['data']['updateLabResult']['labResult']['notes']);
+        $this->assertMatchesDate($body['data']['updateLabResult']['labResult']['publishedAt']);
+        $this->assertSame($drawnAt, $body['data']['updateLabResult']['labResult']['drawnAt']);
+        $this->assertMatchesDate($body['data']['updateLabResult']['labResult']['createdAt']);
+        $this->assertMatchesDate($body['data']['updateLabResult']['labResult']['updatedAt']);
     }
 
     public function testPatchUpdatesLabResultToPrivate(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
         $labResult = LabResultFactory::new()->published()->create(['user' => $user]);
 
-        $response = self::createAuthenticatedClient($user)->request('PATCH', "/lab_results/{$labResult->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'notes' => 'Updated Test Notes',
-                'drawnAt' => '2024-07-03T00:08:05+00:00',
-                'published' => false,
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertNull($response->toArray()['publishedAt']);
-        $this->assertMatchesRegularExpression('/^\/lab_results\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
-        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-        $this->assertMatchesResourceItemJsonSchema(LabResult::class);
+        $query = <<<'GQL'
+            mutation UpdateLabResult($id: ID!, $notes: String, $published: Boolean, $drawnAt: String!) {
+                updateLabResult(input: { id: $id, notes: $notes, published: $published, drawnAt: $drawnAt }) {
+                    labResult {
+                        id
+                        notes
+                        publishedAt
+                        drawnAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+
+        $variables = [
+            'id' => $this->getIriFromResource($labResult),
+            'notes' => 'Updated lab notes',
+            'published' => false,
+            'drawnAt' => $drawnAt,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertMatchesIri($body['data']['updateLabResult']['labResult']['id'], LabResult::class);
+        $this->assertSame('Updated lab notes', $body['data']['updateLabResult']['labResult']['notes']);
+        $this->assertNull($body['data']['updateLabResult']['labResult']['publishedAt']);
+        $this->assertSame($drawnAt, $body['data']['updateLabResult']['labResult']['drawnAt']);
+        $this->assertMatchesDate($body['data']['updateLabResult']['labResult']['createdAt']);
+        $this->assertMatchesDate($body['data']['updateLabResult']['labResult']['updatedAt']);
     }
 
-    public function testPatchReturns401ForAnonymousUser(): void
+    public function testPatchReturns403ForAnonymousUser(): void
     {
-        $labResult = LabResultFactory::createOne();
+        $labResult = LabResultFactory::random();
 
-        self::createClient()->request('PATCH', "/lab_results/{$labResult->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'notes' => 'Updated Test Notes',
-                'drawnAt' => '2024-07-03T00:08:05+00:00',
-            ],
-        ]);
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
+        $query = <<<'GQL'
+            mutation UpdateLabResult($id: ID!, $notes: String, $published: Boolean, $drawnAt: String!) {
+                updateLabResult(input: { id: $id, notes: $notes, published: $published, drawnAt: $drawnAt }) {
+                    labResult {
+                        id
+                        notes
+                        publishedAt
+                        drawnAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+
+        $variables = [
+            'id' => $this->getIriFromResource($labResult),
+            'notes' => 'Updated lab notes',
+            'published' => null,
+            'drawnAt' => $drawnAt,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 403);
+        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlDebugMessage($body, 'Access Denied.');
+        $this->assertNull($body['data']['updateLabResult']);
     }
 
     public function testPatchReturns404ForNonOwnerAsRegularUser(): void
     {
-        $user = UserFactory::createOne();
-        $labResult = LabResultFactory::createOne();
+        [$user1, $user2] = UserFactory::randomSet(2);
+        $labResult = LabResultFactory::random(['user' => $user2]);
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/lab_results/{$labResult->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'notes' => 'Updated Test Notes',
-                'drawnAt' => '2024-07-03T00:08:05+00:00',
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user1);
 
-        $this->assertResponseStatusCodeSame(404);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-    }
+        $query = <<<'GQL'
+            mutation UpdateLabResult($id: ID!, $notes: String, $published: Boolean, $drawnAt: String!) {
+                updateLabResult(input: { id: $id, notes: $notes, published: $published, drawnAt: $drawnAt }) {
+                    labResult {
+                        id
+                        notes
+                        publishedAt
+                        drawnAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
 
-    public function testPatchReturns422WhenPostsAreNotOwned(): void
-    {
-        $user = UserFactory::createOne();
-        $labResult = LabResultFactory::createOne(['user' => $user]);
-        $posts = PostFactory::createMany(3);
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/lab_results/{$labResult->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'posts' => [
-                    "/posts/{$posts[0]->getId()->toRfc4122()}",
-                    "/posts/{$posts[1]->getId()->toRfc4122()}",
-                    "/posts/{$posts[2]->getId()->toRfc4122()}",
-                ],
-                'notes' => 'Updated Test Notes',
-                'drawnAt' => '2024-07-03T00:08:05+00:00',
-            ],
-        ]);
+        $variables = [
+            'id' => $this->getIriFromResource($labResult),
+            'notes' => 'Updated lab notes',
+            'published' => null,
+            'drawnAt' => $drawnAt,
+        ];
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'posts[0]',
-                'message' => 'This value should be of type Post.',
-            ]],
-        ]);
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 404);
+        $this->assertGraphQlErrorMessage($body, "Item \"{$this->getIriFromResource($labResult)}\" not found.");
+        $this->assertGraphQlDebugMessage($body, "Item \"{$this->getIriFromResource($labResult)}\" not found.");
+        $this->assertNull($body['data']['updateLabResult']);
     }
 
     public function testPatchReturns422WhenDrawnAtIsBlank(): void
     {
-        $user = UserFactory::createOne();
-        $labResult = LabResultFactory::createOne(['user' => $user]);
+        $user = UserFactory::random();
+        $labResult = LabResultFactory::random(['user' => $user]);
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/lab_results/{$labResult->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'notes' => 'Updated Test Notes',
-                'drawnAt' => '',
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'drawnAt',
-                'message' => 'This value should be of type string.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation UpdateLabResult($id: ID!, $notes: String, $published: Boolean, $drawnAt: String!) {
+                updateLabResult(input: { id: $id, notes: $notes, published: $published, drawnAt: $drawnAt }) {
+                    labResult {
+                        id
+                        notes
+                        publishedAt
+                        drawnAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($labResult),
+            'notes' => 'Updated lab notes',
+            'published' => null,
+            'drawnAt' => '',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
+
+        $this->assertGraphQlErrorMessage($body, 'The data is either not an string, an empty string, or null; you should pass a string that can be parsed with the passed format or a valid DateTime string.');
     }
 
     public function testPatchReturns422WhenDrawnAtIsNotDateValue(): void
     {
-        $user = UserFactory::createOne();
-        $labResult = LabResultFactory::createOne(['user' => $user]);
+        $user = UserFactory::random();
+        $labResult = LabResultFactory::random(['user' => $user]);
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/lab_results/{$labResult->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'notes' => 'Updated Test Notes',
-                'drawnAt' => 'invalid_datetime',
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'drawnAt',
-                'message' => 'This value should be of type string.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation UpdateLabResult($id: ID!, $notes: String, $published: Boolean, $drawnAt: String!) {
+                updateLabResult(input: { id: $id, notes: $notes, published: $published, drawnAt: $drawnAt }) {
+                    labResult {
+                        id
+                        notes
+                        publishedAt
+                        drawnAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($labResult),
+            'notes' => 'Updated lab notes',
+            'published' => null,
+            'drawnAt' => 'invalid_date_value',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
+
+        $this->assertGraphQlErrorMessage($body, 'Failed to parse time string (invalid_date_value) at position 0 (i): The timezone could not be found in the database');
     }
 
     public function testPatchReturns422WhenNotesIsBlank(): void
     {
-        $user = UserFactory::createOne();
-        $labResult = LabResultFactory::createOne(['user' => $user]);
+        $user = UserFactory::random();
+        $labResult = LabResultFactory::random(['user' => $user]);
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/lab_results/{$labResult->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'notes' => '',
-                'drawnAt' => '2024-07-03T00:08:05+00:00',
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'notes',
-                'message' => 'This value should not be blank.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation UpdateLabResult($id: ID!, $notes: String, $published: Boolean, $drawnAt: String!) {
+                updateLabResult(input: { id: $id, notes: $notes, published: $published, drawnAt: $drawnAt }) {
+                    labResult {
+                        id
+                        notes
+                        publishedAt
+                        drawnAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+
+        $variables = [
+            'id' => $this->getIriFromResource($labResult),
+            'notes' => '',
+            'published' => null,
+            'drawnAt' => $drawnAt,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'notes', 'This value should not be blank.');
+        $this->assertNull($body['data']['updateLabResult']);
     }
 
     public function testPatchReturns422WhenPublishedIsNotBooleanOrNull(): void
     {
-        $user = UserFactory::createOne();
-        $labResult = LabResultFactory::createOne(['user' => $user]);
+        $user = UserFactory::random();
+        $labResult = LabResultFactory::random(['user' => $user]);
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/lab_results/{$labResult->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'notes' => '',
-                'drawnAt' => '2024-07-03T00:08:05+00:00',
-                'published' => 'true',
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'published',
-                'message' => 'This value should be of type bool|null.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation UpdateLabResult($id: ID!, $notes: String, $published: Boolean, $drawnAt: String!) {
+                updateLabResult(input: { id: $id, notes: $notes, published: $published, drawnAt: $drawnAt }) {
+                    labResult {
+                        id
+                        notes
+                        publishedAt
+                        drawnAt
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+
+        $variables = [
+            'id' => $this->getIriFromResource($labResult),
+            'notes' => 'Updated lab notes',
+            'published' => 'true',
+            'drawnAt' => $drawnAt,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
+
+        $this->assertGraphQlErrorMessage($body, 'Variable "$published" got invalid value "true"; Boolean cannot represent a non boolean value: "true"');
     }
 
     public function testDeleteRemovesLabResult(): void
     {
-        $user = UserFactory::createOne();
-        $labResult = LabResultFactory::createOne(['user' => $user]);
+        $user = UserFactory::random();
+        $labResult = LabResultFactory::random(['user' => $user]);
 
-        self::createAuthenticatedClient($user)->request('DELETE', "/lab_results/{$labResult->getId()->toRfc4122()}");
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(204);
+        $query = <<<'GQL'
+            mutation DeleteLabResult($id: ID!) {
+                deleteLabResult(input: { id: $id }) {
+                    labResult {
+                        id
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($labResult),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'DeleteLabResult')->toArray(false);
+
+        $this->assertNull(PostFactory::repository()->find($labResult->getId()));
+        $this->assertGraphQlHasNoErrors($body);
     }
 
     public function testDeleteReturns404ForNonOwnerAsRegularUser(): void
     {
-        $user = UserFactory::createOne();
-        $labResult = LabResultFactory::createOne();
+        [$user1, $user2] = UserFactory::randomSet(2);
+        $labResult = LabResultFactory::random(['user' => $user2]);
 
-        self::createAuthenticatedClient($user)->request('DELETE', "/lab_results/{$labResult->getId()->toRfc4122()}");
+        $client = self::createAuthenticatedClient($user1);
 
-        $this->assertResponseStatusCodeSame(404);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $query = <<<'GQL'
+            mutation DeleteLabResult($id: ID!) {
+                deleteLabResult(input: { id: $id }) {
+                    labResult {
+                        id
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($labResult),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'DeleteLabResult')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 404);
+        $this->assertGraphQlErrorMessage($body, "Item \"{$this->getIriFromResource($labResult)}\" not found.");
+        $this->assertGraphQlDebugMessage($body, "Item \"{$this->getIriFromResource($labResult)}\" not found.");
+        $this->assertNull($body['data']['deleteLabResult']);
     }
 
-    public function testDeleteReturns401ForAnonymousUser(): void
+    public function testDeleteReturns403ForAnonymousUser(): void
     {
-        $labResult = LabResultFactory::createOne();
+        $labResult = LabResultFactory::random();
 
-        self::createClient()->request('DELETE', "/lab_results/{$labResult->getId()->toRfc4122()}");
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
+        $query = <<<'GQL'
+            mutation DeleteLabResult($id: ID!) {
+                deleteLabResult(input: { id: $id }) {
+                    labResult {
+                        id
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($labResult),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'DeleteLabResult')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 403);
+        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlDebugMessage($body, 'Access Denied.');
+        $this->assertNull($body['data']['updateLabResult']);
     }
 }

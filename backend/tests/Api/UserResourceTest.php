@@ -7,12 +7,15 @@ use App\Entity\RefreshToken;
 use App\Entity\User;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
+use App\Tests\Support\GraphQlTestTrait;
+use App\Tests\Support\RegexTrait;
+use Override;
 
 use function Zenstruck\Foundry\Persistence\repository;
 
 class UserResourceTest extends ApiTestCase
 {
-    use AuthenticatedClientTrait;
+    use AuthenticatedClientTrait, GraphQlTestTrait, RegexTrait;
 
     /**
      * If you're using RecreateDatabaseTrait, RefreshDatabaseTrait, ReloadDatabaseTrait from theofidry/AliceBundle, you
@@ -24,505 +27,790 @@ class UserResourceTest extends ApiTestCase
      */
     protected static ?bool $alwaysBootKernel = true;
 
-    public function testGetCollectionReturnsOwnedUserAsRegularUser(): void
+    #[Override]
+    public function setUp(): void
     {
-        $users = UserFactory::createSequence(
-            function () {
-                foreach (range(1, 10) as $i) {
-                    yield ['email' => "user_{$i}@example.org"];
-                }
-            }
-        );
+        parent::setUp();
 
-        $response = self::createAuthenticatedClient($users[0])->request('GET', '/users');
-
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/User',
-            '@id' => '/users',
-            '@type' => 'Collection',
-            'totalItems' => 1,
-        ]);
-        $this->assertCount(1, $response->toArray()['member']);
-        $this->assertMatchesResourceCollectionJsonSchema(User::class);
+        UserFactory::createMany(10);
     }
 
-    public function testGetCollectionReturns401ForAnonymousUser(): void
+    public function testGetCollectionReturnsOwnedUserAsRegularUser(): void
     {
-        self::createClient()->request('GET', '/users');
+        $user = UserFactory::random();
 
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
+        $client = self::createAuthenticatedClient($user);
+
+        $query = <<<'GQL'
+            query Users {
+                users {
+                    id
+                    email
+                    roles
+                    createdAt
+                    updatedAt
+                }
+            }
+        GQL;
+
+        $body = $this->executeGraphQl($client, $query, [], 'Users')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertCount(1, $body['data']['users']);
+        $this->assertSame($this->getIriFromResource($user), $body['data']['users'][0]['id']);
+        $this->assertSame($user->getEmail(), $body['data']['users'][0]['email']);
+        $this->assertSame($user->getRoles(), $body['data']['users'][0]['roles']);
+        $this->assertSame($user->getCreatedAt()->format('c'), $body['data']['users'][0]['createdAt']);
+        $this->assertSame($user->getUpdatedAt()->format('c'), $body['data']['users'][0]['updatedAt']);
+    }
+
+    public function testGetCollectionReturns403ForAnonymousUser(): void
+    {
+        $client = self::createClient();
+
+        $query = <<<'GQL'
+            query Users {
+                users {
+                    id
+                    email
+                    roles
+                    createdAt
+                    updatedAt
+                }
+            }
+        GQL;
+
+        $body = $this->executeGraphQl($client, $query, [], 'Users')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 403);
+        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlDebugMessage($body, 'Access Denied.');
+        $this->assertNull($body['data']['users']);
     }
 
     public function testGetItemReturnsOwnedUserAsRegularUser(): void
     {
-        $user = UserFactory::createOne(['email' => 'user@example.org']);
+        $user = UserFactory::random();
 
-        $response = self::createAuthenticatedClient($user)->request('GET', "/users/{$user->getId()->toRfc4122()}");
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/User',
-            '@type' => 'User',
-            'email' => 'user@example.org',
-        ]);
-        $this->assertMatchesRegularExpression('/^\/users\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
-        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-        $this->assertMatchesResourceItemJsonSchema(User::class);
+        $query = <<<'GQL'
+            query User($id: ID!) {
+                user(id: $id) {
+                    id
+                    email
+                    roles
+                    createdAt
+                    updatedAt
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($user),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'User')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertSame($this->getIriFromResource($user), $body['data']['user']['id']);
+        $this->assertSame($user->getEmail(), $body['data']['user']['email']);
+        $this->assertSame($user->getRoles(), $body['data']['user']['roles']);
+        $this->assertSame($user->getCreatedAt()->format('c'), $body['data']['user']['createdAt']);
+        $this->assertSame($user->getUpdatedAt()->format('c'), $body['data']['user']['updatedAt']);
     }
 
-    public function testGetItemReturns404ForNonOwnerAsRegularUser(): void
+    public function testGetItemReturnsNullForNonOwnerAsRegularUser(): void
     {
-        $user = UserFactory::createOne();
-        $otherUser = UserFactory::createOne();
+        [$user1, $user2] = UserFactory::randomSet(2);
 
-        self::createAuthenticatedClient($user)->request('GET', "/users/{$otherUser->getId()->toRfc4122()}");
+        $client = self::createAuthenticatedClient($user1);
 
-        $this->assertResponseStatusCodeSame(404);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $query = <<<'GQL'
+            query User($id: ID!) {
+                user(id: $id) {
+                    id
+                    email
+                    roles
+                    createdAt
+                    updatedAt
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($user2),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'User')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertNull($body['data']['user']);
     }
 
-    public function testGetItemReturns401ForAnonymousUser(): void
+    public function testGetItemReturns403ForAnonymousUser(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        self::createClient()->request('GET', "/users/{$user->getId()->toRfc4122()}");
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
+        $query = <<<'GQL'
+            query User($id: ID!) {
+                user(id: $id) {
+                    id
+                    email
+                    roles
+                    createdAt
+                    updatedAt
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($user),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'User')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 403);
+        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlDebugMessage($body, 'Access Denied.');
+        $this->assertNull($body['data']['user']);
     }
 
-    public function testPostCreatesUserAsAnonymousUser(): void
+    public function testPostCreatesUser(): void
     {
-        $response = self::createClient()->request('POST', '/users', ['json' => [
-            'email' => 'user@example.org',
-            'plainPassword' => 'password',
-        ]]);
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(201);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/User',
-            '@type' => 'User',
-            'email' => 'user@example.org',
-        ]);
-        $this->assertMatchesRegularExpression('/^\/users\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['@id']);
-        $this->assertMatchesRegularExpression('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/', $response->toArray()['id']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
-        $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-        $this->assertMatchesResourceItemJsonSchema(User::class);
-    }
+        $query = <<<'GQL'
+            mutation CreateUser($email: String!, $plainPassword: String!) {
+                createUser(input: { email: $email, plainPassword: $plainPassword }) {
+                    user {
+                        id
+                        email
+                        roles
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
 
-    public function testPostReturns403ForRegularUser(): void
-    {
-        $user = UserFactory::createOne();
+        $variables = [
+            'email' => 'test_user@example.org',
+            'plainPassword' => UserFactory::DEFAULT_PASSWORD,
+        ];
 
-        self::createAuthenticatedClient($user)->request('POST', '/users', ['json' => [
-            'email' => 'user@example.org',
-            'plainPassword' => 'password',
-        ]]);
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateUser')->toArray(false);
 
-        $this->assertResponseStatusCodeSame(403);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertMatchesIri($body['data']['createUser']['user']['id'], User::class);
+        $this->assertSame($variables['email'], $body['data']['createUser']['user']['email']);
+        $this->assertSame(['ROLE_USER'], $body['data']['createUser']['user']['roles']);
+        $this->assertMatchesDate($body['data']['createUser']['user']['createdAt']);
+        $this->assertMatchesDate($body['data']['createUser']['user']['updatedAt']);
     }
 
     public function testPostReturns422WhenEmailIsMissing(): void
     {
-        self::createClient()->request('POST', '/users', ['json' => [
-            'plainPassword' => 'password',
-        ]]);
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'email',
-                'message' => 'This value should not be blank.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation CreateUser($plainPassword: String!) {
+                createUser(input: { plainPassword: $plainPassword }) {
+                    user {
+                        id
+                        email
+                        roles
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'plainPassword' => UserFactory::DEFAULT_PASSWORD,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateUser')->toArray(false);
+
+        $this->assertGraphQlErrorMessage($body, 'Field createUserInput.email of required type String! was not provided.');
     }
 
     public function testPostReturns422WhenEmailIsBlank(): void
     {
-        self::createClient()->request('POST', '/users', ['json' => [
-            'email' => '',
-            'plainPassword' => 'password',
-        ]]);
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'email',
-                'message' => 'This value should not be blank.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation CreateUser($email: String!, $plainPassword: String!) {
+                createUser(input: { email: $email, plainPassword: $plainPassword }) {
+                    user {
+                        id
+                        email
+                        roles
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'email' => '',
+            'plainPassword' => UserFactory::DEFAULT_PASSWORD,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateUser')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'email', 'This value should not be blank.');
+        $this->assertNull($body['data']['createUser']);
     }
 
     public function testPostReturns422WhenEmailIsInvalid(): void
     {
-        self::createClient()->request('POST', '/users', ['json' => [
-            'email' => 'user(at)example.org',
-            'plainPassword' => 'password',
-        ]]);
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'email',
-                'message' => 'This value is not a valid email address.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation CreateUser($email: String!, $plainPassword: String!) {
+                createUser(input: { email: $email, plainPassword: $plainPassword }) {
+                    user {
+                        id
+                        email
+                        roles
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'email' => 'test_user(at)example.org',
+            'plainPassword' => UserFactory::DEFAULT_PASSWORD,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateUser')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'email', 'This value is not a valid email address.');
+        $this->assertNull($body['data']['createUser']);
     }
 
     public function testPostReturns422WhenEmailIsAlreadyInUse(): void
     {
-        UserFactory::createOne(['email' => 'user@example.org']);
+        $user = UserFactory::random();
 
-        self::createClient()->request('POST', '/users', ['json' => [
-            'email' => 'user@example.org',
-            'plainPassword' => 'password',
-        ]]);
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'email',
-                'message' => 'This email is already in use.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation CreateUser($email: String!, $plainPassword: String!) {
+                createUser(input: { email: $email, plainPassword: $plainPassword }) {
+                    user {
+                        id
+                        email
+                        roles
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'email' => $user->getEmail(),
+            'plainPassword' => UserFactory::DEFAULT_PASSWORD,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateUser')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'email', 'This email is already in use.');
+        $this->assertNull($body['data']['createUser']);
     }
 
     public function testPostReturns422WhenPasswordIsMissing(): void
     {
-        self::createClient()->request('POST', '/users', ['json' => [
-            'email' => 'user@example.org',
-        ]]);
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'plainPassword',
-                'message' => 'This value should not be blank.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation CreateUser($email: String!) {
+                createUser(input: { email: $email }) {
+                    user {
+                        id
+                        email
+                        roles
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'email' => 'test_user@example.org',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateUser')->toArray(false);
+
+        $this->assertGraphQlErrorMessage($body, 'Field createUserInput.plainPassword of required type String! was not provided.');
     }
 
     public function testPostReturns422WhenPasswordIsBlank(): void
     {
-        self::createClient()->request('POST', '/users', ['json' => [
-            'email' => 'user@example.org',
-            'plainPassword' => '',
-        ]]);
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'plainPassword',
-                'message' => 'This value should not be blank.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation CreateUser($email: String!, $plainPassword: String!) {
+                createUser(input: { email: $email, plainPassword: $plainPassword }) {
+                    user {
+                        id
+                        email
+                        roles
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'email' => 'test_user@example.org',
+            'plainPassword' => '',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateUser')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'plainPassword', ['This value should not be blank.', 'This value is too short. It should have 8 characters or more.']);
+        $this->assertNull($body['data']['createUser']);
     }
 
     public function testPostReturns422WhenPasswordIsTooShort(): void
     {
-        self::createClient()->request('POST', '/users', ['json' => [
-            'email' => 'user@example.org',
-            'plainPassword' => 'pass',
-        ]]);
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'plainPassword',
-                'message' => 'This value is too short. It should have 8 characters or more.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation CreateUser($email: String!, $plainPassword: String!) {
+                createUser(input: { email: $email, plainPassword: $plainPassword }) {
+                    user {
+                        id
+                        email
+                        roles
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'email' => 'test_user@example.org',
+            'plainPassword' => 'pass',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateUser')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'plainPassword', 'This value is too short. It should have 8 characters or more.');
+        $this->assertNull($body['data']['createUser']);
     }
 
-    public function testPatchUpdateUserEmail(): void
+    public function testPatchUpdatesUser(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/users/{$user->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'email' => 'new_email@example.org',
-            ]
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains(['email' => 'new_email@example.org']);
-        $this->assertMatchesResourceItemJsonSchema(User::class);
+        $passwordBefore = UserFactory::find($user->getId())->getPassword();
+
+        $query = <<<'GQL'
+            mutation UpdateUser($id: ID!, $email: String!, $plainPassword: String!) {
+                updateUser(input: { id: $id, email: $email, plainPassword: $plainPassword }) {
+                    user {
+                        id
+                        email
+                        roles
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($user),
+            'email' => 'updated_user@example.org',
+            'plainPassword' => 'new_password',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertSame($this->getIriFromResource($user), $body['data']['updateUser']['user']['id']);
+        $this->assertSame('updated_user@example.org', $body['data']['updateUser']['user']['email']);
+        $this->assertSame($user->getRoles(), $body['data']['updateUser']['user']['roles']);
+        $this->assertMatchesDate($body['data']['updateUser']['user']['createdAt']);
+        $this->assertMatchesDate($body['data']['updateUser']['user']['updatedAt']);
+
+        // Check if the password was updated
+        $passwordAfter = UserFactory::find($user->getId())->getPassword();
+        $this->assertNotEquals($passwordBefore, $passwordAfter);
     }
 
     public function testPatchUpdatesPersistedRefreshTokenAfterEmailUpdate(): void
     {
         $tokenRespository = repository(RefreshToken::class);
 
-        $user = UserFactory::createOne(['email' => 'old_email@example.org']);
+        $user = UserFactory::random();
+        $emailOld = $user->getEmail();
+        $emailNew = 'updated_user@example.org';
 
         $client = self::createAuthenticatedClient($user);
 
-        $tokenBefore = $tokenRespository->findOneBy(['username' => 'old_email@example.org']);
+        $tokenBefore = $tokenRespository->findOneBy(['username' => $emailOld]);
         $this->assertNotNull($tokenBefore);
-        $this->assertSame('old_email@example.org', $tokenBefore->getUsername());
+        $this->assertSame($emailOld, $tokenBefore->getUsername());
 
-        $client->request('PATCH', "/users/{$user->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'email' => 'new_email@example.org',
-            ]
-        ]);
+        $query = <<<'GQL'
+            mutation UpdateUser($id: ID!, $email: String!) {
+                updateUser(input: { id: $id, email: $email }) {
+                    user {
+                        id
+                        email
+                    }
+                }
+            }
+        GQL;
 
-        $tokenAfter = $tokenRespository->findOneBy(['username' => 'new_email@example.org']);
+        $variables = [
+            'id' => $this->getIriFromResource($user),
+            'email' => $emailNew,
+        ];
+
+        $this->executeGraphQl($client, $query, $variables, 'UpdateUser');
+
+        $tokenAfter = $tokenRespository->findOneBy(['username' => $emailNew]);
         $this->assertNotNull($tokenAfter);
-        $this->assertSame('new_email@example.org', $tokenAfter->getUsername());
+        $this->assertSame($emailNew, $tokenAfter->getUsername());
 
-        $tokenOld = $tokenRespository->findOneBy(['username' => 'old_email@example.org']);
+        $tokenOld = $tokenRespository->findOneBy(['username' => $emailOld]);
         $this->assertNull($tokenOld);
     }
 
-    public function testPatchUpdatePassword(): void
+    public function testPatchReturns403ForAnonymousUser(): void
     {
-        $userRepository = repository(User::class);
+        $user = UserFactory::random();
 
-        $user = UserFactory::createOne();
+        $client = self::createClient();
 
-        $passwordBefore = $userRepository->find($user->getId())->getPassword();
+        $query = <<<'GQL'
+            mutation UpdateUser($id: ID!, $email: String!, $plainPassword: String!) {
+                updateUser(input: { id: $id, email: $email, plainPassword: $plainPassword }) {
+                    user {
+                        id
+                        email
+                        roles
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/users/{$user->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'plainPassword' => 'my_new_user_password',
-            ]
-        ]);
+        $variables = [
+            'id' => $this->getIriFromResource($user),
+            'email' => 'updated_user@example.org',
+            'plainPassword' => 'new_password',
+        ];
 
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertMatchesResourceItemJsonSchema(User::class);
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
 
-        $passwordAfter = $userRepository->find($user->getId())->getPassword();
-        $this->assertNotEquals($passwordBefore, $passwordAfter);
-    }
-
-    public function testPatchReturns401ForAnonymousUser(): void
-    {
-        $user = UserFactory::createOne();
-
-        self::createClient()->request('PATCH', "/users/{$user->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'email' => 'new_user@example.org',
-                'plainPassword' => 'new_password',
-            ],
-        ]);
-
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
+        $this->assertGraphQlErrorStatus($body, 403);
+        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlDebugMessage($body, 'Access Denied.');
+        $this->assertNull($body['data']['updateUser']);
     }
 
     public function testPatchReturns404ForNonOwnerAsRegularUser(): void
     {
-        $user = UserFactory::createOne();
-        $otherUser = UserFactory::createOne();
+        [$user1, $user2] = UserFactory::randomSet(2);
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/users/{$otherUser->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'email' => 'new_user@example.org',
-                'plainPassword' => 'new_password',
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user1);
 
-        $this->assertResponseStatusCodeSame(404);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $query = <<<'GQL'
+            mutation UpdateUser($id: ID!, $email: String!, $plainPassword: String!) {
+                updateUser(input: { id: $id, email: $email, plainPassword: $plainPassword }) {
+                    user {
+                        id
+                        email
+                        roles
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($user2),
+            'email' => 'updated_user@example.org',
+            'plainPassword' => 'new_password',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 404);
+        $this->assertGraphQlErrorMessage($body, "Item \"{$this->getIriFromResource($user2)}\" not found.");
+        $this->assertGraphQlDebugMessage($body, "Item \"{$this->getIriFromResource($user2)}\" not found.");
+        $this->assertNull($body['data']['updateUser']);
     }
 
     public function testPatchReturns422WhenEmailIsBlank(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/users/{$user->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'email' => '',
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'email',
-                'message' => 'This value should not be blank.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation UpdateUser($id: ID!, $email: String!, $plainPassword: String!) {
+                updateUser(input: { id: $id, email: $email, plainPassword: $plainPassword }) {
+                    user {
+                        id
+                        email
+                        roles
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($user),
+            'email' => '',
+            'plainPassword' => 'new_password',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'email', 'This value should not be blank.');
+        $this->assertNull($body['data']['updateUser']);
     }
 
     public function testPatchReturns422WhenEmailIsInvalid(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/users/{$user->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'email' => 'user(at)example.org',
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'email',
-                'message' => 'This value is not a valid email address.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation UpdateUser($id: ID!, $email: String!, $plainPassword: String!) {
+                updateUser(input: { id: $id, email: $email, plainPassword: $plainPassword }) {
+                    user {
+                        id
+                        email
+                        roles
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($user),
+            'email' => 'updated_user{at}example.org',
+            'plainPassword' => 'new_password',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'email', 'This value is not a valid email address.');
+        $this->assertNull($body['data']['updateUser']);
     }
 
     public function testPatchReturns422WhenEmailIsAlreadyInUse(): void
     {
-        UserFactory::createOne(['email' => 'user@example.org']);
-        $user = UserFactory::createOne();
+        [$user1, $user2] = UserFactory::randomSet(2);
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/users/{$user->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'email' => 'user@example.org',
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user1);
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'email',
-                'message' => 'This email is already in use.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation UpdateUser($id: ID!, $email: String!, $plainPassword: String!) {
+                updateUser(input: { id: $id, email: $email, plainPassword: $plainPassword }) {
+                    user {
+                        id
+                        email
+                        roles
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($user1),
+            'email' => $user2->getEmail(),
+            'plainPassword' => 'new_password',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'email', 'This email is already in use.');
+        $this->assertNull($body['data']['updateUser']);
     }
 
     public function testPatchReturns422WhenPasswordIsBlank(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/users/{$user->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'plainPassword' => '',
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'plainPassword',
-                'message' => 'This value is too short. It should have 8 characters or more.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation UpdateUser($id: ID!, $email: String!, $plainPassword: String!) {
+                updateUser(input: { id: $id, email: $email, plainPassword: $plainPassword }) {
+                    user {
+                        id
+                        email
+                        roles
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($user),
+            'email' => 'updated_user@example.org',
+            'plainPassword' => '',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'plainPassword', 'This value is too short. It should have 8 characters or more.');
+        $this->assertNull($body['data']['updateUser']);
     }
 
     public function testPatchReturns422WhenPasswordIsTooShort(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/users/{$user->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'plainPassword' => 'pass',
-            ],
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(422);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
-        $this->assertJsonContains([
-            '@context' => '/contexts/ConstraintViolation',
-            '@type' => 'ConstraintViolation',
-            'violations' => [[
-                'propertyPath' => 'plainPassword',
-                'message' => 'This value is too short. It should have 8 characters or more.',
-            ]],
-        ]);
+        $query = <<<'GQL'
+            mutation UpdateUser($id: ID!, $email: String!, $plainPassword: String!) {
+                updateUser(input: { id: $id, email: $email, plainPassword: $plainPassword }) {
+                    user {
+                        id
+                        email
+                        roles
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($user),
+            'email' => 'updated_user@example.org',
+            'plainPassword' => 'pass',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'plainPassword', 'This value is too short. It should have 8 characters or more.');
+        $this->assertNull($body['data']['updateUser']);
     }
 
     public function testDeleteRemovesUser(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        self::createAuthenticatedClient($user)->request('DELETE', "/users/{$user->getId()->toRfc4122()}");
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(204);
+        $query = <<<'GQL'
+            mutation DeleteUser($id: ID!) {
+                deleteUser(input: { id: $id }) {
+                    user {
+                        id
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($user),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'DeleteUser')->toArray(false);
+
+        $this->assertNull(UserFactory::repository()->find($user->getId()));
+        $this->assertGraphQlHasNoErrors($body);
     }
 
     public function testDeleteReturns404ForNonOwnerAsRegularUser(): void
     {
-        $user = UserFactory::createOne();
-        $otherUser = UserFactory::createOne();
+        [$user1, $user2] = UserFactory::randomSet(2);
 
-        self::createAuthenticatedClient($user)->request('DELETE', "/users/{$otherUser->getId()->toRfc4122()}");
+        $client = self::createAuthenticatedClient($user1);
 
-        $this->assertResponseStatusCodeSame(404);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $query = <<<'GQL'
+            mutation DeleteUser($id: ID!) {
+                deleteUser(input: { id: $id }) {
+                    user {
+                        id
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($user2),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'DeleteUser')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 404);
+        $this->assertGraphQlErrorMessage($body, "Item \"{$this->getIriFromResource($user2)}\" not found.");
+        $this->assertGraphQlDebugMessage($body, "Item \"{$this->getIriFromResource($user2)}\" not found.");
+        $this->assertNull($body['data']['deleteUser']);
     }
 
-    public function testDeleteReturns401ForAnonymousUser(): void
+    public function testDeleteReturns403ForAnonymousUser(): void
     {
-        $user = UserFactory::createOne();
+        $user = UserFactory::random();
 
-        self::createClient()->request('DELETE', "/users/{$user->getId()->toRfc4122()}");
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
+        $query = <<<'GQL'
+            mutation DeleteUser($id: ID!) {
+                deleteUser(input: { id: $id }) {
+                    user {
+                        id
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($user),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'DeleteUser')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 403);
+        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlDebugMessage($body, 'Access Denied.');
+        $this->assertNull($body['data']['deleteUser']);
     }
 }

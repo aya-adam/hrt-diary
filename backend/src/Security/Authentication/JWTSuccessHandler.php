@@ -2,6 +2,7 @@
 
 namespace App\Security\Authentication;
 
+use ApiPlatform\Metadata\IriConverterInterface;
 use App\Entity\User;
 use Lexik\Bundle\JWTAuthenticationBundle\Event\AuthenticationSuccessEvent;
 use Lexik\Bundle\JWTAuthenticationBundle\Events;
@@ -13,6 +14,7 @@ class JWTSuccessHandler implements EventSubscriberInterface
     public function __construct(
         private JwtCookieFactory $cookieFactory,
         private SerializerInterface $serializer,
+        private IriConverterInterface $iriConverter,
     ) {}
 
     public static function getSubscribedEvents(): array
@@ -31,13 +33,30 @@ class JWTSuccessHandler implements EventSubscriberInterface
         }
 
         $event->getResponse()->headers->setCookie($this->cookieFactory->createAccessTokenCookie($user));
-        $event->getResponse()->headers->set('Content-Type', 'application/ld+json; charset=utf-8');
+        $event->getResponse()->headers->set('Content-Type', 'application/json');
 
-        $userJsonLd = $this->serializer->serialize($user, 'jsonld', [
-            'groups' => ['user:read'],
+        $cookies = $event->getResponse()->headers->getCookies();
+        $responseCookies = [];
+        foreach ($cookies as $cookie) {
+            $responseCookies[$cookie->getName()] = [
+                'path' => $cookie->getPath(),
+                'expiresAt' => $cookie->getExpiresTime(),
+            ];
+        };
+
+        $serializedUser = $this->serializer->serialize($user, 'json', [
+            'groups' => ['user:login:read'],
             'resource_class' => User::class,
         ]);
 
-        $event->setData(json_decode($userJsonLd, true));
+        $jsonUser = json_decode($serializedUser, true);
+        if (isset($jsonUser['id'])) {
+            $jsonUser['id'] = $this->iriConverter->getIriFromResource($user);
+        }
+
+        $event->setData([
+            'user' => $jsonUser,
+            'cookies' => $responseCookies,
+        ]);
     }
 }

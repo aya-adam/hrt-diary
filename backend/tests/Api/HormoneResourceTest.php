@@ -4,15 +4,16 @@ namespace App\Tests\Api;
 
 use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
 use App\Entity\Hormone;
-use App\Entity\Unit;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
+use App\Tests\Support\GraphQlTestTrait;
+use App\Tests\Support\RegexTrait;
 
 use function Zenstruck\Foundry\Persistence\repository;
 
 class HormoneResourceTest extends ApiTestCase
 {
-    use AuthenticatedClientTrait;
+    use AuthenticatedClientTrait, GraphQlTestTrait, RegexTrait;
 
     /**
      * If you're using RecreateDatabaseTrait, RefreshDatabaseTrait, ReloadDatabaseTrait from theofidry/AliceBundle, you
@@ -28,103 +29,193 @@ class HormoneResourceTest extends ApiTestCase
     {
         $user = UserFactory::createOne();
 
-        $response = self::createAuthenticatedClient($user)->request('GET', '/hormones');
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertJsonContains(['totalItems' => 8]);
-        $this->assertCount(8, $response->toArray()['member']);
-        $this->assertMatchesResourceCollectionJsonSchema(Hormone::class);
+        $query = <<<'GQL'
+            query Hormones {
+                hormones {
+                    id
+                    name
+                    commonName
+                }
+            }
+        GQL;
+
+        $body = $this->executeGraphQl($client, $query, [], 'Hormones')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertCount(8, $body['data']['hormones']);
+
+        foreach ($body['data']['hormones'] as $hormone) {
+            $this->assertMatchesIri($hormone['id'], Hormone::class);
+            $this->assertArrayHasKey('name', $hormone);
+            $this->assertArrayHasKey('commonName', $hormone);
+        }
     }
 
-    public function testGetCollectionReturns401ForAnonymousUser(): void
+    public function testGetCollectionReturns403ForAnonymousUser(): void
     {
-        self::createClient()->request('GET', '/hormones');
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
+        $query = <<<'GQL'
+            query Hormones {
+                hormones {
+                    id
+                    name
+                    commonName
+                }
+            }
+        GQL;
+
+        $body = $this->executeGraphQl($client, $query, [], 'Hormones')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 403);
+        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlDebugMessage($body, 'Access Denied.');
+        $this->assertNull($body['data']['hormones']);
     }
 
     public function testGetItemReturnsUnit(): void
     {
-        $hormoneRespository = repository(Hormone::class);
-        $hormone = $hormoneRespository->first();
-
         $user = UserFactory::createOne();
+        $hormone = repository(Hormone::class)->random();
 
-        self::createAuthenticatedClient($user)->request('GET', "/hormones/{$hormone->getId()->toRfc4122()}");
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(200);
-        $this->assertResponseHeaderSame('content-type', 'application/ld+json; charset=utf-8');
-        $this->assertMatchesResourceItemJsonSchema(Hormone::class);
+        $query = <<<'GQL'
+            query Hormone($id: ID!) {
+                hormone(id: $id) {
+                    id
+                    name
+                    commonName
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($hormone),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'Hormone')->toArray(false);
+
+        $this->assertGraphQlHasNoErrors($body);
+        $this->assertSame($this->getIriFromResource($hormone), $body['data']['hormone']['id']);
+        $this->assertSame($hormone->getName(), $body['data']['hormone']['name']);
+        $this->assertSame($hormone->getCommonName(), $body['data']['hormone']['commonName']);
     }
 
-    public function testGetItemReturns401ForAnonymousUser(): void
+    public function testGetItemReturns403ForAnonymousUser(): void
     {
-        $hormoneRespository = repository(Hormone::class);
-        $hormone = $hormoneRespository->first();
+        $hormone = repository(Hormone::class)->random();
 
-        self::createClient()->request('GET', "/hormones/{$hormone->getId()->toRfc4122()}");
+        $client = self::createClient();
 
-        $this->assertResponseStatusCodeSame(401);
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        $this->assertJsonEquals([
-            'code' => 401,
-            'message' => 'JWT Token not found',
-        ]);
+        $query = <<<'GQL'
+            query Hormone($id: ID!) {
+                hormone(id: $id) {
+                    id
+                    name
+                    commonName
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($hormone),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'Hormone')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 403);
+        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlDebugMessage($body, 'Access Denied.');
+        $this->assertNull($body['data']['hormone']);
     }
 
-    public function testPostReturns405(): void
+    public function testPostReturnsError(): void
     {
-        $unitRespository = repository(Unit::class);
-        $unit = $unitRespository->first();
-
         $user = UserFactory::createOne();
 
-        self::createAuthenticatedClient($user)->request('POST', '/hormones', ['json' => [
-            'defaultUnit' => "/units/{$unit->getId()->toRfc4122()}",
-            'name' => 'Estron',
-            'commonName' => 'E1',
-        ]]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(405);
+        $query = <<<'GQL'
+            mutation CreateHormone($name: String!, $commonName: String!) {
+                createHormone(input: { name: $name, commonName: $commonName }) {
+                    hormone {
+                        id
+                        name
+                        commonName
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'name' => 'Epinephrine',
+            'commonName' => 'Adrenaline',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateHormone')->toArray(false);
+
+        $this->assertGraphQlHasErrors($body);
+        $this->assertNull($body['data']);
     }
 
-    public function testPatchReturns405(): void
+    public function testPatchReturnsError(): void
     {
-        $hormoneRespository = repository(Hormone::class);
-        $hormone = $hormoneRespository->first();
-
-        $unitRespository = repository(Unit::class);
-        $unit = $unitRespository->first();
-
         $user = UserFactory::createOne();
+        $hormone = repository(Hormone::class)->random();
 
-        self::createAuthenticatedClient($user)->request('PATCH', "/hormones/{$hormone->getId()->toRfc4122()}", [
-            'headers' => ['content-type' => 'application/merge-patch+json'],
-            'json' => [
-                'defaultUnit' => "/units/{$unit->getId()->toRfc4122()}",
-                'name' => 'Estron',
-                'commonName' => 'E1',
-            ]
-        ]);
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(405);
+        $query = <<<'GQL'
+            mutation UpdateHormone($id: ID!, $name: String!, $commonName: String!) {
+                updateHormone(input: { id: $id, name: $name, commonName: $commonName }) {
+                    hormone {
+                        id
+                        name
+                        commonName
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($hormone),
+            'name' => 'Epinephrine',
+            'commonName' => 'Adrenaline',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateHormone')->toArray(false);
+
+        $this->assertGraphQlHasErrors($body);
+        $this->assertNull($body['data']);
     }
 
-    public function testDeleteReturns405(): void
+    public function testDeleteReturnsError(): void
     {
-        $hormoneRespository = repository(Hormone::class);
-        $hormone = $hormoneRespository->first();
-
         $user = UserFactory::createOne();
+        $hormone = repository(Hormone::class)->random();
 
-        self::createAuthenticatedClient($user)->request('DELETE', "/hormones/{$hormone->getId()->toRfc4122()}");
+        $client = self::createAuthenticatedClient($user);
 
-        $this->assertResponseStatusCodeSame(405);
+        $query = <<<'GQL'
+            mutation DeleteHormone($id: ID!) {
+                deleteHormone(input: { id: $id }) {
+                    hormone {
+                        id
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => $this->getIriFromResource($hormone),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'DeleteHormone')->toArray(false);
+
+        $this->assertGraphQlHasErrors($body);
+        $this->assertNull($body['data']);
     }
 }

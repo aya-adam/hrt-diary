@@ -6,6 +6,8 @@ use ApiPlatform\Doctrine\Orm\Extension\QueryCollectionExtensionInterface;
 use ApiPlatform\Doctrine\Orm\Extension\QueryItemExtensionInterface;
 use Doctrine\ORM\QueryBuilder;
 use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
+use ApiPlatform\Metadata\GraphQl\Query;
+use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use ApiPlatform\Metadata\Operation;
 use App\Entity\LabResult;
 use App\Entity\Measurement;
@@ -25,16 +27,16 @@ final class OwnerExtension implements QueryCollectionExtensionInterface, QueryIt
     #[Override]
     public function applyToCollection(QueryBuilder $queryBuilder, QueryNameGeneratorInterface $queryNameGenerator, string $resourceClass, ?Operation $operation = null, array $context = []): void
     {
-        $this->addOwnerFilter($queryBuilder, $resourceClass);
+        $this->addOwnerFilter($queryBuilder, $resourceClass, $operation);
     }
 
     #[Override]
     public function applyToItem(QueryBuilder $queryBuilder, QueryNameGeneratorInterface $queryNameGenerator, string $resourceClass, array $identifiers, ?Operation $operation = null, array $context = []): void
     {
-        $this->addOwnerFilter($queryBuilder, $resourceClass);
+        $this->addOwnerFilter($queryBuilder, $resourceClass, $operation);
     }
 
-    private function addOwnerFilter(QueryBuilder $queryBuilder, string $resourceClass): void
+    private function addOwnerFilter(QueryBuilder $queryBuilder, string $resourceClass, ?Operation $operation): void
     {
         if (!in_array($resourceClass, $this->getSupportedClasses(), true) || $this->security->isGranted('ROLE_ADMIN')) {
             return;
@@ -50,7 +52,7 @@ final class OwnerExtension implements QueryCollectionExtensionInterface, QueryIt
 
         if ($resourceClass === User::class) {
             $queryBuilder->andWhere(sprintf('%s.id = :user', $alias));
-        } elseif ($resourceClass === ReferenceRange::class) {
+        } elseif ($resourceClass === ReferenceRange::class && ($operation instanceof Query || $operation instanceof QueryCollection)) {
             $queryBuilder->andWhere($queryBuilder->expr()->orX(sprintf('%s.user = :user', $alias), sprintf('%s.user IS NULL', $alias)));
         } else {
             $queryBuilder->andWhere(sprintf('%s.user = :user', $alias));

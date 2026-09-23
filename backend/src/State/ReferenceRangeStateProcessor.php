@@ -2,20 +2,21 @@
 
 namespace App\State;
 
-use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Exception\AccessDeniedException;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\GraphQl\DeleteMutation;
+use ApiPlatform\Metadata\GraphQl\Query;
+use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use ApiPlatform\Metadata\Operation;
-use ApiPlatform\Metadata\Patch;
-use ApiPlatform\Metadata\Post;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\ReferenceRange;
+use App\State\Trait\GraphQlOperationHelperTrait;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 final class ReferenceRangeStateProcessor implements ProcessorInterface
 {
+    use GraphQlOperationHelperTrait;
+
     public function __construct(
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
         private readonly ProcessorInterface $persistProcessor,
@@ -26,9 +27,9 @@ final class ReferenceRangeStateProcessor implements ProcessorInterface
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
-        if ($operation instanceof Post) {
+        if (self::isMutationCreate($operation)) {
             $data = $this->setOwner($data);
-        } elseif ($operation instanceof Get || $operation instanceof GetCollection) {
+        } elseif ($operation instanceof Query || $operation instanceof QueryCollection) {
             $this->assertOwnershipOrPublic($data);
         } else {
             $this->assertOwnership($data);
@@ -36,7 +37,7 @@ final class ReferenceRangeStateProcessor implements ProcessorInterface
 
         $data = $this->setUnit($data);
 
-        return $operation instanceof Delete
+        return $operation instanceof DeleteMutation
             ? $this->remove($data, $operation, $uriVariables, $context)
             : $this->persist($data, $operation, $uriVariables, $context);
     }
@@ -61,8 +62,8 @@ final class ReferenceRangeStateProcessor implements ProcessorInterface
 
     private function assertOwnership(mixed $data): void
     {
-        if ($data instanceof ReferenceRange && $data->getUser()->getUserIdentifier() !== $this->security->getUser()->getUserIdentifier()) {
-            throw new AccessDeniedException();
+        if ($data instanceof ReferenceRange && (!$data->getUser() || $data->getUser()->getUserIdentifier() !== $this->security->getUser()->getUserIdentifier())) {
+            throw new AccessDeniedException('Access Denied.');
         }
     }
 
@@ -72,7 +73,7 @@ final class ReferenceRangeStateProcessor implements ProcessorInterface
             $data instanceof ReferenceRange
             && (!$data->getUser() || $data->getUser()->getUserIdentifier() !== $this->security->getUser()->getUserIdentifier())
         ) {
-            throw new AccessDeniedException();
+            throw new AccessDeniedException('Access Denied.');
         }
     }
 

@@ -3,8 +3,8 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\GraphQl\Query;
+use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use App\Repository\UnitRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
@@ -13,33 +13,32 @@ use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: UnitRepository::class)]
 #[ApiResource(
-    operations: [
-        new Get(
-            normalizationContext: ['groups' => ['unit:read']],
-        ),
-        new GetCollection(
-            normalizationContext: ['groups' => ['unit:read']],
-        ),
+    security: 'is_granted(\'IS_AUTHENTICATED\')',
+    normalizationContext: ['groups' => ['read']],
+    operations: [],
+    graphQlOperations: [
+        new Query(),
+        new QueryCollection(),
     ],
 )]
 class Unit
 {
-    #[Groups(['unit:read', 'hormone:read', 'quantityType:read'])]
+    #[Groups(['read'])]
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
     private ?Uuid $id = null;
 
-    #[Groups(['unit:read', 'hormone:read'])]
+    #[Groups(['read'])]
     #[ORM\ManyToOne(inversedBy: 'units')]
     private ?QuantityType $quantityType = null;
 
-    #[Groups(['unit:read', 'hormone:read', 'quantityType:read'])]
+    #[Groups(['read'])]
     #[ORM\Column(length: 10)]
     private ?string $symbol = null;
 
-    #[Groups(['unit:read', 'hormone:read', 'quantityType:read'])]
+    #[Groups(['read'])]
     #[ORM\Column(length: 255)]
     private ?string $label = null;
 

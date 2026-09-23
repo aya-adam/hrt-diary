@@ -3,11 +3,10 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Delete;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
-use ApiPlatform\Metadata\Patch;
-use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\GraphQl\DeleteMutation;
+use ApiPlatform\Metadata\GraphQl\Mutation;
+use ApiPlatform\Metadata\GraphQl\Query;
+use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use App\Entity\Post as PostEntity;
 use App\Repository\LabResultRepository;
 use App\State\LabResultStateProcessor;
@@ -23,34 +22,36 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: LabResultRepository::class)]
 #[ApiResource(
-    operations: [
-        new Get(
-            normalizationContext: ['groups' => ['labResult:read']],
-            security: 'object.getUser() == user or is_granted(\'ROLE_ADMIN\')',
+    security: 'is_granted(\'IS_AUTHENTICATED\')',
+    operations: [],
+    graphQlOperations: [
+        new Query(
+            normalizationContext: ['groups' => ['read']],
         ),
-        new GetCollection(
-            normalizationContext: ['groups' => ['labResult:read']],
+        new QueryCollection(
+            normalizationContext: ['groups' => ['read']],
         ),
-        new Post(
-            normalizationContext: ['groups' => ['labResult:read']],
+        new Mutation(
+            name: 'create',
+            normalizationContext: ['groups' => ['read']],
             denormalizationContext: ['groups' => ['labResult:create']],
             processor: LabResultStateProcessor::class,
         ),
-        new Patch(
-            normalizationContext: ['groups' => ['labResult:read']],
+        new Mutation(
+            name: 'update',
+            normalizationContext: ['groups' => ['read']],
             denormalizationContext: ['groups' => ['labResult:update']],
-            security: 'object.getUser() == user or is_granted(\'ROLE_ADMIN\')',
             processor: LabResultStateProcessor::class,
         ),
-        new Delete(
-            security: 'object.getUser() == user or is_granted(\'ROLE_ADMIN\')',
+        new DeleteMutation(
+            name: 'delete',
             processor: LabResultStateProcessor::class,
         ),
     ],
 )]
 class LabResult
 {
-    #[Groups(['labResult:read'])]
+    #[Groups(['read'])]
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
@@ -64,19 +65,19 @@ class LabResult
     /**
      * @var Collection<int, Measurement>
      */
-    #[Groups(['labResult:read'])]
+    #[Groups(['read', 'labResult:create'])]
     #[ORM\OneToMany(targetEntity: Measurement::class, mappedBy: 'labResult', orphanRemoval: true)]
     private Collection $measurements;
 
     /**
      * @var Collection<int, PostEntity>
      */
-    #[Groups(['labResult:read', 'labResult:create', 'labResult:update'])]
+    #[Groups(['read'])]
     #[ORM\ManyToMany(targetEntity: PostEntity::class, inversedBy: 'labResults')]
     private Collection $posts;
 
     #[Assert\NotBlank(allowNull: true)]
-    #[Groups(['labResult:read', 'labResult:create', 'labResult:update'])]
+    #[Groups(['read', 'labResult:create', 'labResult:update'])]
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $notes = null;
 
@@ -84,22 +85,22 @@ class LabResult
     #[Groups(['labResult:create', 'labResult:update'])]
     private ?bool $published = null;
 
-    #[Groups(['labResult:read'])]
+    #[Groups(['read'])]
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $publishedAt = null;
 
     #[Assert\NotBlank]
     #[Assert\Type('DateTimeInterface')]
-    #[Groups(['labResult:read', 'labResult:create', 'labResult:update'])]
+    #[Groups(['read', 'labResult:create', 'labResult:update'])]
     #[ORM\Column]
     private ?\DateTimeImmutable $drawnAt = null;
 
-    #[Groups(['labResult:read'])]
+    #[Groups(['read'])]
     #[ORM\Column]
     #[Gedmo\Timestampable(on: 'create')]
     private ?\DateTimeImmutable $createdAt = null;
 
-    #[Groups(['labResult:read'])]
+    #[Groups(['read'])]
     #[ORM\Column]
     #[Gedmo\Timestampable(on: 'update')]
     private ?\DateTimeImmutable $updatedAt = null;
@@ -108,6 +109,22 @@ class LabResult
     {
         $this->measurements = new ArrayCollection();
         $this->posts = new ArrayCollection();
+    }
+
+    public function __toString(): string
+    {
+        return sprintf(
+            'LabResult{id: %s, user: %s, measurements: %s, posts: %s, notes: %s, publishedAt: %s, drawnAt: %s, createdAt: %s, updatedAt: %s}',
+            $this->getId()?->toRfc4122() ?? 'null',
+            $this->user?->getId()?->toRfc4122() ?? 'null',
+            'null',
+            'null',
+            $this->getNotes() ?? 'null',
+            $this->getPublishedAt()?->format('c') ?? 'null',
+            $this->getDrawnAt()?->format('c') ?? 'null',
+            $this->getCreatedAt()?->format('c') ?? 'null',
+            $this->getUpdatedAt()?->format('c') ?? 'null'
+        );
     }
 
     public function getId(): ?Uuid

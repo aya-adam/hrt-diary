@@ -2,17 +2,19 @@
 
 namespace App\State;
 
-use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Exception\AccessDeniedException;
+use ApiPlatform\Metadata\GraphQl\DeleteMutation;
 use ApiPlatform\Metadata\Operation;
-use ApiPlatform\Metadata\Post;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\Measurement;
+use App\State\Trait\GraphQlOperationHelperTrait;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 final class MeasurementStateProcessor implements ProcessorInterface
 {
+    use GraphQlOperationHelperTrait;
+
     public function __construct(
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
         private readonly ProcessorInterface $persistProcessor,
@@ -23,7 +25,7 @@ final class MeasurementStateProcessor implements ProcessorInterface
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
-        if ($operation instanceof Post) {
+        if (self::isMutationCreate($operation)) {
             $data = $this->setOwner($data);
         } else {
             $this->assertOwnership($data);
@@ -31,7 +33,7 @@ final class MeasurementStateProcessor implements ProcessorInterface
 
         $data = $this->setUnit($data);
 
-        return $operation instanceof Delete
+        return $operation instanceof DeleteMutation
             ? $this->remove($data, $operation, $uriVariables, $context)
             : $this->persist($data, $operation, $uriVariables, $context);
     }
@@ -57,7 +59,7 @@ final class MeasurementStateProcessor implements ProcessorInterface
     private function assertOwnership(mixed $data): void
     {
         if ($data instanceof Measurement && $data->getUser()->getUserIdentifier() !== $this->security->getUser()->getUserIdentifier()) {
-            throw new AccessDeniedException();
+            throw new AccessDeniedException('Access Denied.');
         }
     }
 
