@@ -7,3 +7,21 @@ api_platform:
             vary: ['Content-Type', 'Authorization', 'Origin']
         pagination_enabled: false
         collectDenormalizationErrors: true
+    graphql:
+        introspection: false
+        graphiql:
+            enabled: false
+        graphql_playground:
+            enabled: false
+        collection:
+            pagination:
+                enabled: false
+
+when@dev:
+    api_platform:
+        graphql:
+            introspection: true
+            graphiql:
+                enabled: true
+            graphql_playground:
+                enabled: true
