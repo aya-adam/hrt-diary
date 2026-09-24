@@ -26,13 +26,21 @@ npm install
 
 ### Development
 
+Install a local SSL certificate with:
+
+```bash
+brew install mkcert # or https://github.com/FiloSottile/mkcert for other OS
+mkcert -install
+mkcert localhost
+```
+
 Start the development server with HMR:
 
 ```bash
 npm run dev
 ```
 
-Your application will be available at `http://localhost:5173`.
+Your application will be available at `https://localhost:5173`.
 
 ## Building for Production
 
