@@ -1,14 +1,12 @@
 import { Link, Outlet, useLocation } from "react-router";
 import { joinClasses } from "~/utils";
 
-const navigation = [
-    { label: "Dashboard", href: "/dashboard" },
-];
+const navigation = [{ label: "Dashboard", href: "/dashboard" }];
 
 const handleLogout = () => {
     console.log("logout");
     document.location.href = "/";
-}
+};
 
 export default function DashboardLayout() {
     const locationPathname = useLocation().pathname;
@@ -22,14 +20,14 @@ export default function DashboardLayout() {
                             <Link
                                 key={item.href}
                                 to={item.href}
-                                className={joinClasses(
-                                    locationPathname === item.href ? "underline" : "",
-                                )}
+                                className={joinClasses(locationPathname === item.href ? "underline" : "")}
                             >
                                 {item.label}
                             </Link>
                         ))}
-                        <button className="cursor-pointer" onClick={handleLogout}>Log Out</button>
+                        <button className="cursor-pointer" onClick={handleLogout}>
+                            Log Out
+                        </button>
                     </ul>
                 </div>
                 <hr className="my-5 text-gray-300 dark:text-gray-800" />

@@ -19,9 +19,7 @@ export default function SimplePublicLayout() {
                             <Link
                                 key={item.href}
                                 to={item.href}
-                                className={joinClasses(
-                                    locationPathname === item.href ? "underline" : "",
-                                )}
+                                className={joinClasses(locationPathname === item.href ? "underline" : "")}
                             >
                                 {item.label}
                             </Link>

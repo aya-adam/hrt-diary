@@ -21,7 +21,7 @@ body {
 #loader {
     @apply flex justify-center;
 
-    >div {
+    > div {
         @apply relative rounded-full h-24 w-24 bg-trans-pink animate-spin;
         background-image: linear-gradient(var(--color-trans-pink), var(--color-trans-blue));
 

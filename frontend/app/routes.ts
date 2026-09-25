@@ -7,8 +7,6 @@ export default [
         route("signup", "routes/signup.tsx"),
     ]),
     ...prefix("dashboard", [
-        layout("components/layouts/dashboardLayout.tsx", [
-            index("routes/dashboard/dashboard.tsx"),
-        ])
+        layout("components/layouts/dashboardLayout.tsx", [index("routes/dashboard/dashboard.tsx")]),
     ]),
 ] satisfies RouteConfig;

@@ -1,7 +1,7 @@
 import { constants } from "~/utils";
 import type { Route } from "./+types/home";
 
-export function meta({ }: Route.MetaArgs) {
+export function meta({}: Route.MetaArgs) {
     return [{ title: constants.PAGE_TITLE }, { name: "description", content: "Welcome to HRT-Diary!" }];
 }
 

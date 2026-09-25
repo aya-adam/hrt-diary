@@ -1,3 +1,3 @@
 export const constants = {
-    PAGE_TITLE: "HRT-Diary"
+    PAGE_TITLE: "HRT-Diary",
 };

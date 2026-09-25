@@ -9,7 +9,10 @@ const schema = yup
     .object({
         email: yup.string().required("Email is required").email("Please enter a valid remail"),
         password: yup.string().required("Password is required"),
-        passwordConfirmation: yup.string().required("Password confirmation is required").oneOf([yup.ref("password")], "Password must match"),
+        passwordConfirmation: yup
+            .string()
+            .required("Password confirmation is required")
+            .oneOf([yup.ref("password")], "Password must match"),
     })
     .required();
 
@@ -48,7 +51,12 @@ export default function SignUpForm({ isLoading, onSuccess, onFail }: SignUpFormI
             </div>
 
             <div>
-                <Input label="Confirm Password" {...register("passwordConfirmation")} type="password" error={errors.passwordConfirmation} />
+                <Input
+                    label="Confirm Password"
+                    {...register("passwordConfirmation")}
+                    type="password"
+                    error={errors.passwordConfirmation}
+                />
             </div>
 
             {errors.root && (
