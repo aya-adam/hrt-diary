@@ -80,7 +80,7 @@ class QuantityTypeResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, [], 'QuantityTypes')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['quantityTypes']);
     }
@@ -137,7 +137,7 @@ class QuantityTypeResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'QuantityType')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['quantityType']);
     }

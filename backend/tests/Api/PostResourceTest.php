@@ -96,7 +96,7 @@ class PostResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, [], 'Posts')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['posts']);
     }
@@ -195,7 +195,7 @@ class PostResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'Post')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['post']);
     }
@@ -311,7 +311,7 @@ class PostResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'CreatePost')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['createPost']);
     }
@@ -346,7 +346,7 @@ class PostResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreatePost')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, 'Field createPostInput.title of required type String! was not provided.');
+        $this->assertGraphQlError($body, 'Field createPostInput.title of required type String! was not provided.');
     }
 
     public function testPostReturns422WhenTitleIsBlank(): void
@@ -560,7 +560,7 @@ class PostResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreatePost')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, 'Variable "$published" got invalid value "true"; Boolean cannot represent a non boolean value: "true"');
+        $this->assertGraphQlError($body, 'Variable "$published" got invalid value "true"; Boolean cannot represent a non boolean value: "true"');
     }
 
     public function testPatchUpdatesPost(): void
@@ -725,7 +725,7 @@ class PostResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['updatePost']);
     }
@@ -764,7 +764,7 @@ class PostResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 404);
-        $this->assertGraphQlErrorMessage($body, "Item \"{$this->getIriFromResource($post)}\" not found.");
+        $this->assertGraphQlError($body, "Item \"{$this->getIriFromResource($post)}\" not found.");
         $this->assertGraphQlDebugMessage($body, "Item \"{$this->getIriFromResource($post)}\" not found.");
         $this->assertNull($body['data']['updatePost']);
     }
@@ -992,7 +992,7 @@ class PostResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, 'Variable "$published" got invalid value "true"; Boolean cannot represent a non boolean value: "true"');
+        $this->assertGraphQlError($body, 'Variable "$published" got invalid value "true"; Boolean cannot represent a non boolean value: "true"');
     }
 
     public function testDeleteRemovesPost(): void
@@ -1046,7 +1046,7 @@ class PostResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'DeletePost')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 404);
-        $this->assertGraphQlErrorMessage($body, "Item \"{$this->getIriFromResource($post)}\" not found.");
+        $this->assertGraphQlError($body, "Item \"{$this->getIriFromResource($post)}\" not found.");
         $this->assertGraphQlDebugMessage($body, "Item \"{$this->getIriFromResource($post)}\" not found.");
         $this->assertNull($body['data']['deletePost']);
     }
@@ -1074,7 +1074,7 @@ class PostResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'DeletePost')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['deletePost']);
     }

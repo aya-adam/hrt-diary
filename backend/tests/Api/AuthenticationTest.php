@@ -184,7 +184,7 @@ class AuthenticationTest extends ApiTestCase
         $body = $response->toArray(false);
         $headers = $response->getHeaders(false);
 
-        $this->assertGraphQlErrorMessage($body, 'Invalid credentials.');
+        $this->assertGraphQlError($body, 'Invalid credentials.');
         $this->assertNull($headers['set-cookie']);
     }
 
@@ -278,7 +278,7 @@ class AuthenticationTest extends ApiTestCase
             $cookies[$cookie->getName()] = $cookie;
         }
 
-        $this->assertGraphQlErrorMessage($body, 'Refresh token is invalid or has expired.');
+        $this->assertGraphQlError($body, 'Refresh token is invalid or has expired.');
         $this->assertNotNull($cookies[self::COOKIE_NAME_ACCESS_TOKEN]);
         $this->assertNotNull($cookies[self::COOKIE_NAME_REFRESH_TOKEN]);
         $this->assertTrue($cookies[self::COOKIE_NAME_ACCESS_TOKEN]->isExpired());
@@ -314,7 +314,7 @@ class AuthenticationTest extends ApiTestCase
         $body = $response->toArray(false);
         $headers = $response->getHeaders(false);
 
-        $this->assertGraphQlErrorMessage($body, 'No refresh token cookie present.');
+        $this->assertGraphQlError($body, 'No refresh token cookie present.');
         $this->assertNull($headers['set-cookie']);
     }
 

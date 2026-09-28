@@ -79,26 +79,6 @@ trait GraphQlTestTrait
     }
 
     /**
-     * Asserts the error message
-     * 
-     * Mirrors the Behat `the GraphQL error message should be equal to` step:
-     * looks under `errors[$i].message`.
-     *
-     * @param array{errors?: list<array<string, mixed>>} $data
-     */
-    protected function assertGraphQlErrorMessage(array $data, string $expectedDebugMessage, int $index = 0): void
-    {
-        if (!isset($data['errors'][$index])) {
-            throw new ExpectationFailedException(\sprintf('No GraphQL error at index %d.', $index));
-        }
-
-        $error = $data['errors'][$index];
-        $debug = $error['message'] ?? null;
-
-        Assert::assertSame($expectedDebugMessage, $debug);
-    }
-
-    /**
      * Asserts the error status
      * 
      * Mirrors the Behat `the GraphQL extension status should be equal to` step:

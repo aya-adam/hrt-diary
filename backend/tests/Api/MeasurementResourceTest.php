@@ -101,7 +101,7 @@ class MeasurementResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, [], 'Measurements')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['measurements']);
     }
@@ -193,7 +193,7 @@ class MeasurementResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'Measurement')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['measurement']);
     }
@@ -1141,7 +1141,7 @@ class MeasurementResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteMeasurement')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 404);
-        $this->assertGraphQlErrorMessage($body, sprintf('Item "%s" not found.', $this->getIriFromResource($measurement)));
+        $this->assertGraphQlError($body, sprintf('Item "%s" not found.', $this->getIriFromResource($measurement)));
         $this->assertGraphQlDebugMessage($body, sprintf('Item "%s" not found.', $this->getIriFromResource($measurement)));
         $this->assertNull($body['data']['deleteMeasurement']);
     }
@@ -1169,7 +1169,7 @@ class MeasurementResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteMeasurement')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['deleteMeasurement']);
     }

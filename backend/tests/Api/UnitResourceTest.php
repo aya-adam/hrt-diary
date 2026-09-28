@@ -70,7 +70,7 @@ class UnitResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, [], 'Units')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['units']);
     }
@@ -127,7 +127,7 @@ class UnitResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'Unit')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['unit']);
     }

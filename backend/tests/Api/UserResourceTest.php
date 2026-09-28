@@ -83,7 +83,7 @@ class UserResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, [], 'Users')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['users']);
     }
@@ -173,7 +173,7 @@ class UserResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'User')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['user']);
     }
@@ -235,7 +235,7 @@ class UserResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateUser')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, 'Field createUserInput.email of required type String! was not provided.');
+        $this->assertGraphQlError($body, 'Field createUserInput.email of required type String! was not provided.');
     }
 
     public function testPostReturns422WhenEmailIsBlank(): void
@@ -354,7 +354,7 @@ class UserResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateUser')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, 'Field createUserInput.plainPassword of required type String! was not provided.');
+        $this->assertGraphQlError($body, 'Field createUserInput.plainPassword of required type String! was not provided.');
     }
 
     public function testPostReturns422WhenPasswordIsBlank(): void
@@ -528,7 +528,7 @@ class UserResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['updateUser']);
     }
@@ -562,7 +562,7 @@ class UserResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 404);
-        $this->assertGraphQlErrorMessage($body, "Item \"{$this->getIriFromResource($user2)}\" not found.");
+        $this->assertGraphQlError($body, "Item \"{$this->getIriFromResource($user2)}\" not found.");
         $this->assertGraphQlDebugMessage($body, "Item \"{$this->getIriFromResource($user2)}\" not found.");
         $this->assertNull($body['data']['updateUser']);
     }
@@ -781,7 +781,7 @@ class UserResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteUser')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 404);
-        $this->assertGraphQlErrorMessage($body, "Item \"{$this->getIriFromResource($user2)}\" not found.");
+        $this->assertGraphQlError($body, "Item \"{$this->getIriFromResource($user2)}\" not found.");
         $this->assertGraphQlDebugMessage($body, "Item \"{$this->getIriFromResource($user2)}\" not found.");
         $this->assertNull($body['data']['deleteUser']);
     }
@@ -809,7 +809,7 @@ class UserResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteUser')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['deleteUser']);
     }

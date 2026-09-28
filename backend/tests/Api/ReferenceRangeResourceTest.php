@@ -100,7 +100,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, [], 'ReferenceRanges')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['referenceRanges']);
     }
@@ -200,7 +200,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'ReferenceRange')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['referenceRange']);
     }
@@ -382,7 +382,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateReferenceRange')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['createReferenceRange']);
     }
@@ -438,7 +438,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateReferenceRange')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, sprintf('Invalid IRI "%s".', $hormone->getId()->toRfc4122()));
+        $this->assertGraphQlError($body, sprintf('Invalid IRI "%s".', $hormone->getId()->toRfc4122()));
         $this->assertNull($body['data']['createReferenceRange']);
     }
 
@@ -488,7 +488,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateReferenceRange')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, 'Field createReferenceRangeInput.hormone of required type String! was not provided.');
+        $this->assertGraphQlError($body, 'Field createReferenceRangeInput.hormone of required type String! was not provided.');
     }
 
     public function testPostReturns422WhenHormoneIsBlank(): void
@@ -540,7 +540,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateReferenceRange')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, 'Invalid IRI "".');
+        $this->assertGraphQlError($body, 'Invalid IRI "".');
         $this->assertNull($body['data']['createReferenceRange']);
     }
 
@@ -595,7 +595,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateReferenceRange')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, sprintf('Invalid IRI "%s".', $unit->getId()->toRfc4122()));
+        $this->assertGraphQlError($body, sprintf('Invalid IRI "%s".', $unit->getId()->toRfc4122()));
         $this->assertNull($body['data']['createReferenceRange']);
     }
 
@@ -648,7 +648,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateReferenceRange')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, 'Invalid IRI "".');
+        $this->assertGraphQlError($body, 'Invalid IRI "".');
         $this->assertNull($body['data']['createReferenceRange']);
     }
 
@@ -698,7 +698,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateReferenceRange')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, 'Field createReferenceRangeInput.name of required type String! was not provided.');
+        $this->assertGraphQlError($body, 'Field createReferenceRangeInput.name of required type String! was not provided.');
     }
 
     public function testPostReturns422WhenNameIsBlank(): void
@@ -855,7 +855,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateReferenceRange')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, 'Field createReferenceRangeInput.lowerLimit of required type String! was not provided.');
+        $this->assertGraphQlError($body, 'Field createReferenceRangeInput.lowerLimit of required type String! was not provided.');
     }
 
     public function testPostReturns422WhenLowerLimitIsBlank(): void
@@ -1066,7 +1066,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateReferenceRange')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, 'Field createReferenceRangeInput.upperLimit of required type String! was not provided.');
+        $this->assertGraphQlError($body, 'Field createReferenceRangeInput.upperLimit of required type String! was not provided.');
     }
 
     public function testPostReturns422WhenUpperLimitIsBlank(): void
@@ -1423,7 +1423,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateReferenceRange')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 404);
-        $this->assertGraphQlErrorMessage($body, sprintf('Item "%s" not found.', $this->getIriFromResource($referenceRange)));
+        $this->assertGraphQlError($body, sprintf('Item "%s" not found.', $this->getIriFromResource($referenceRange)));
         $this->assertGraphQlDebugMessage($body, sprintf('Item "%s" not found.', $this->getIriFromResource($referenceRange)));
         $this->assertNull($body['data']['updateReferenceRange']);
     }
@@ -1482,7 +1482,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateReferenceRange')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 404);
-        $this->assertGraphQlErrorMessage($body, sprintf('Item "%s" not found.', $this->getIriFromResource($referenceRange)));
+        $this->assertGraphQlError($body, sprintf('Item "%s" not found.', $this->getIriFromResource($referenceRange)));
         $this->assertGraphQlDebugMessage($body, sprintf('Item "%s" not found.', $this->getIriFromResource($referenceRange)));
         $this->assertNull($body['data']['updateReferenceRange']);
     }
@@ -1540,7 +1540,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateReferenceRange')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['updateReferenceRange']);
     }
@@ -1600,7 +1600,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateReferenceRange')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, sprintf('Invalid IRI "%s".', $hormone->getId()->toRfc4122()));
+        $this->assertGraphQlError($body, sprintf('Invalid IRI "%s".', $hormone->getId()->toRfc4122()));
         $this->assertNull($body['data']['updateReferenceRange']);
     }
 
@@ -1657,7 +1657,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateReferenceRange')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, 'Invalid IRI "".');
+        $this->assertGraphQlError($body, 'Invalid IRI "".');
         $this->assertNull($body['data']['updateReferenceRange']);
     }
 
@@ -1716,7 +1716,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateReferenceRange')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, sprintf('Invalid IRI "%s".', $unit->getId()->toRfc4122()));
+        $this->assertGraphQlError($body, sprintf('Invalid IRI "%s".', $unit->getId()->toRfc4122()));
         $this->assertNull($body['data']['updateReferenceRange']);
     }
 
@@ -1773,7 +1773,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateReferenceRange')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, 'Invalid IRI "".');
+        $this->assertGraphQlError($body, 'Invalid IRI "".');
         $this->assertNull($body['data']['updateReferenceRange']);
     }
 
@@ -2350,7 +2350,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteReferenceRange')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 404);
-        $this->assertGraphQlErrorMessage($body, sprintf('Item "%s" not found.', $this->getIriFromResource($referenceRange)));
+        $this->assertGraphQlError($body, sprintf('Item "%s" not found.', $this->getIriFromResource($referenceRange)));
         $this->assertGraphQlDebugMessage($body, sprintf('Item "%s" not found.', $this->getIriFromResource($referenceRange)));
         $this->assertNull($body['data']['deleteReferenceRange']);
     }
@@ -2379,7 +2379,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteReferenceRange')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 404);
-        $this->assertGraphQlErrorMessage($body, sprintf('Item "%s" not found.', $this->getIriFromResource($referenceRange)));
+        $this->assertGraphQlError($body, sprintf('Item "%s" not found.', $this->getIriFromResource($referenceRange)));
         $this->assertGraphQlDebugMessage($body, sprintf('Item "%s" not found.', $this->getIriFromResource($referenceRange)));
         $this->assertNull($body['data']['deleteReferenceRange']);
     }
@@ -2407,7 +2407,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteReferenceRange')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['deleteReferenceRange']);
     }

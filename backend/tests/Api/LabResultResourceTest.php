@@ -94,7 +94,7 @@ class LabResultResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, [], 'LabResults')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['labResults']);
     }
@@ -190,7 +190,7 @@ class LabResultResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'LabResult')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['labResult']);
     }
@@ -305,7 +305,7 @@ class LabResultResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateLabResult')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['createLabResult']);
     }
@@ -338,7 +338,7 @@ class LabResultResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateLabResult')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, 'Field createLabResultInput.drawnAt of required type String! was not provided.');
+        $this->assertGraphQlError($body, 'Field createLabResultInput.drawnAt of required type String! was not provided.');
     }
 
     public function testPostReturns422WhenDrawnAtIsBlank(): void
@@ -370,7 +370,7 @@ class LabResultResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateLabResult')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, 'The data is either not an string, an empty string, or null; you should pass a string that can be parsed with the passed format or a valid DateTime string.');
+        $this->assertGraphQlError($body, 'The data is either not an string, an empty string, or null; you should pass a string that can be parsed with the passed format or a valid DateTime string.');
     }
 
     public function testPostReturns422WhenDrawnAtIsNotDateValue(): void
@@ -404,7 +404,7 @@ class LabResultResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateLabResult')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, 'Failed to parse time string (invalid_date_value) at position 0 (i): The timezone could not be found in the database');
+        $this->assertGraphQlError($body, 'Failed to parse time string (invalid_date_value) at position 0 (i): The timezone could not be found in the database');
     }
 
     public function testPostReturns422WhenNotesIsBlank(): void
@@ -474,7 +474,7 @@ class LabResultResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateLabResult')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, 'Variable "$published" got invalid value "true"; Boolean cannot represent a non boolean value: "true"');
+        $this->assertGraphQlError($body, 'Variable "$published" got invalid value "true"; Boolean cannot represent a non boolean value: "true"');
     }
 
     public function testPatchUpdatesLabResult(): void
@@ -636,7 +636,7 @@ class LabResultResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['updateLabResult']);
     }
@@ -675,7 +675,7 @@ class LabResultResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 404);
-        $this->assertGraphQlErrorMessage($body, "Item \"{$this->getIriFromResource($labResult)}\" not found.");
+        $this->assertGraphQlError($body, "Item \"{$this->getIriFromResource($labResult)}\" not found.");
         $this->assertGraphQlDebugMessage($body, "Item \"{$this->getIriFromResource($labResult)}\" not found.");
         $this->assertNull($body['data']['updateLabResult']);
     }
@@ -711,7 +711,7 @@ class LabResultResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, 'The data is either not an string, an empty string, or null; you should pass a string that can be parsed with the passed format or a valid DateTime string.');
+        $this->assertGraphQlError($body, 'The data is either not an string, an empty string, or null; you should pass a string that can be parsed with the passed format or a valid DateTime string.');
     }
 
     public function testPatchReturns422WhenDrawnAtIsNotDateValue(): void
@@ -745,7 +745,7 @@ class LabResultResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, 'Failed to parse time string (invalid_date_value) at position 0 (i): The timezone could not be found in the database');
+        $this->assertGraphQlError($body, 'Failed to parse time string (invalid_date_value) at position 0 (i): The timezone could not be found in the database');
     }
 
     public function testPatchReturns422WhenNotesIsBlank(): void
@@ -819,7 +819,7 @@ class LabResultResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
 
-        $this->assertGraphQlErrorMessage($body, 'Variable "$published" got invalid value "true"; Boolean cannot represent a non boolean value: "true"');
+        $this->assertGraphQlError($body, 'Variable "$published" got invalid value "true"; Boolean cannot represent a non boolean value: "true"');
     }
 
     public function testDeleteRemovesLabResult(): void
@@ -873,7 +873,7 @@ class LabResultResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteLabResult')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 404);
-        $this->assertGraphQlErrorMessage($body, "Item \"{$this->getIriFromResource($labResult)}\" not found.");
+        $this->assertGraphQlError($body, "Item \"{$this->getIriFromResource($labResult)}\" not found.");
         $this->assertGraphQlDebugMessage($body, "Item \"{$this->getIriFromResource($labResult)}\" not found.");
         $this->assertNull($body['data']['deleteLabResult']);
     }
@@ -901,7 +901,7 @@ class LabResultResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteLabResult')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 403);
-        $this->assertGraphQlErrorMessage($body, 'Access Denied.');
+        $this->assertGraphQlError($body, 'Access Denied.');
         $this->assertGraphQlDebugMessage($body, 'Access Denied.');
         $this->assertNull($body['data']['updateLabResult']);
     }
