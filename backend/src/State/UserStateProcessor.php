@@ -7,11 +7,12 @@ use ApiPlatform\Metadata\GraphQl\DeleteMutation;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\User;
+use App\Security\Authentication\AuthCookieQueue;
+use App\Security\Authentication\JwtCookieFactory;
 use App\State\Trait\GraphQlOperationHelperTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final class UserStateProcessor implements ProcessorInterface
@@ -26,7 +27,8 @@ final class UserStateProcessor implements ProcessorInterface
         private readonly Security $security,
         private readonly EntityManagerInterface $entityManager,
         private UserPasswordHasherInterface $passwordHasher,
-        private RequestStack $requestStack,
+        private readonly AuthCookieQueue $cookieQueue,
+        private readonly JwtCookieFactory $cookieFactory,
     ) {}
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
@@ -52,9 +54,10 @@ final class UserStateProcessor implements ProcessorInterface
         $result = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
 
         if (null !== $previousEmail) {
-            $request = $this->requestStack->getCurrentRequest();
-            $request?->attributes->set('_user_for_new_cookies', $data);
-            $request?->attributes->set('_previous_user_identifier', $previousEmail);
+            $accessTokenCookie = $this->cookieFactory->createAccessTokenCookie($data);
+            $refreshTokenCookie = $this->cookieFactory->createRefreshTokenCookie($data, $previousEmail);
+
+            $this->cookieQueue->queueAuthCookies($accessTokenCookie, $refreshTokenCookie);
         }
 
         return $result;

@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Gesdinet\JWTRefreshTokenBundle\Generator\RefreshTokenGeneratorInterface;
 use Gesdinet\JWTRefreshTokenBundle\Model\RefreshTokenManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use Symfony\Component\Clock\DatePoint;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Cookie;
 
@@ -34,7 +35,7 @@ final class JwtCookieFactory
 
         return Cookie::create($this->accessTokenCookieName)
             ->withValue($token)
-            ->withExpires(new \DateTimeImmutable("+{$this->accessTokenTtl} seconds"))
+            ->withExpires(new DatePoint("+{$this->accessTokenTtl} seconds"))
             ->withPath('/')
             ->withSecure(true)
             ->withHttpOnly(true)
@@ -52,6 +53,34 @@ final class JwtCookieFactory
         return Cookie::create($this->refreshTokenCookieName)
             ->withValue($refreshToken->getRefreshToken())
             ->withExpires($refreshToken->getValid())
+            ->withPath('/')
+            ->withSecure(true)
+            ->withHttpOnly(true)
+            ->withSameSite('none')
+            ->withPartitioned(true);
+    }
+    
+    public function createClearingAccessTokenCookie(): Cookie
+    {
+        return Cookie::create($this->accessTokenCookieName)
+            ->withValue(null)
+            ->withExpires(new DatePoint('1 second'))
+            ->withPath('/')
+            ->withSecure(true)
+            ->withHttpOnly(true)
+            ->withSameSite('none')
+            ->withPartitioned(true);
+    }
+
+    public function createClearingRefreshTokenCookie(?User $user = null): Cookie
+    {
+        if ($user) {
+            $this->revokeExistingRefreshTokens($user->getUserIdentifier());
+        }
+
+        return Cookie::create($this->refreshTokenCookieName)
+            ->withValue(null)
+            ->withExpires(new DatePoint('1 second'))
             ->withPath('/')
             ->withSecure(true)
             ->withHttpOnly(true)

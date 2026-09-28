@@ -3,25 +3,22 @@
 namespace App\ApiResource;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GraphQl\Mutation;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
+use App\Api\Dto\AuthPayload;
 use App\Controller\LogoutController;
+use App\State\LogoutStateProcessor;
 
 #[ApiResource(
-    operations: [
-        new Post(
-            uriTemplate: '/auth/logout',
-            controller: LogoutController::class,
-            name: 'logout',
-            read: false,
-            write: false,
-            output: false,
-            openapi: new OpenApiOperation(
-                tags: ['Authentication'],
-                summary: 'Invalidates the access_token / refresh_token cookies',
-            ),
-        )
+    operations: [],
+    graphQlOperations: [
+        new Mutation(
+            name: 'auth',
+            args: [],
+            output: AuthPayload::class,
+            processor: LogoutStateProcessor::class,
+        ),
     ],
-    graphQlOperations: [],
 )]
 class Logout {}
