@@ -11,7 +11,7 @@ use App\Security\Authentication\JwtCookieFactory;
 use Gesdinet\JWTRefreshTokenBundle\Model\RefreshTokenManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\Security\Core\Exception\AuthenticationException;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
 class TokenRefreshStateProcessor implements ProcessorInterface
 {
@@ -31,7 +31,10 @@ class TokenRefreshStateProcessor implements ProcessorInterface
         $tokenValue = $request?->cookies->get($this->refreshTokenCookieName);
 
         if (!$tokenValue) {
-            throw new AuthenticationException('No refresh token cookie present.');
+            throw new UnauthorizedHttpException(
+                'Cookie realm="api", error="missing_token", error_description="Authentication required"',
+                'No refresh token cookie present.'
+            );
         }
 
         $refreshToken = $this->refreshTokenManager->get($tokenValue);
@@ -46,7 +49,10 @@ class TokenRefreshStateProcessor implements ProcessorInterface
                 $this->cookieFactory->createClearingRefreshTokenCookie($user),
             );
 
-            throw new AuthenticationException('Refresh token is invalid or has expired.');
+            throw new UnauthorizedHttpException(
+                'Cookie realm="api", error="invalid_token", error_description="The access token has expired"',
+                'Refresh token is invalid or has expired.'
+            );
         }
 
         $user = $this->userRepository->findOneBy(['email' => $refreshToken->getUsername()]);

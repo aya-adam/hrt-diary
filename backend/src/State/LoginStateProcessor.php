@@ -10,8 +10,8 @@ use App\Repository\UserRepository;
 use App\Security\Authentication\AuthCookieQueue;
 use App\Security\Authentication\JwtCookieFactory;
 use RuntimeException;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 
 class LoginStateProcessor implements ProcessorInterface
 {
@@ -31,7 +31,10 @@ class LoginStateProcessor implements ProcessorInterface
         $user = $this->userRepository->findOneBy(['email' => $data->email]);
 
         if (!$user || !$this->passwordHasher->isPasswordValid($user, $data->password)) {
-            throw new BadCredentialsException('Invalid credentials.');
+            throw new UnauthorizedHttpException(
+                'Cookie realm="api", error="missing_token", error_description="Authentication required"',
+                'Invalid credentials.'
+            );
         }
 
         $accessTokenCookie = $this->cookieFactory->createAccessTokenCookie($user);
