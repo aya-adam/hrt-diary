@@ -1,24 +1,23 @@
-import { useState } from "react";
 import type { Route } from "./+types/signin";
 import { constants } from "~/utils";
-import Loader from "~/components/loaders/loader";
 import SignInForm from "~/components/forms/signInForm";
+import { useLocation, useNavigate } from "react-router";
 
 export function meta({}: Route.MetaArgs) {
     return [{ title: `${constants.PAGE_TITLE} | Sign In` }, { name: "description", content: "Sign in to HRT-Diary!" }];
 }
 
 export default function SignIn() {
-    const [loading, setLoading] = useState<boolean>(false);
+    const navigate = useNavigate();
 
-    const handleSuccess = () => {
-        console.log("User successfully registered");
+    const handleSuccess = (e: any) => {
+        navigate("/dashboard");
     };
 
     return (
         <div>
             <h1 className="mb-5">Sign In</h1>
-            {loading === true ? <Loader /> : <SignInForm isLoading={(e) => setLoading(e)} onSuccess={handleSuccess} />}
+            <SignInForm onSuccess={(e) => handleSuccess(e)} prefill={{ email: useLocation().state?.email }} />
         </div>
     );
 }

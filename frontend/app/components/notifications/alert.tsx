@@ -11,10 +11,11 @@ export type SupportedErrorTypes = "info" | "success" | "warning" | "error";
 
 interface MessageInterface extends React.PropsWithChildren {
     title?: string;
+    list?: string[];
     type?: SupportedErrorTypes;
 }
 
-export default function Alert({ title, type = "info", children }: MessageInterface) {
+export default function Alert({ title, list = [], type = "info", children }: MessageInterface) {
     return (
         <div
             className={joinClasses(
@@ -62,6 +63,21 @@ export default function Alert({ title, type = "info", children }: MessageInterfa
                             )}
                         >
                             {children}
+                        </div>
+                    )}
+                    {list && list.length > 0 && (
+                        <div
+                            className={joinClasses(
+                                "text-sm",
+                                type === "info" ? "text-blue-700 dark:text-blue-300" : "",
+                                type === "success" ? "text-green-700 dark:text-green-200/85" : "",
+                                type === "warning" ? "text-yellow-700 dark:text-yellow-100/80" : "",
+                                type === "error" ? "text-red-700 dark:text-red-200/80" : "",
+                            )}
+                        >
+                            <ul role="list" className="list-disc space-y-1 pl-5">
+                                {list.map((listItem: string, index: number) => <li key={index}>{listItem}</li>)}
+                            </ul>
                         </div>
                     )}
                 </div>

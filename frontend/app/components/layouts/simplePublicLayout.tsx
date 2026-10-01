@@ -1,36 +1,68 @@
-import { Link, Outlet, useLocation } from "react-router";
-import { joinClasses } from "~/utils";
+import { Outlet, redirect, useLoaderData, useNavigation } from "react-router";
+import { useAuthStore } from "~/stores/authStore";
+import { apolloClient, getErrorMessage, REFRESH_MUTATION } from "~/utils";
+import type { Route } from "./+types/simplePublicLayout";
+import Alert from "../notifications/alert";
+import Loader from "../loaders/loader";
+import PageWrapper from "../wrappers/pageWrapper";
 
-const navigation = [
+const navItems = [
     { label: "Home", href: "/" },
     { label: "Sign In", href: "/signin" },
     { label: "Sign Up", href: "/signup" },
 ];
 
-export default function SimplePublicLayout() {
-    const locationPathname = useLocation().pathname;
+export async function clientLoader() {
+    const {
+        userId,
+        userIdentifier,
+        accessTokenExpiresAt,
+        setUserId,
+        setUserIdentifier,
+        setAccessTokenExpiresAt,
+        clearAll
+    } = useAuthStore.getState();
+
+    if (userId || userIdentifier || accessTokenExpiresAt) {
+        try {
+            const { data } = await apolloClient.mutate({ mutation: REFRESH_MUTATION });
+            setUserId(data?.authTokenRefresh.tokenRefresh.userId ?? null);
+            setUserIdentifier(data?.authTokenRefresh.tokenRefresh.userIdentifier ?? null);
+            setAccessTokenExpiresAt(data?.authTokenRefresh.tokenRefresh.accessTokenExpiresAt ?? null);
+            return redirect("/dashboard");
+        } catch (error) {
+            clearAll();
+        }
+    }
+}
+
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+    const { message, messageArr } = getErrorMessage(error);
 
     return (
-        <div className="mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-5xl">
-                <div className="my-5">
-                    <ul className="list-none flex flex-row flex-nowrap gap-5">
-                        {navigation.map((item: any) => (
-                            <Link
-                                key={item.href}
-                                to={item.href}
-                                className={joinClasses(locationPathname === item.href ? "underline" : "")}
-                            >
-                                {item.label}
-                            </Link>
-                        ))}
-                    </ul>
-                </div>
-                <hr className="my-5 text-gray-300 dark:text-gray-800" />
-                <div className="my-5">
-                    <Outlet />
-                </div>
-            </div>
-        </div>
+        <PageWrapper withLogoutLink>
+            {(messageArr && messageArr.length > 1)
+                ? (
+                    <Alert list={messageArr} type="error" />
+                )
+                : (
+                    <Alert type="error"><span className="whitespace-pre-wrap">{message}</span></Alert>
+                )}
+        </PageWrapper>
+    );
+}
+
+export function HydrateFallback() {
+    return <Loader />;
+}
+
+export default function SimplePublicLayout() {
+    const navigation = useNavigation();
+    const isNavigating = navigation.state === "loading";
+
+    return (
+        <PageWrapper navItems={navItems} isNavigating={isNavigating}>
+            <Outlet />
+        </PageWrapper>
     );
 }
