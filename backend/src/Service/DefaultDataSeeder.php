@@ -142,6 +142,15 @@ final class DefaultDataSeeder
         private readonly ReferenceRangeRepository $referenceRangeRepository,
     ) {}
 
+    /**
+     * Seed db with predefined values
+     * 
+     * The following entities are pre-populated:
+     * - Hormones
+     * - QuantityTypes
+     * - ReferenceRanges
+     * - Units
+     */
     public function seed(): void
     {
         $this->assertTableExists(Hormone::class);
