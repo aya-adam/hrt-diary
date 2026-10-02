@@ -116,7 +116,7 @@ export default function SignUpForm({ prefill, onSuccess, onFail }: SignUpFormInt
             )}
 
             <div className="flex gap-5">
-                <Button type="submit" label="Sign Up" size="lg" />
+                <Button type="submit" label="Sign Up" size="lg" className="w-full" />
             </div>
         </form>
     );

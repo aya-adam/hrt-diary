@@ -85,12 +85,17 @@ export default function DashboardLayout() {
                         </TransitionChild>
 
                         {/* Sidebar component */}
-                        <div className="relative flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6 pb-2 ring-1 ring-white/10">
+                        <div className="relative flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6 pb-2 ring-1 ring-white/10 dark:before:pointer-events-none dark:before:absolute dark:before:inset-0 dark:before:bg-black/10">
                             <div className="relative flex h-16 shrink-0 items-center">
                                 <img
                                     alt="Your Company"
                                     src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=600"
-                                    className="h-8 w-auto"
+                                    className="h-8 w-auto dark:hidden"
+                                />
+                                <img
+                                    alt="Your Company"
+                                    src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=500"
+                                    className="h-8 w-auto not-dark:hidden"
                                 />
                             </div>
                             <nav className="flex flex-1 flex-col">
@@ -155,12 +160,17 @@ export default function DashboardLayout() {
             {/* Static sidebar for desktop */}
             <div className="hidden bg-gray-900 lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
                 {/* Sidebar component */}
-                <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 px-6">
+                <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 dark:border-white/10 dark:bg-black/10 px-6">
                     <div className="flex h-16 shrink-0 items-center">
                         <img
                             alt="Your Company"
                             src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=600"
-                            className="h-8 w-auto"
+                            className="h-8 w-auto dark:hidden"
+                        />
+                        <img
+                            alt="Your Company"
+                            src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=500"
+                            className="h-8 w-auto not-dark:hidden"
                         />
                     </div>
                     <nav className="flex flex-1 flex-col">
@@ -226,7 +236,7 @@ export default function DashboardLayout() {
                 </div>
             </div>
 
-            <div className="sticky top-0 z-40 flex items-center gap-x-6 bg-gray-900 px-4 py-4 shadow-sm sm:px-6 lg:hidden">
+            <div className="sticky top-0 z-40 flex items-center gap-x-6 bg-gray-900 px-4 py-4 shadow-sm dark:after:pointer-events-none dark:after:absolute dark:after:inset-0 dark:after:border-b dark:after:border-white/10 dark:after:bg-black/10 dark:shadow-none sm:px-6 lg:hidden">
                 <button
                     type="button"
                     onClick={() => setSidebarOpen(true)}

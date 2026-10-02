@@ -20,18 +20,23 @@ export default function SignIn() {
                 <img
                     alt="Your Company"
                     src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=600"
-                    className="mx-auto h-10 w-auto"
+                    className="mx-auto h-10 w-auto dark:hidden"
                 />
-                <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-gray-900">
+                <img
+                    alt="Your Company"
+                    src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=500"
+                    className="mx-auto h-10 w-auto not-dark:hidden"
+                />
+                <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-gray-900 dark:text-white">
                     Sign in to your account
                 </h2>
             </div>
 
             <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
                 <SignInForm onSuccess={(e) => handleSuccess(e)} prefill={{ email: useLocation().state?.email }} />
-                <p className="mt-10 text-center text-sm/6 text-gray-500">
+                <p className="mt-10 text-center text-sm/6 text-gray-500 dark:text-gray-400">
                     Not an account yet?{' '}
-                    <Link to="/signup" className="font-semibold text-indigo-600 hover:text-indigo-500">
+                    <Link to="/signup" className="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300">
                         Create your account
                     </Link>
                 </p>
