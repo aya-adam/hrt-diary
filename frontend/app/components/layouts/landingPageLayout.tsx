@@ -1,12 +1,9 @@
 import { useState } from "react";
 import { Dialog, DialogPanel } from "@headlessui/react";
-import {
-    Bars3Icon,
-    XMarkIcon,
-} from "@heroicons/react/24/outline";
+import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { Link, Outlet } from "react-router";
 
-const navigation: { name: string, to: string | { pathname?: string; search?: string; hash?: string } }[] = [
+const navigation: { name: string; to: string | { pathname?: string; search?: string; hash?: string } }[] = [
     // { name: "Product", to: "/#" },
     // { name: "Features", to: "/#" },
     // { name: "Marketplace", to: "/#" },
@@ -14,7 +11,7 @@ const navigation: { name: string, to: string | { pathname?: string; search?: str
 ];
 
 export default function LandingPageLayout() {
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     return (
         <div className="bg-white dark:bg-gray-900">
@@ -48,7 +45,11 @@ export default function LandingPageLayout() {
                     </div>
                     <div className="hidden lg:flex lg:gap-x-12">
                         {navigation.map((item) => (
-                            <Link key={item.name} to={item.to} className="text-sm/6 font-semibold text-gray-900 dark:text-white">
+                            <Link
+                                key={item.name}
+                                to={item.to}
+                                className="text-sm/6 font-semibold text-gray-900 dark:text-white"
+                            >
                                 {item.name}
                             </Link>
                         ))}
@@ -116,5 +117,5 @@ export default function LandingPageLayout() {
                 <Outlet />
             </main>
         </div>
-    )
+    );
 }

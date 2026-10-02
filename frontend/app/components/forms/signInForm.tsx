@@ -23,7 +23,7 @@ interface SignInFormInput {
 }
 
 interface SignInFormInterface {
-    prefill?: { email?: string, password?: string };
+    prefill?: { email?: string; password?: string };
     onSuccess?: (e?: any) => void;
     onFail?: (e?: any) => void;
 }
@@ -87,7 +87,7 @@ export default function SignInForm({ prefill, onSuccess, onFail }: SignInFormInt
         }
     };
 
-    if (loading) return <Loader />
+    if (loading) return <Loader />;
 
     return (
         <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>

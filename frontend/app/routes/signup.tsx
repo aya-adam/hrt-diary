@@ -3,7 +3,7 @@ import { constants } from "~/utils";
 import SignUpForm from "~/components/forms/signUpForm";
 import { Link, useNavigate } from "react-router";
 
-export function meta({ }: Route.MetaArgs) {
+export function meta({}: Route.MetaArgs) {
     return [{ title: `${constants.PAGE_TITLE} | Sign Up` }, { name: "description", content: "Sign up to HRT-Diary!" }];
 }
 
@@ -35,8 +35,11 @@ export default function SignUp() {
             <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
                 <SignUpForm onSuccess={(e) => handleSuccess(e)} />
                 <p className="mt-10 text-center text-sm/6 text-gray-500 dark:text-gray-400">
-                    Already have an account?{' '}
-                    <Link to="/signin" className="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300">
+                    Already have an account?{" "}
+                    <Link
+                        to="/signin"
+                        className="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                    >
                         Sign In
                     </Link>
                 </p>

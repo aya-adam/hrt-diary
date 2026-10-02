@@ -1,17 +1,17 @@
-import { SetContextLink } from '@apollo/client/link/context';
-import { isAccessTokenExpiringSoon, runExclusiveRefresh } from './authState';
-import { useAuthStore } from '~/stores/authStore';
-import { REFRESH_MUTATION } from './queries';
+import { SetContextLink } from "@apollo/client/link/context";
+import { isAccessTokenExpiringSoon, runExclusiveRefresh } from "./authState";
+import { useAuthStore } from "~/stores/authStore";
+import { REFRESH_MUTATION } from "./queries";
 
 const GRAPHQL_ENDPOINT = import.meta.env.VITE_GRAPHQL_ENDPOINT_URL;
 
-const SKIP_OPERATIONS = new Set(['AuthLogin', 'AuthTokenRefresh']);
+const SKIP_OPERATIONS = new Set(["AuthLogin", "AuthTokenRefresh"]);
 
 export async function performRefresh(): Promise<boolean> {
     const response = await fetch(GRAPHQL_ENDPOINT, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: REFRESH_MUTATION }),
     });
 
@@ -28,15 +28,15 @@ export async function performRefresh(): Promise<boolean> {
         return false;
     }
 
-    useAuthStore.getState().setUserId(payload.userId)
-    useAuthStore.getState().setUserIdentifier(payload.userIdentifier)
-    useAuthStore.getState().setAccessTokenExpiresAt(payload.accessTokenExpiresAt)
+    useAuthStore.getState().setUserId(payload.userId);
+    useAuthStore.getState().setUserIdentifier(payload.userIdentifier);
+    useAuthStore.getState().setAccessTokenExpiresAt(payload.accessTokenExpiresAt);
 
     return true;
 }
 
 export const refreshLink = new SetContextLink(async (prevContext, operation) => {
-    if (SKIP_OPERATIONS.has(operation.operationName ?? '')) {
+    if (SKIP_OPERATIONS.has(operation.operationName ?? "")) {
         return prevContext;
     }
 

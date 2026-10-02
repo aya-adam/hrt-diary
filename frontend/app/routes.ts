@@ -2,9 +2,7 @@ import { type RouteConfig, index, layout, prefix, route } from "@react-router/de
 
 export default [
     layout("components/shells/publicShell.tsx", [
-        layout("components/layouts/landingPageLayout.tsx", [
-            index("routes/home.tsx"),
-        ]),
+        layout("components/layouts/landingPageLayout.tsx", [index("routes/home.tsx")]),
         layout("components/layouts/loginLayout.tsx", [
             route("signin", "routes/signin.tsx"),
             route("signup", "routes/signup.tsx"),
@@ -18,9 +16,7 @@ export default [
             route("charts", "routes/dashboard/charts.tsx"),
             route("cycles", "routes/dashboard/cycles.tsx"),
             route("events", "routes/dashboard/events.tsx"),
-            ...prefix("account", [
-                index("routes/dashboard/account/account.tsx"),
-            ]),
+            ...prefix("account", [index("routes/dashboard/account/account.tsx")]),
         ]),
     ]),
 ] satisfies RouteConfig;

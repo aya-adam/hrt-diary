@@ -8,14 +8,14 @@ type LoginMutationResponse = {
             userId: string;
             userIdentifier: string;
             accessTokenExpiresAt: string;
-        },
-    },
-}
+        };
+    };
+};
 
 type LoginMutationInput = {
     email: string;
     password: string;
-}
+};
 
 export const LOGIN_MUTATION: TypedDocumentNode<LoginMutationResponse, LoginMutationInput> = gql`
     mutation AuthLogin($email: String!, $password: String!) {
@@ -37,13 +37,13 @@ type TokenRefreshMutationResponse = {
             userId: string;
             userIdentifier: string;
             accessTokenExpiresAt: string;
-        },
-    },
-}
+        };
+    };
+};
 
 export const REFRESH_MUTATION: TypedDocumentNode<TokenRefreshMutationResponse> = gql`
     mutation AuthTokenRefresh {
-        authTokenRefresh(input: {  }) {
+        authTokenRefresh(input: {}) {
             tokenRefresh {
                 userId
                 userIdentifier
@@ -59,13 +59,13 @@ type LogoutMutationResponse = {
     authLogout: {
         logout: {
             message: string;
-        },
-    },
-}
+        };
+    };
+};
 
 export const LOGOUT_MUTATION: TypedDocumentNode<LogoutMutationResponse> = gql`
     mutation AuthLogout {
-        authLogout(input: {  }) {
+        authLogout(input: {}) {
             logout {
                 message
             }
@@ -82,14 +82,14 @@ type CreateUserMutationResponse = {
             email: string;
             createdAt: string;
             updatedAt: string;
-        },
-    },
-}
+        };
+    };
+};
 
 type CreateUserMutationInput = {
     email: string;
     plainPassword: string;
-}
+};
 
 export const CREATE_USER_MUTATION: TypedDocumentNode<CreateUserMutationResponse, CreateUserMutationInput> = gql`
     mutation CreateUser($email: String!, $plainPassword: String!) {

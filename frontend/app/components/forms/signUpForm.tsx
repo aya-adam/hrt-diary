@@ -27,7 +27,7 @@ interface SignUpFormInput {
 }
 
 interface SignUpFormInterface {
-    prefill?: { email?: string, plainPassword?: string, passwordConfirmation?: string };
+    prefill?: { email?: string; plainPassword?: string; passwordConfirmation?: string };
     onSuccess?: (e?: any) => void;
     onFail?: (e?: any) => void;
 }
@@ -88,7 +88,7 @@ export default function SignUpForm({ prefill, onSuccess, onFail }: SignUpFormInt
         }
     };
 
-    if (loading) return <Loader />
+    if (loading) return <Loader />;
 
     return (
         <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>

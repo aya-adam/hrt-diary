@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate, Outlet } from "react-router";
-import { useState } from "react"
-import { useAuthStore } from "~/stores/authStore"
-import { Dialog, DialogBackdrop, DialogPanel, TransitionChild } from "@headlessui/react"
+import { useState } from "react";
+import { useAuthStore } from "~/stores/authStore";
+import { Dialog, DialogBackdrop, DialogPanel, TransitionChild } from "@headlessui/react";
 import {
     ArrowPathIcon,
     Bars3Icon,
@@ -14,10 +14,10 @@ import {
     PowerIcon,
     UserCircleIcon,
     XMarkIcon,
-} from "@heroicons/react/24/outline"
-import { apolloClient, joinClasses, LOGOUT_MUTATION } from "~/utils"
-import Loader from "~/components/loaders/loader"
-import Alert from "~/components/notifications/alert"
+} from "@heroicons/react/24/outline";
+import { apolloClient, joinClasses, LOGOUT_MUTATION } from "~/utils";
+import Loader from "~/components/loaders/loader";
+import Alert from "~/components/notifications/alert";
 import BasicWrapper from "./wrappers/basicWrapper";
 
 const mainNavigation = [
@@ -27,19 +27,16 @@ const mainNavigation = [
     { name: "Charts", href: "/dashboard/charts", icon: ChartBarIcon },
     { name: "Cycles", href: "/dashboard/cycles", icon: ArrowPathIcon },
     { name: "Events", href: "/dashboard/events", icon: CalendarDaysIcon },
-]
+];
 
-const accountNavigation = [
-    { name: "Settings", href: "/dashboard/account", icon: Cog6ToothIcon },
-]
+const accountNavigation = [{ name: "Settings", href: "/dashboard/account", icon: Cog6ToothIcon }];
 
 export default function DashboardLayout() {
-    const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [sidebarOpen, setSidebarOpen] = useState(false);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | undefined>();
     const navigate = useNavigate();
     const locationPathname = useLocation().pathname;
-    
 
     const handleLogout = async () => {
         setLoading(true);
@@ -54,13 +51,14 @@ export default function DashboardLayout() {
         }
     };
 
-    if (loading) return (
-        <BasicWrapper>
-            <div className="min-h-full flex justify-center items-center">
-                <Loader />
-            </div>
-        </BasicWrapper>
-    )
+    if (loading)
+        return (
+            <BasicWrapper>
+                <div className="min-h-full flex justify-center items-center">
+                    <Loader />
+                </div>
+            </BasicWrapper>
+        );
 
     return (
         <div>
@@ -182,7 +180,9 @@ export default function DashboardLayout() {
                                             <Link
                                                 to={item.href}
                                                 className={joinClasses(
-                                                    locationPathname === item.href ? "bg-white/5 text-white" : "text-gray-400 hover:bg-white/5 hover:text-white",
+                                                    locationPathname === item.href
+                                                        ? "bg-white/5 text-white"
+                                                        : "text-gray-400 hover:bg-white/5 hover:text-white",
                                                     "group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold",
                                                 )}
                                             >
@@ -201,7 +201,9 @@ export default function DashboardLayout() {
                                             <Link
                                                 to={item.href}
                                                 className={joinClasses(
-                                                    locationPathname === item.href ? "bg-white/5 text-white" : "text-gray-400 hover:bg-white/5 hover:text-white",
+                                                    locationPathname === item.href
+                                                        ? "bg-white/5 text-white"
+                                                        : "text-gray-400 hover:bg-white/5 hover:text-white",
                                                     "group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold",
                                                 )}
                                             >
@@ -226,7 +228,10 @@ export default function DashboardLayout() {
                                     to="/dashboard/account"
                                     className="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-white hover:bg-white/5"
                                 >
-                                    <UserCircleIcon aria-hidden="true" className="size-8 rounded-full bg-gray-800 outline -outline-offset-1 outline-white/10" />
+                                    <UserCircleIcon
+                                        aria-hidden="true"
+                                        className="size-8 rounded-full bg-gray-800 outline -outline-offset-1 outline-white/10"
+                                    />
                                     <span className="sr-only">Your profile</span>
                                     <span aria-hidden="true">Tom Cook</span>
                                 </Link>
@@ -248,18 +253,15 @@ export default function DashboardLayout() {
                 <div className="flex-1 text-sm/6 font-semibold text-white">Dashboard</div>
                 <a href="#">
                     <span className="sr-only">Your profile</span>
-                    <UserCircleIcon aria-hidden="true" className="size-8 rounded-full text-white bg-gray-800 outline -outline-offset-1 outline-white/10" />
+                    <UserCircleIcon
+                        aria-hidden="true"
+                        className="size-8 rounded-full text-white bg-gray-800 outline -outline-offset-1 outline-white/10"
+                    />
                 </a>
             </div>
 
             <main className="py-10 lg:pl-72">
-                <div className="px-4 sm:px-6 lg:px-8">
-                    {error ? (
-                        <Alert type="error">{error}</Alert>
-                    ) : (
-                        <Outlet />
-                    )}
-                </div>
+                <div className="px-4 sm:px-6 lg:px-8">{error ? <Alert type="error">{error}</Alert> : <Outlet />}</div>
             </main>
         </div>
     );

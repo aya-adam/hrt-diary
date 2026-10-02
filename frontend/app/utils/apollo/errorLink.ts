@@ -1,22 +1,26 @@
-import { ErrorLink } from '@apollo/client/link/error';
-import { CombinedGraphQLErrors, CombinedProtocolErrors, LocalStateError, ServerError, ServerParseError, UnconventionalError } from '@apollo/client/errors';
-import { from } from 'rxjs';
-import { mergeMap } from 'rxjs/operators';
-import { runExclusiveRefresh } from './authState';
-import { performRefresh } from './refreshLink';
+import { ErrorLink } from "@apollo/client/link/error";
+import {
+    CombinedGraphQLErrors,
+    CombinedProtocolErrors,
+    LocalStateError,
+    ServerError,
+    ServerParseError,
+    UnconventionalError,
+} from "@apollo/client/errors";
+import { from } from "rxjs";
+import { mergeMap } from "rxjs/operators";
+import { runExclusiveRefresh } from "./authState";
+import { performRefresh } from "./refreshLink";
 
 export const errorLink = new ErrorLink(({ error, operation, forward }) => {
     const isAuthError =
-        CombinedGraphQLErrors.is(error) &&
-        error.errors.some((graphQLError) => graphQLError.extensions?.status === 401);
+        CombinedGraphQLErrors.is(error) && error.errors.some((graphQLError) => graphQLError.extensions?.status === 401);
 
-    if (!isAuthError || operation.operationName === 'AuthTokenRefresh') {
+    if (!isAuthError || operation.operationName === "AuthTokenRefresh") {
         return; // not retrying: let the error propagate as-is
     }
 
-    return from(runExclusiveRefresh(performRefresh)).pipe(
-        mergeMap(() => forward(operation)),
-    );
+    return from(runExclusiveRefresh(performRefresh)).pipe(mergeMap(() => forward(operation)));
 });
 
 export const getErrorMessage = (error: unknown) => {

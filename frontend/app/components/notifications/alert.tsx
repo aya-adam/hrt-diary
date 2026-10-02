@@ -76,7 +76,9 @@ export default function Alert({ title, list = [], type = "info", children }: Mes
                             )}
                         >
                             <ul role="list" className="list-disc space-y-1 pl-5">
-                                {list.map((listItem: string, index: number) => <li key={index}>{listItem}</li>)}
+                                {list.map((listItem: string, index: number) => (
+                                    <li key={index}>{listItem}</li>
+                                ))}
                             </ul>
                         </div>
                     )}

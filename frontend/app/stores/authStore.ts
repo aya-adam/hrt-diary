@@ -27,7 +27,8 @@ export const useAuthStore = create<AuthStore>()(
             accessTokenExpiresAt: null,
             setUserId: (userId) => set({ userId }),
             setUserIdentifier: (userIdentifier) => set({ userIdentifier }),
-            setAccessTokenExpiresAt: (accessTokenExpiresAt) => set({ accessTokenExpiresAt: accessTokenExpiresAt ? new Date(accessTokenExpiresAt).getTime() : null }),
+            setAccessTokenExpiresAt: (accessTokenExpiresAt) =>
+                set({ accessTokenExpiresAt: accessTokenExpiresAt ? new Date(accessTokenExpiresAt).getTime() : null }),
             clearUserId: () => set({ userId: null }),
             clearUserIdentifier: () => set({ userIdentifier: null }),
             clearAccessTokenExpiresAt: () => set({ accessTokenExpiresAt: null }),
@@ -35,6 +36,6 @@ export const useAuthStore = create<AuthStore>()(
         }),
         {
             name: "auth-store",
-        }
+        },
     ),
 );

@@ -15,7 +15,7 @@ export async function clientLoader() {
         setUserId,
         setUserIdentifier,
         setAccessTokenExpiresAt,
-        clearAll
+        clearAll,
     } = useAuthStore.getState();
 
     if (userId || userIdentifier || accessTokenExpiresAt) {
@@ -46,13 +46,13 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 
     return (
         <BasicWrapper>
-            {(messageArr && messageArr.length > 1)
-                ? (
-                    <Alert list={messageArr} type="error" />
-                )
-                : (
-                    <Alert type="error"><span className="whitespace-pre-wrap">{message}</span></Alert>
-                )}
+            {messageArr && messageArr.length > 1 ? (
+                <Alert list={messageArr} type="error" />
+            ) : (
+                <Alert type="error">
+                    <span className="whitespace-pre-wrap">{message}</span>
+                </Alert>
+            )}
         </BasicWrapper>
     );
 }
@@ -64,14 +64,9 @@ export default function PublicShell() {
     return (
         <>
             {isNavigating && <ProgressBar />}
-            <div
-                className={joinClasses(
-                    "min-h-full",
-                    isNavigating ? "opacity-30 pointer-events-none" : "",
-                )}
-            >
+            <div className={joinClasses("min-h-full", isNavigating ? "opacity-30 pointer-events-none" : "")}>
                 <Outlet />
             </div>
         </>
-    )
+    );
 }
