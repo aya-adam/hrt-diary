@@ -2,16 +2,118 @@
 
 namespace App\DataFixtures;
 
+use App\Entity\Hormone;
+use App\Entity\ReferenceRange;
+use App\Factory\LabResultFactory;
+use App\Factory\MeasurementFactory;
+use App\Factory\PostFactory;
+use App\Factory\UserFactory;
+use App\Service\DefaultDataSeeder;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 
+use function Zenstruck\Foundry\faker;
+use function Zenstruck\Foundry\Persistence\repository;
+
 class AppFixtures extends Fixture
 {
+    public function __construct(
+        private DefaultDataSeeder $seeder,
+    ) {}
+
     public function load(ObjectManager $manager): void
     {
-        // $product = new Product();
-        // $manager->persist($product);
+        /**
+         * Seed db with predefined values
+         */
+        $this->seeder->seed();
 
-        $manager->flush();
+        /**
+         * Create mock users
+         */
+        UserFactory::createSequence(
+            function () {
+                foreach (range(1, 5) as $i) {
+                    yield ['email' => "user_{$i}@example.org"];
+                }
+            }
+        );
+
+        /**
+         * Create mock posts (published)
+         * 
+         * Post without labresults
+         * Post with published labresults
+         * Post with unpublished labresults
+         * Post with multiple published labresults
+         * Post with multiple unpublished labresults
+         */
+        foreach (UserFactory::all() as $user) {
+            PostFactory::new()
+                ->published()
+                ->sequence([
+                    [],
+                    ['labResults' => LabResultFactory::new()->published()->many(1)->reuse($user)->create()],
+                    ['labResults' => LabResultFactory::new()->many(1)->reuse($user)->create()],
+                    ['labResults' => LabResultFactory::new()->published()->many(3)->reuse($user)->create()],
+                    ['labResults' => LabResultFactory::new()->many(3)->reuse($user)->create()],
+                ])
+                ->reuse($user)
+                ->create();
+        }
+
+        /**
+         * Create mock posts (unpublished)
+         * 
+         * Post without labresults
+         * Post with unpublished labresults
+         * Post with published labresults
+         * Post with multiple unpublished labresults
+         * Post with multiple published labresults
+         */
+        foreach (UserFactory::all() as $user) {
+            PostFactory::new()
+                ->sequence([
+                    [],
+                    ['labResults' => LabResultFactory::new()->published()->many(1)->reuse($user)->create()],
+                    ['labResults' => LabResultFactory::new()->many(1)->reuse($user)->create()],
+                    ['labResults' => LabResultFactory::new()->published()->many(3)->reuse($user)->create()],
+                    ['labResults' => LabResultFactory::new()->many(3)->reuse($user)->create()],
+                ])
+                ->reuse($user)
+                ->create();
+        }
+
+        /** 
+         * Create mock measurements and attach to labResults
+         */
+        $hormoneLH = repository(Hormone::class)->findOneBy(['commonName' => 'LH']);
+        $hormoneFSH = repository(Hormone::class)->findOneBy(['commonName' => 'FSH']);
+        $hormonePRL = repository(Hormone::class)->findOneBy(['commonName' => 'PRL']);
+        $hormoneE2 = repository(Hormone::class)->findOneBy(['commonName' => 'E2']);
+        $hormoneProg = repository(Hormone::class)->findOneBy(['commonName' => 'Prog']);
+        $hormoneT = repository(Hormone::class)->findOneBy(['commonName' => 'T']);
+
+        $wpathReferenceRangeE2 = repository(ReferenceRange::class)->findOneBy(['name' => 'WPATH SOC8', 'hormone' => $hormoneE2]);
+        $wpathReferenceRangeT = repository(ReferenceRange::class)->findOneBy(['name' => 'WPATH SOC8', 'hormone' => $hormoneT]);
+
+        foreach (LabResultFactory::all() as $labResult) {
+            MeasurementFactory::new()
+                ->sequence([
+                    ['hormone' => $hormoneLH, 'unit' => $hormoneLH->getDefaultUnit(), 'value' => self::floatToDouble(faker()->randomFloat(1, 0.1, 100))],
+                    ['hormone' => $hormoneFSH, 'unit' => $hormoneFSH->getDefaultUnit(), 'value' => self::floatToDouble(faker()->randomFloat(1, 0.1, 200))],
+                    ['hormone' => $hormonePRL, 'unit' => $hormonePRL->getDefaultUnit(), 'value' => self::floatToDouble(faker()->randomFloat(1, 0.1, 80))],
+                    ['hormone' => $hormoneE2, 'unit' => $hormoneE2->getDefaultUnit(), 'value' => self::floatToDouble(faker()->randomFloat(0, 30, 2500)), 'referenceRange' => $wpathReferenceRangeE2],
+                    ['hormone' => $hormoneProg, 'unit' => $hormoneProg->getDefaultUnit(), 'value' => self::floatToDouble(faker()->randomFloat(2, 0.1, 60))],
+                    ['hormone' => $hormoneT, 'unit' => $hormoneT->getDefaultUnit(), 'value' => self::floatToDouble(faker()->randomFloat(2, 0.1, 40)), 'referenceRange' => $wpathReferenceRangeT],
+                ])
+                ->reuse($labResult->getUser())
+                ->create(['labResult' => $labResult]);
+        }
+    }
+
+    private static function floatToDouble(float $num): string
+    {
+        return number_format($num, 2, '.', '');
     }
 }
