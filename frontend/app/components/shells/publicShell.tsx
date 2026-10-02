@@ -1,16 +1,11 @@
-import { Outlet, redirect, useLoaderData, useNavigation } from "react-router";
+import { Outlet, redirect, useNavigation } from "react-router";
 import { useAuthStore } from "~/stores/authStore";
-import { apolloClient, getErrorMessage, REFRESH_MUTATION } from "~/utils";
-import type { Route } from "./+types/simplePublicLayout";
+import { apolloClient, getErrorMessage, joinClasses, REFRESH_MUTATION } from "~/utils";
+import type { Route } from "./+types/publicShell";
 import Alert from "../notifications/alert";
 import Loader from "../loaders/loader";
-import PageWrapper from "../wrappers/pageWrapper";
-
-const navItems = [
-    { label: "Home", href: "/" },
-    { label: "Sign In", href: "/signin" },
-    { label: "Sign Up", href: "/signup" },
-];
+import ProgressBar from "../loaders/progressBar";
+import BasicWrapper from "../layouts/wrappers/basicWrapper";
 
 export async function clientLoader() {
     const {
@@ -36,11 +31,21 @@ export async function clientLoader() {
     }
 }
 
+export function HydrateFallback() {
+    return (
+        <BasicWrapper>
+            <div className="min-h-full flex justify-center items-center">
+                <Loader />
+            </div>
+        </BasicWrapper>
+    );
+}
+
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     const { message, messageArr } = getErrorMessage(error);
 
     return (
-        <PageWrapper withLogoutLink>
+        <BasicWrapper>
             {(messageArr && messageArr.length > 1)
                 ? (
                     <Alert list={messageArr} type="error" />
@@ -48,21 +53,25 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
                 : (
                     <Alert type="error"><span className="whitespace-pre-wrap">{message}</span></Alert>
                 )}
-        </PageWrapper>
+        </BasicWrapper>
     );
 }
 
-export function HydrateFallback() {
-    return <Loader />;
-}
-
-export default function SimplePublicLayout() {
+export default function PublicShell() {
     const navigation = useNavigation();
     const isNavigating = navigation.state === "loading";
 
     return (
-        <PageWrapper navItems={navItems} isNavigating={isNavigating}>
-            <Outlet />
-        </PageWrapper>
-    );
+        <>
+            {isNavigating && <ProgressBar />}
+            <div
+                className={joinClasses(
+                    "min-h-full",
+                    isNavigating ? "opacity-30 pointer-events-none" : "",
+                )}
+            >
+                <Outlet />
+            </div>
+        </>
+    )
 }
