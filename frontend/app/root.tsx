@@ -3,6 +3,12 @@ import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration }
 import type { Route } from "./+types/root";
 import "./app.css";
 
+if (process.env.NODE_ENV !== "development") {
+    console.log = () => { }
+    console.error = () => { }
+    console.debug = () => { }
+}
+
 export const links: Route.LinksFunction = () => [
     { rel: "preconnect", href: "https://fonts.googleapis.com" },
     {
