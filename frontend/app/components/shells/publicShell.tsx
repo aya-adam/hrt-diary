@@ -64,7 +64,7 @@ export default function PublicShell() {
     return (
         <>
             {isNavigating && <ProgressBar />}
-            <div className={joinClasses("min-h-full", isNavigating ? "opacity-30 pointer-events-none" : "")}>
+            <div className={joinClasses("min-h-full", isNavigating ? "opacity-40 pointer-events-none" : "")}>
                 <Outlet />
             </div>
         </>

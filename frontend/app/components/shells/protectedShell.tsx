@@ -64,7 +64,7 @@ export default function ProtectedShell() {
     return (
         <>
             {isNavigating && <ProgressBar />}
-            <div className={joinClasses("h-full", isNavigating ? "opacity-30 pointer-events-none" : "")}>
+            <div className={joinClasses("h-full", isNavigating ? "opacity-40 pointer-events-none" : "")}>
                 <Outlet />
             </div>
         </>
