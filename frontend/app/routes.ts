@@ -9,14 +9,20 @@ export default [
         ]),
     ]),
     layout("components/shells/protectedShell.tsx", [
-        route("dashboard", "components/layouts/dashboardLayout.tsx", [
-            index("routes/dashboard/dashboard.tsx"),
-            route("diary", "routes/dashboard/posts.tsx"),
-            route("labs", "routes/dashboard/labs.tsx"),
-            route("charts", "routes/dashboard/charts.tsx"),
-            route("cycles", "routes/dashboard/cycles.tsx"),
-            route("events", "routes/dashboard/events.tsx"),
-            ...prefix("account", [index("routes/dashboard/account/account.tsx")]),
+        ...prefix("dashboard", [
+            layout("components/layouts/dashboardLayout.tsx", [
+                index("routes/dashboard/dashboard.tsx"),
+                route("diary", "routes/dashboard/posts.tsx"),
+                route("labs", "routes/dashboard/labs.tsx"),
+                route("charts", "routes/dashboard/charts.tsx"),
+                route("cycles", "routes/dashboard/cycles.tsx"),
+                route("events", "routes/dashboard/events.tsx"),
+            ]),
+            route("account", "components/layouts/dashboardAccountLayout.tsx", [
+                index("routes/dashboard/account/account.tsx"),
+                route("passwort-and-security", "routes/dashboard/account/passwortSecurity.tsx"),
+                route("privacy-and-data", "routes/dashboard/account/privacyData.tsx"),
+            ]),
         ]),
     ]),
 ] satisfies RouteConfig;
