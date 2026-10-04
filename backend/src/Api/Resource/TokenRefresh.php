@@ -1,6 +1,6 @@
 <?php
 
-namespace App\ApiResource;
+namespace App\Api\Resource;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GraphQl\Mutation;
