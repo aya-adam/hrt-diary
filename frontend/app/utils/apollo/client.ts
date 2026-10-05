@@ -10,4 +10,12 @@ const httpLink = new HttpLink({
 export const apolloClient = new ApolloClient({
     link: ApolloLink.from([errorLink, refreshLink, httpLink]),
     cache: new InMemoryCache(),
+    defaultOptions: {
+        query: {
+            fetchPolicy: "no-cache",
+        },
+        mutate: {
+            fetchPolicy: "no-cache",
+        }
+    }
 });
