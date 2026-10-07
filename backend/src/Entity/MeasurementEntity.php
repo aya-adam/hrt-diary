@@ -18,7 +18,9 @@ use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: MeasurementRepository::class)]
+#[ORM\Table(name: '`measurement`')]
 #[ApiResource(
+    shortName: 'Measurement',
     security: 'is_granted(\'IS_AUTHENTICATED\')',
     operations: [],
     graphQlOperations: [
@@ -46,7 +48,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
     ],
 )]
-class Measurement
+class MeasurementEntity
 {
     #[Groups(['read'])]
     #[ORM\Id]
@@ -57,32 +59,32 @@ class Measurement
 
     #[ORM\ManyToOne(inversedBy: 'measurements')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?User $user = null;
+    private ?UserEntity $user = null;
 
     #[Assert\NotBlank]
     #[Groups(['read', 'measurement:create', 'measurement:update'])]
     #[ORM\ManyToOne(inversedBy: 'measurements')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?LabResult $labResult = null;
+    private ?LabResultEntity $labResult = null;
 
     #[Assert\DisableAutoMapping]
     #[Assert\NotBlank(allowNull: true)]
-    #[Assert\Type(Unit::class)]
+    #[Assert\Type(UnitEntity::class)]
     #[Groups(['read', 'measurement:create', 'measurement:update', 'post:create'])]
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Unit $unit = null;
+    private ?UnitEntity $unit = null;
 
     #[Assert\NotBlank]
     #[Groups(['read', 'measurement:create', 'measurement:update', 'post:create'])]
     #[ORM\ManyToOne(inversedBy: 'measurements')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Hormone $hormone = null;
+    private ?HormoneEntity $hormone = null;
 
     #[Assert\NotBlank(allowNull: true)]
     #[Groups(['read', 'measurement:create', 'measurement:update', 'post:create'])]
     #[ORM\ManyToOne]
-    private ?ReferenceRange $referenceRange = null;
+    private ?ReferenceRangeEntity $referenceRange = null;
 
     #[Assert\NotBlank]
     #[Assert\Type('string')]
@@ -107,60 +109,60 @@ class Measurement
         return $this->id;
     }
 
-    public function getUser(): ?User
+    public function getUser(): ?UserEntity
     {
         return $this->user;
     }
 
-    public function setUser(?User $user): static
+    public function setUser(?UserEntity $user): static
     {
         $this->user = $user;
 
         return $this;
     }
 
-    public function getLabResult(): ?LabResult
+    public function getLabResult(): ?LabResultEntity
     {
         return $this->labResult;
     }
 
-    public function setLabResult(?LabResult $labResult): static
+    public function setLabResult(?LabResultEntity $labResult): static
     {
         $this->labResult = $labResult;
 
         return $this;
     }
 
-    public function getUnit(): ?Unit
+    public function getUnit(): ?UnitEntity
     {
         return $this->unit;
     }
 
-    public function setUnit(?Unit $unit): static
+    public function setUnit(?UnitEntity $unit): static
     {
         $this->unit = $unit;
 
         return $this;
     }
 
-    public function getHormone(): ?Hormone
+    public function getHormone(): ?HormoneEntity
     {
         return $this->hormone;
     }
 
-    public function setHormone(?Hormone $hormone): static
+    public function setHormone(?HormoneEntity $hormone): static
     {
         $this->hormone = $hormone;
 
         return $this;
     }
 
-    public function getReferenceRange(): ?ReferenceRange
+    public function getReferenceRange(): ?ReferenceRangeEntity
     {
         return $this->referenceRange;
     }
 
-    public function setReferenceRange(?ReferenceRange $referenceRange): static
+    public function setReferenceRange(?ReferenceRangeEntity $referenceRange): static
     {
         $this->referenceRange = $referenceRange;
 

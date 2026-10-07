@@ -16,8 +16,10 @@ use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: QuantityTypeRepository::class)]
+#[ORM\Table(name: '`quantity_type`')]
 #[UniqueEntity(fields: 'slug', identifierFieldNames: ['id'], message: 'This slug already exists.')]
 #[ApiResource(
+    shortName: 'QuantityType',
     security: 'is_granted(\'IS_AUTHENTICATED\')',
     normalizationContext: ['groups' => ['read']],
     operations: [],
@@ -26,7 +28,7 @@ use Symfony\Component\Uid\Uuid;
         new QueryCollection(),
     ],
 )]
-class QuantityType
+class QuantityTypeEntity
 {
     #[Groups(['read'])]
     #[ORM\Id]
@@ -36,10 +38,10 @@ class QuantityType
     private ?Uuid $id = null;
 
     /**
-     * @var Collection<int, Unit>
+     * @var Collection<int, UnitEntity>
      */
     #[Groups(['read'])]
-    #[ORM\OneToMany(targetEntity: Unit::class, mappedBy: 'quantityType')]
+    #[ORM\OneToMany(targetEntity: UnitEntity::class, mappedBy: 'quantityType')]
     private Collection $units;
 
     #[Groups(['read'])]
@@ -62,14 +64,14 @@ class QuantityType
     }
 
     /**
-     * @return Collection<int, Unit>
+     * @return Collection<int, UnitEntity>
      */
     public function getUnits(): Collection
     {
         return $this->units;
     }
 
-    public function addUnit(Unit $unit): static
+    public function addUnit(UnitEntity $unit): static
     {
         if (!$this->units->contains($unit)) {
             $this->units->add($unit);
@@ -79,7 +81,7 @@ class QuantityType
         return $this;
     }
 
-    public function removeUnit(Unit $unit): static
+    public function removeUnit(UnitEntity $unit): static
     {
         if ($this->units->removeElement($unit)) {
             // set the owning side to null (unless already changed)

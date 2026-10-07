@@ -9,11 +9,11 @@ use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
 use ApiPlatform\Metadata\GraphQl\Query;
 use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use ApiPlatform\Metadata\Operation;
-use App\Entity\LabResult;
-use App\Entity\Measurement;
-use App\Entity\Post;
-use App\Entity\ReferenceRange;
-use App\Entity\User;
+use App\Entity\LabResultEntity;
+use App\Entity\MeasurementEntity;
+use App\Entity\PostEntity;
+use App\Entity\ReferenceRangeEntity;
+use App\Entity\UserEntity;
 use Override;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -44,15 +44,15 @@ final class OwnerExtension implements QueryCollectionExtensionInterface, QueryIt
 
         $user = $this->security->getUser();
 
-        if (!$user instanceof User) {
+        if (!$user instanceof UserEntity) {
             return;
         }
 
         $alias = $queryBuilder->getRootAliases()[0];
 
-        if ($resourceClass === User::class) {
+        if ($resourceClass === UserEntity::class) {
             $queryBuilder->andWhere(sprintf('%s.id = :user', $alias));
-        } elseif ($resourceClass === ReferenceRange::class && ($operation instanceof Query || $operation instanceof QueryCollection)) {
+        } elseif ($resourceClass === ReferenceRangeEntity::class && ($operation instanceof Query || $operation instanceof QueryCollection)) {
             $queryBuilder->andWhere($queryBuilder->expr()->orX(sprintf('%s.user = :user', $alias), sprintf('%s.user IS NULL', $alias)));
         } else {
             $queryBuilder->andWhere(sprintf('%s.user = :user', $alias));
@@ -64,11 +64,11 @@ final class OwnerExtension implements QueryCollectionExtensionInterface, QueryIt
     private function getSupportedClasses(): array
     {
         return [
-            LabResult::class,
-            Measurement::class,
-            Post::class,
-            ReferenceRange::class,
-            User::class,
+            LabResultEntity::class,
+            MeasurementEntity::class,
+            PostEntity::class,
+            ReferenceRangeEntity::class,
+            UserEntity::class,
         ];
     }
 }

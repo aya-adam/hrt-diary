@@ -6,7 +6,7 @@ use ApiPlatform\Metadata\Exception\AccessDeniedException;
 use ApiPlatform\Metadata\GraphQl\DeleteMutation;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use App\Entity\LabResult;
+use App\Entity\LabResultEntity;
 use App\State\Trait\GraphQlOperationHelperTrait;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -58,14 +58,14 @@ final class LabResultStateProcessor implements ProcessorInterface
 
     private function assertOwnership(mixed $data): void
     {
-        if ($data instanceof LabResult && $data->getUser()->getUserIdentifier() !== $this->security->getUser()->getUserIdentifier()) {
+        if ($data instanceof LabResultEntity && $data->getUser()->getUserIdentifier() !== $this->security->getUser()->getUserIdentifier()) {
             throw new AccessDeniedException('Access Denied.');
         }
     }
 
     private function setOwner(mixed $data): mixed
     {
-        if ($data instanceof LabResult) {
+        if ($data instanceof LabResultEntity) {
             $data->setUser($this->security->getUser());
         }
         return $data;
@@ -73,7 +73,7 @@ final class LabResultStateProcessor implements ProcessorInterface
 
     private function setPublishedAt(mixed $data, array $operation): mixed
     {
-        if ($data instanceof LabResult) {
+        if ($data instanceof LabResultEntity) {
             if (true === $data->isPublished() && !$data->getPublishedAt()) {
                 $data->setPublishedAt(new \DateTimeImmutable());
             }

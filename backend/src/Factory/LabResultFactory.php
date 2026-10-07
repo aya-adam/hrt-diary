@@ -2,11 +2,11 @@
 
 namespace App\Factory;
 
-use App\Entity\LabResult;
+use App\Entity\LabResultEntity;
 use Zenstruck\Foundry\Persistence\PersistentObjectFactory;
 
 /**
- * @extends PersistentObjectFactory<LabResult>
+ * @extends PersistentObjectFactory<LabResultEntity>
  */
 final class LabResultFactory extends PersistentObjectFactory
 {
@@ -20,7 +20,7 @@ final class LabResultFactory extends PersistentObjectFactory
     #[\Override]
     public static function class(): string
     {
-        return LabResult::class;
+        return LabResultEntity::class;
     }
 
     public function published(): self

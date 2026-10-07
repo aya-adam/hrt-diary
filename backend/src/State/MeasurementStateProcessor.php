@@ -6,7 +6,7 @@ use ApiPlatform\Metadata\Exception\AccessDeniedException;
 use ApiPlatform\Metadata\GraphQl\DeleteMutation;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use App\Entity\Measurement;
+use App\Entity\MeasurementEntity;
 use App\State\Trait\GraphQlOperationHelperTrait;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -58,14 +58,14 @@ final class MeasurementStateProcessor implements ProcessorInterface
 
     private function assertOwnership(mixed $data): void
     {
-        if ($data instanceof Measurement && $data->getUser()->getUserIdentifier() !== $this->security->getUser()->getUserIdentifier()) {
+        if ($data instanceof MeasurementEntity && $data->getUser()->getUserIdentifier() !== $this->security->getUser()->getUserIdentifier()) {
             throw new AccessDeniedException('Access Denied.');
         }
     }
 
     private function setOwner(mixed $data): mixed
     {
-        if ($data instanceof Measurement) {
+        if ($data instanceof MeasurementEntity) {
             $data->setUser($this->security->getUser());
         }
         return $data;
@@ -73,7 +73,7 @@ final class MeasurementStateProcessor implements ProcessorInterface
     
     private function setUnit(mixed $data): mixed
     {
-        if ($data instanceof Measurement && !$data->getUnit()) {
+        if ($data instanceof MeasurementEntity && !$data->getUnit()) {
             $data->setUnit($data->getHormone()->getDefaultUnit());
         }
         return $data;

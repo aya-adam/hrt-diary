@@ -3,10 +3,10 @@
 namespace App\Tests\Api;
 
 use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
-use App\Entity\Hormone;
-use App\Entity\ReferenceRange;
-use App\Entity\Unit;
-use App\Entity\User;
+use App\Entity\HormoneEntity;
+use App\Entity\ReferenceRangeEntity;
+use App\Entity\UnitEntity;
+use App\Entity\UserEntity;
 use App\Factory\ReferenceRangeFactory;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
@@ -69,7 +69,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
         $this->assertCount(5, $body['data']['referenceRanges']);
 
         foreach ($body['data']['referenceRanges'] as $referenceRange) {
-            $this->assertMatchesIri($referenceRange['id'], ReferenceRange::class);
+            $this->assertMatchesIri($referenceRange['id'], ReferenceRangeEntity::class);
             $this->assertIsString($referenceRange['name']);
             $this->assertIsNumeric($referenceRange['lowerLimit']);
             $this->assertIsNumeric($referenceRange['upperLimit']);
@@ -253,8 +253,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
             }
         GQL;
 
-        $hormone = repository(Hormone::class)->random();
-        $unit = repository(Unit::class)->random();
+        $hormone = repository(HormoneEntity::class)->random();
+        $unit = repository(UnitEntity::class)->random();
 
         $variables = [
             'hormone' => $this->getIriFromResource($hormone),
@@ -268,7 +268,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateReferenceRange')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['createReferenceRange']['referenceRange']['id'], ReferenceRange::class);
+        $this->assertMatchesIri($body['data']['createReferenceRange']['referenceRange']['id'], ReferenceRangeEntity::class);
         $this->assertSame('New reference range name', $body['data']['createReferenceRange']['referenceRange']['name']);
         $this->assertSame('1234.56', $body['data']['createReferenceRange']['referenceRange']['lowerLimit']);
         $this->assertSame('9876.54', $body['data']['createReferenceRange']['referenceRange']['upperLimit']);
@@ -319,7 +319,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
     //     GQL;
 
     //     $variables = [
-    //         'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
+    //         'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
     //         'name' => 'New reference range name',
     //         'lowerLimit' => '1234.56',
     //         'upperLimit' => '9876.54',
@@ -328,7 +328,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
     //     $body = $this->executeGraphQl($client, $query, $variables, 'CreateReferenceRange')->toArray(false);
 
     //     $this->assertGraphQlHasNoErrors($body);
-    //     $this->assertMatchesIri($body['data']['createReferenceRange']['referenceRange']['unit']['id'], Unit::class);
+    //     $this->assertMatchesIri($body['data']['createReferenceRange']['referenceRange']['unit']['id'], UnitEntity::class);
     //     $this->assertArrayHasKey('unit', $body['data']['createReferenceRange']['referenceRange']);
     //     $this->assertArrayHasKey('symbol', $body['data']['createReferenceRange']['referenceRange']['unit']);
     //     $this->assertArrayHasKey('label', $body['data']['createReferenceRange']['referenceRange']['unit']);
@@ -371,8 +371,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'New reference range name',
             'lowerLimit' => '1234.56',
             'upperLimit' => '9876.54',
@@ -425,11 +425,11 @@ class ReferenceRangeResourceTest extends ApiTestCase
             }
         GQL;
 
-        $hormone = repository(Hormone::class)->random();
+        $hormone = repository(HormoneEntity::class)->random();
 
         $variables = [
             'hormone' => $hormone->getId()->toRfc4122(),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'New reference range name',
             'lowerLimit' => '1234.56',
             'upperLimit' => '9876.54',
@@ -479,7 +479,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'New reference range name',
             'lowerLimit' => '1234.56',
             'upperLimit' => '9876.54',
@@ -531,7 +531,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $variables = [
             'hormone' => '',
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'New reference range name',
             'lowerLimit' => '1234.56',
             'upperLimit' => '9876.54',
@@ -582,10 +582,10 @@ class ReferenceRangeResourceTest extends ApiTestCase
             }
         GQL;
 
-        $unit = repository(Unit::class)->random();
+        $unit = repository(UnitEntity::class)->random();
 
         $variables = [
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
             'unit' => $unit->getId()->toRfc4122(),
             'name' => 'New reference range name',
             'lowerLimit' => '1234.56',
@@ -638,7 +638,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
             'unit' => '',
             'name' => 'New reference range name',
             'lowerLimit' => '1234.56',
@@ -689,8 +689,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'lowerLimit' => '1234.56',
             'upperLimit' => '9876.54',
             'notes' => 'New reference range notes',
@@ -740,8 +740,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => '',
             'lowerLimit' => '1234.56',
             'upperLimit' => '9876.54',
@@ -794,8 +794,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => faker()->text(1000),
             'lowerLimit' => '1234.56',
             'upperLimit' => '9876.54',
@@ -846,8 +846,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'New reference range name',
             'upperLimit' => '9876.54',
             'notes' => 'New reference range notes',
@@ -897,8 +897,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'New reference range name',
             'lowerLimit' => '',
             'upperLimit' => '9876.54',
@@ -951,8 +951,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'New reference range name',
             'lowerLimit' => 'non_numeric_value',
             'upperLimit' => '9876.54',
@@ -1005,8 +1005,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'New reference range name',
             'lowerLimit' => '12345.678',
             'upperLimit' => '9876.54',
@@ -1057,8 +1057,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'New reference range name',
             'lowerLimit' => '1234.56',
             'notes' => 'New reference range notes',
@@ -1108,8 +1108,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'New reference range name',
             'lowerLimit' => '1234.56',
             'upperLimit' => '',
@@ -1162,8 +1162,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'New reference range name',
             'lowerLimit' => '1234.56',
             'upperLimit' => 'non_numeric_value',
@@ -1216,8 +1216,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'New reference range name',
             'lowerLimit' => '1234.56',
             'upperLimit' => '9876.543',
@@ -1270,8 +1270,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'New reference range name',
             'lowerLimit' => '1234.56',
             'upperLimit' => '9876.54',
@@ -1336,8 +1336,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
             }
         GQL;
 
-        $hormone = repository(Hormone::class)->random();
-        $unit = repository(Unit::class)->random();
+        $hormone = repository(HormoneEntity::class)->random();
+        $unit = repository(UnitEntity::class)->random();
 
         $variables = [
             'id' => $this->getIriFromResource($referenceRange),
@@ -1352,7 +1352,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateReferenceRange')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['updateReferenceRange']['referenceRange']['id'], ReferenceRange::class);
+        $this->assertMatchesIri($body['data']['updateReferenceRange']['referenceRange']['id'], ReferenceRangeEntity::class);
         $this->assertSame('Updated reference range name', $body['data']['updateReferenceRange']['referenceRange']['name']);
         $this->assertSame('1234.56', $body['data']['updateReferenceRange']['referenceRange']['lowerLimit']);
         $this->assertSame('9876.54', $body['data']['updateReferenceRange']['referenceRange']['upperLimit']);
@@ -1412,8 +1412,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $variables = [
             'id' => $this->getIriFromResource($referenceRange),
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'Updated reference range name',
             'lowerLimit' => '1234.56',
             'upperLimit' => '9876.54',
@@ -1471,8 +1471,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $variables = [
             'id' => $this->getIriFromResource($referenceRange),
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'Updated reference range name',
             'lowerLimit' => '1234.56',
             'upperLimit' => '9876.54',
@@ -1529,8 +1529,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $variables = [
             'id' => $this->getIriFromResource($referenceRange),
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'Updated reference range name',
             'lowerLimit' => '1234.56',
             'upperLimit' => '9876.54',
@@ -1586,12 +1586,12 @@ class ReferenceRangeResourceTest extends ApiTestCase
             }
         GQL;
 
-        $hormone = repository(Hormone::class)->random();
+        $hormone = repository(HormoneEntity::class)->random();
 
         $variables = [
             'id' => $this->getIriFromResource($referenceRange),
             'hormone' => $hormone->getId()->toRfc4122(),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'Updated reference range name',
             'lowerLimit' => '1234.56',
             'upperLimit' => '9876.54',
@@ -1648,7 +1648,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
         $variables = [
             'id' => $this->getIriFromResource($referenceRange),
             'hormone' => '',
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'Updated reference range name',
             'lowerLimit' => '1234.56',
             'upperLimit' => '9876.54',
@@ -1702,11 +1702,11 @@ class ReferenceRangeResourceTest extends ApiTestCase
             }
         GQL;
 
-        $unit = repository(Unit::class)->random();
+        $unit = repository(UnitEntity::class)->random();
 
         $variables = [
             'id' => $this->getIriFromResource($referenceRange),
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
             'unit' => $unit->getId()->toRfc4122(),
             'name' => 'Updated reference range name',
             'lowerLimit' => '1234.56',
@@ -1763,7 +1763,7 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $variables = [
             'id' => $this->getIriFromResource($referenceRange),
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
             'unit' => '',
             'name' => 'Updated reference range name',
             'lowerLimit' => '1234.56',
@@ -1820,8 +1820,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $variables = [
             'id' => $this->getIriFromResource($referenceRange),
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => '',
             'lowerLimit' => '1234.56',
             'upperLimit' => '9876.54',
@@ -1878,8 +1878,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $variables = [
             'id' => $this->getIriFromResource($referenceRange),
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => faker()->text(1000),
             'lowerLimit' => '1234.56',
             'upperLimit' => '9876.54',
@@ -1936,8 +1936,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $variables = [
             'id' => $this->getIriFromResource($referenceRange),
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'Updated reference range name',
             'lowerLimit' => '',
             'upperLimit' => '9876.54',
@@ -1994,8 +1994,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $variables = [
             'id' => $this->getIriFromResource($referenceRange),
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'Updated reference range name',
             'lowerLimit' => 'non_numeric_value',
             'upperLimit' => '9876.54',
@@ -2052,8 +2052,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $variables = [
             'id' => $this->getIriFromResource($referenceRange),
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'Updated reference range name',
             'lowerLimit' => '1234.567',
             'upperLimit' => '9876.54',
@@ -2110,8 +2110,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $variables = [
             'id' => $this->getIriFromResource($referenceRange),
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'Updated reference range name',
             'lowerLimit' => '1234.56',
             'upperLimit' => '',
@@ -2168,8 +2168,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $variables = [
             'id' => $this->getIriFromResource($referenceRange),
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'Updated reference range name',
             'lowerLimit' => '1234.56',
             'upperLimit' => 'non_numeric_value',
@@ -2226,8 +2226,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $variables = [
             'id' => $this->getIriFromResource($referenceRange),
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'Updated reference range name',
             'lowerLimit' => '1234.56',
             'upperLimit' => '9876.543',
@@ -2284,8 +2284,8 @@ class ReferenceRangeResourceTest extends ApiTestCase
 
         $variables = [
             'id' => $this->getIriFromResource($referenceRange),
-            'hormone' => $this->getIriFromResource(repository(Hormone::class)->random()),
-            'unit' => $this->getIriFromResource(repository(Unit::class)->random()),
+            'hormone' => $this->getIriFromResource(repository(HormoneEntity::class)->random()),
+            'unit' => $this->getIriFromResource(repository(UnitEntity::class)->random()),
             'name' => 'Updated reference range name',
             'lowerLimit' => '1234.56',
             'upperLimit' => '9876.54',

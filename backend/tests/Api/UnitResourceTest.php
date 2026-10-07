@@ -3,7 +3,7 @@
 namespace App\Tests\Api;
 
 use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
-use App\Entity\Unit;
+use App\Entity\UnitEntity;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
 use App\Tests\Support\GraphQlTestTrait;
@@ -47,7 +47,7 @@ class UnitResourceTest extends ApiTestCase
         $this->assertCount(19, $body['data']['units']);
 
         foreach ($body['data']['units'] as $unit) {
-            $this->assertMatchesIri($unit['id'], Unit::class);
+            $this->assertMatchesIri($unit['id'], UnitEntity::class);
             $this->assertIsString($unit['symbol']);
             $this->assertIsString($unit['label']);
         }
@@ -78,7 +78,7 @@ class UnitResourceTest extends ApiTestCase
     public function testGetItemReturnsUnit(): void
     {
         $user = UserFactory::createOne();
-        $unit = repository(Unit::class)->random();
+        $unit = repository(UnitEntity::class)->random();
 
         $client = self::createAuthenticatedClient($user);
 
@@ -106,7 +106,7 @@ class UnitResourceTest extends ApiTestCase
 
     public function testGetItemReturns403ForAnonymousUser(): void
     {
-        $unit = repository(Unit::class)->random();
+        $unit = repository(UnitEntity::class)->random();
 
         $client = self::createClient();
 
@@ -164,7 +164,7 @@ class UnitResourceTest extends ApiTestCase
     public function testPatchReturnsError(): void
     {
         $user = UserFactory::createOne();
-        $unit = repository(Unit::class)->random();
+        $unit = repository(UnitEntity::class)->random();
 
         $client = self::createAuthenticatedClient($user);
 
@@ -195,7 +195,7 @@ class UnitResourceTest extends ApiTestCase
     public function testDeleteReturnsError(): void
     {
         $user = UserFactory::createOne();
-        $unit = repository(Unit::class)->random();
+        $unit = repository(UnitEntity::class)->random();
 
         $client = self::createAuthenticatedClient($user);
 

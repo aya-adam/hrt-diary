@@ -3,7 +3,7 @@
 namespace App\Tests\Api;
 
 use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
-use App\Entity\Post;
+use App\Entity\PostEntity;
 use App\Factory\PostFactory;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
@@ -65,7 +65,7 @@ class PostResourceTest extends ApiTestCase
         $this->assertCount(10, $body['data']['posts']);
 
         foreach ($body['data']['posts'] as $post) {
-            $this->assertMatchesIri($post['id'], Post::class);
+            $this->assertMatchesIri($post['id'], PostEntity::class);
             $this->assertIsString($post['title']);
             $this->assertArrayHasKey('excerpt', $post);
             $this->assertArrayHasKey('text', $post);
@@ -231,7 +231,7 @@ class PostResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'CreatePost')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['createPost']['post']['id'], Post::class);
+        $this->assertMatchesIri($body['data']['createPost']['post']['id'], PostEntity::class);
         $this->assertSame('New post title', $body['data']['createPost']['post']['title']);
         $this->assertSame('New post excerpt', $body['data']['createPost']['post']['excerpt']);
         $this->assertSame('New post text', $body['data']['createPost']['post']['text']);
@@ -272,7 +272,7 @@ class PostResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'CreatePost')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['createPost']['post']['id'], Post::class);
+        $this->assertMatchesIri($body['data']['createPost']['post']['id'], PostEntity::class);
         $this->assertSame('New post title', $body['data']['createPost']['post']['title']);
         $this->assertSame('New post excerpt', $body['data']['createPost']['post']['excerpt']);
         $this->assertSame('New post text', $body['data']['createPost']['post']['text']);
@@ -597,7 +597,7 @@ class PostResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['updatePost']['post']['id'], Post::class);
+        $this->assertMatchesIri($body['data']['updatePost']['post']['id'], PostEntity::class);
         $this->assertSame('Updated post title', $body['data']['updatePost']['post']['title']);
         $this->assertSame('Updated post excerpt', $body['data']['updatePost']['post']['excerpt']);
         $this->assertSame('Updated post text', $body['data']['updatePost']['post']['text']);
@@ -640,7 +640,7 @@ class PostResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['updatePost']['post']['id'], Post::class);
+        $this->assertMatchesIri($body['data']['updatePost']['post']['id'], PostEntity::class);
         $this->assertSame('Updated post title', $body['data']['updatePost']['post']['title']);
         $this->assertSame('Updated post excerpt', $body['data']['updatePost']['post']['excerpt']);
         $this->assertSame('Updated post text', $body['data']['updatePost']['post']['text']);
@@ -683,7 +683,7 @@ class PostResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['updatePost']['post']['id'], Post::class);
+        $this->assertMatchesIri($body['data']['updatePost']['post']['id'], PostEntity::class);
         $this->assertSame('Updated post title', $body['data']['updatePost']['post']['title']);
         $this->assertSame('Updated post excerpt', $body['data']['updatePost']['post']['excerpt']);
         $this->assertSame('Updated post text', $body['data']['updatePost']['post']['text']);

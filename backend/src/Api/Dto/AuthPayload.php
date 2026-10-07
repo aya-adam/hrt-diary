@@ -3,7 +3,7 @@
 namespace App\Api\Dto;
 
 use ApiPlatform\Metadata\ApiProperty;
-use App\Entity\User;
+use App\Entity\UserEntity;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\Uid\Uuid;
 
@@ -23,7 +23,7 @@ final class AuthPayload
 
     public readonly string $message;
 
-    public function __construct(?User $user = null, ?Cookie $accessTokenCookie = null, ?string $message = '')
+    public function __construct(?UserEntity $user = null, ?Cookie $accessTokenCookie = null, ?string $message = '')
     {
         $this->id = Uuid::v6();
         $this->userId = $user?->getId()->toRfc4122();

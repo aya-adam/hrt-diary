@@ -3,8 +3,8 @@
 namespace App\Tests\Api;
 
 use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
-use App\Entity\RefreshToken;
-use App\Entity\User;
+use App\Entity\RefreshTokenEntity;
+use App\Entity\UserEntity;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
 use App\Tests\Support\GraphQlTestTrait;
@@ -204,7 +204,7 @@ class UserResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateUser')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['createUser']['user']['id'], User::class);
+        $this->assertMatchesIri($body['data']['createUser']['user']['id'], UserEntity::class);
         $this->assertSame($variables['email'], $body['data']['createUser']['user']['email']);
         $this->assertSame(['ROLE_USER'], $body['data']['createUser']['user']['roles']);
         $this->assertMatchesDate($body['data']['createUser']['user']['createdAt']);
@@ -461,7 +461,7 @@ class UserResourceTest extends ApiTestCase
 
     public function testPatchUpdatesPersistedRefreshTokenAfterEmailUpdate(): void
     {
-        $tokenRespository = repository(RefreshToken::class);
+        $tokenRespository = repository(RefreshTokenEntity::class);
 
         $user = UserFactory::random();
         $emailOld = $user->getEmail();

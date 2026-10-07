@@ -3,12 +3,12 @@
 namespace App\Tests\Api;
 
 use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
-use App\Entity\Hormone;
-use App\Entity\LabResult;
-use App\Entity\Measurement;
-use App\Entity\ReferenceRange;
-use App\Entity\Unit;
-use App\Entity\User;
+use App\Entity\HormoneEntity;
+use App\Entity\LabResultEntity;
+use App\Entity\MeasurementEntity;
+use App\Entity\ReferenceRangeEntity;
+use App\Entity\UnitEntity;
+use App\Entity\UserEntity;
 use App\Factory\LabResultFactory;
 use App\Factory\MeasurementFactory;
 use App\Factory\UserFactory;
@@ -74,7 +74,7 @@ class MeasurementResourceTest extends ApiTestCase
         $this->assertCount(15, $body['data']['measurements']);
 
         foreach ($body['data']['measurements'] as $measurement) {
-            $this->assertMatchesIri($measurement['id'], Measurement::class);
+            $this->assertMatchesIri($measurement['id'], MeasurementEntity::class);
             $this->assertIsNumeric($measurement['value']);
             $this->assertMatchesDate($measurement['drawnAt']);
             $this->assertMatchesDate($measurement['createdAt']);
@@ -203,8 +203,8 @@ class MeasurementResourceTest extends ApiTestCase
     //     $user = UserFactory::random();
 
     //     $labResult = LabResultFactory::random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     $client = self::createAuthenticatedClient($user);
 
@@ -255,11 +255,11 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPostCreatesMeasurementWithReferenceRange(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
-    //     $referenceRange = repository(ReferenceRange::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
+    //     $referenceRange = repository(ReferenceRangeEntity::class)->random();
 
     //     $response = self::createAuthenticatedClient($user)->request('POST', '/measurements', ['json' => [
     //         'labResult' => "/lab_results/{$labResult->getId()->toRfc4122()}",
@@ -285,14 +285,14 @@ class MeasurementResourceTest extends ApiTestCase
     //     $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);
     //     $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
     //     $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-    //     $this->assertMatchesResourceItemJsonSchema(Measurement::class);
+    //     $this->assertMatchesResourceItemJsonSchema(MeasurementEntity::class);
     // }
 
     // public function testPostWithoutUnitCreatesMeasurementWithFallbackUnit(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     $response = self::createAuthenticatedClient($user)->request('POST', '/measurements', ['json' => [
     //         'labResult' => "/lab_results/{$labResult->getId()->toRfc4122()}",
@@ -315,14 +315,14 @@ class MeasurementResourceTest extends ApiTestCase
     //     $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);
     //     $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
     //     $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-    //     $this->assertMatchesResourceItemJsonSchema(Measurement::class);
+    //     $this->assertMatchesResourceItemJsonSchema(MeasurementEntity::class);
     // }
 
     // public function testPostReturns401ForAnonymousUser(): void
     // {
-    //     $labResult = repository(LabResult::class)->random();
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $labResult = repository(LabResultEntity::class)->random();
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createClient()->request('POST', '/measurements', ['json' => [
     //         'labResult' => "/lab_results/{$labResult->getId()->toRfc4122()}",
@@ -341,10 +341,10 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPostReturns422WhenLabResultIsNotOwned(): void
     // {
-    //     [$user1, $user2] = repository(User::class)->randomSet(2);
-    //     $labResult = repository(LabResult::class)->random(['user' => $user2]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     [$user1, $user2] = repository(UserEntity::class)->randomSet(2);
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user2]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user1)->request('POST', '/measurements', ['json' => [
     //         'labResult' => "/lab_results/{$labResult->getId()->toRfc4122()}",
@@ -367,10 +367,10 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPostReturns422WhenLabResultIsInvalidIri(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('POST', '/measurements', ['json' => [
     //         'labResult' => "/lab_results/{$labResult->getId()->toHex()}", // Wrong uuid format -> it should be RFC 9562/4122
@@ -393,9 +393,9 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPostReturns422WhenLabResultIsMissing(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('POST', '/measurements', ['json' => [
     //         'unit' => "/units/{$unit->getId()->toRfc4122()}",
@@ -417,9 +417,9 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPostReturns422WhenLabResultIsBlank(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('POST', '/measurements', ['json' => [
     //         'labResult' => "",
@@ -442,10 +442,10 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPostReturns422WhenUnitIsInvalidIri(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('POST', '/measurements', ['json' => [
     //         'labResult' => "/lab_results/{$labResult->getId()->toRfc4122()}",
@@ -468,9 +468,9 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPostReturns422WhenUnitIsBlank(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('POST', '/measurements', ['json' => [
     //         'labResult' => "/lab_results/{$labResult->getId()->toRfc4122()}",
@@ -493,10 +493,10 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPostReturns422WhenHormoneIsInvalidIri(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('POST', '/measurements', ['json' => [
     //         'labResult' => "/lab_results/{$labResult->getId()->toRfc4122()}",
@@ -519,9 +519,9 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPostReturns422WhenHormoneIsMissing(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('POST', '/measurements', ['json' => [
     //         'labResult' => "/lab_results/{$labResult->getId()->toRfc4122()}",
@@ -543,9 +543,9 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPostReturns422WhenHormoneIsBlank(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('POST', '/measurements', ['json' => [
     //         'labResult' => "/lab_results/{$labResult->getId()->toRfc4122()}",
@@ -568,10 +568,10 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPostReturns422WhenValueIsMissing(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('POST', '/measurements', ['json' => [
     //         'labResult' => "/lab_results/{$labResult->getId()->toRfc4122()}",
@@ -593,10 +593,10 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPostReturns422WhenValueIsBlank(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('POST', '/measurements', ['json' => [
     //         'labResult' => "/lab_results/{$labResult->getId()->toRfc4122()}",
@@ -619,10 +619,10 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPostReturns422WhenValueIsNotNumeric(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('POST', '/measurements', ['json' => [
     //         'labResult' => "/lab_results/{$labResult->getId()->toRfc4122()}",
@@ -645,10 +645,10 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPostReturns422WhenValueIsAnInvalidNumericValue(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('POST', '/measurements', ['json' => [
     //         'labResult' => "/lab_results/{$labResult->getId()->toRfc4122()}",
@@ -671,11 +671,11 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPatchUpdatedMeasurement(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $measurement = repository(Measurement::class)->random(['user' => $user]);
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $measurement = repository(MeasurementEntity::class)->random(['user' => $user]);
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     $response = self::createAuthenticatedClient($user)->request('PATCH', "/measurements/{$measurement->getId()->toRfc4122()}", [
     //         'headers' => ['content-type' => 'application/merge-patch+json'],
@@ -702,16 +702,16 @@ class MeasurementResourceTest extends ApiTestCase
     //     $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);
     //     $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
     //     $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-    //     $this->assertMatchesResourceItemJsonSchema(Measurement::class);
+    //     $this->assertMatchesResourceItemJsonSchema(MeasurementEntity::class);
     // }
 
     // public function testPatchRemovesReferenceRangeFromMeasurement(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $referenceRange = repository(ReferenceRange::class)->random(['user' => null]);
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $referenceRange = repository(ReferenceRangeEntity::class)->random(['user' => null]);
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     $measurement = MeasurementFactory::createOne(['user' => $user, 'referenceRange' => $referenceRange]);
 
@@ -742,16 +742,16 @@ class MeasurementResourceTest extends ApiTestCase
     //     $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['drawnAt']);
     //     $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['createdAt']);
     //     $this->assertMatchesRegularExpression('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\+|-)[0-9]{2}:[0-9]{2}$/', $response->toArray()['updatedAt']);
-    //     $this->assertMatchesResourceItemJsonSchema(Measurement::class);
+    //     $this->assertMatchesResourceItemJsonSchema(MeasurementEntity::class);
     // }
 
     // public function testPatchReturns401ForAnonymousUser(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $measurement = repository(Measurement::class)->random(['user' => $user]);
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $measurement = repository(MeasurementEntity::class)->random(['user' => $user]);
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createClient()->request('PATCH', "/measurements/{$measurement->getId()->toRfc4122()}", [
     //         'headers' => ['content-type' => 'application/merge-patch+json'],
@@ -773,11 +773,11 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPatchReturns404ForNonOwnerAsRegularUser(): void
     // {
-    //     [$user1, $user2] = repository(User::class)->randomSet(2);
-    //     $measurement = repository(Measurement::class)->random(['user' => $user2]);
-    //     $labResult = repository(LabResult::class)->random(['user' => $user1]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     [$user1, $user2] = repository(UserEntity::class)->randomSet(2);
+    //     $measurement = repository(MeasurementEntity::class)->random(['user' => $user2]);
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user1]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user1)->request('PATCH', "/measurements/{$measurement->getId()->toRfc4122()}", [
     //         'headers' => ['content-type' => 'application/merge-patch+json'],
@@ -795,11 +795,11 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPatchReturns422WhenLabResultIsNotOwned(): void
     // {
-    //     [$user1, $user2] = repository(User::class)->randomSet(2);
-    //     $measurement = repository(Measurement::class)->random(['user' => $user1]);
-    //     $labResult = repository(LabResult::class)->random(['user' => $user2]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     [$user1, $user2] = repository(UserEntity::class)->randomSet(2);
+    //     $measurement = repository(MeasurementEntity::class)->random(['user' => $user1]);
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user2]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user1)->request('PATCH', "/measurements/{$measurement->getId()->toRfc4122()}", [
     //         'headers' => ['content-type' => 'application/merge-patch+json'],
@@ -825,11 +825,11 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPatchReturns422WhenLabResultIsInvalidIri(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $measurement = repository(Measurement::class)->random(['user' => $user]);
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $measurement = repository(MeasurementEntity::class)->random(['user' => $user]);
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('PATCH', "/measurements/{$measurement->getId()->toRfc4122()}", [
     //         'headers' => ['content-type' => 'application/merge-patch+json'],
@@ -855,10 +855,10 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPatchReturns422WhenLabResultIsBlank(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $measurement = repository(Measurement::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $measurement = repository(MeasurementEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('PATCH', "/measurements/{$measurement->getId()->toRfc4122()}", [
     //         'headers' => ['content-type' => 'application/merge-patch+json'],
@@ -884,11 +884,11 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPatchReturns422WhenUnitIsInvalidIri(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $measurement = repository(Measurement::class)->random(['user' => $user]);
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $measurement = repository(MeasurementEntity::class)->random(['user' => $user]);
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('PATCH', "/measurements/{$measurement->getId()->toRfc4122()}", [
     //         'headers' => ['content-type' => 'application/merge-patch+json'],
@@ -914,10 +914,10 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPatchReturns422WhenUnitIsBlank(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $measurement = repository(Measurement::class)->random(['user' => $user]);
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $measurement = repository(MeasurementEntity::class)->random(['user' => $user]);
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('PATCH', "/measurements/{$measurement->getId()->toRfc4122()}", [
     //         'headers' => ['content-type' => 'application/merge-patch+json'],
@@ -943,11 +943,11 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPatchReturns422WhenHormoneIsInvalidIri(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $measurement = repository(Measurement::class)->random(['user' => $user]);
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $measurement = repository(MeasurementEntity::class)->random(['user' => $user]);
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('PATCH', "/measurements/{$measurement->getId()->toRfc4122()}", [
     //         'headers' => ['content-type' => 'application/merge-patch+json'],
@@ -973,10 +973,10 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPatchReturns422WhenHormoneIsBlank(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $measurement = repository(Measurement::class)->random(['user' => $user]);
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $measurement = repository(MeasurementEntity::class)->random(['user' => $user]);
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('PATCH', "/measurements/{$measurement->getId()->toRfc4122()}", [
     //         'headers' => ['content-type' => 'application/merge-patch+json'],
@@ -1002,11 +1002,11 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPatchReturns422WhenValueIsBlank(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $measurement = repository(Measurement::class)->random(['user' => $user]);
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $measurement = repository(MeasurementEntity::class)->random(['user' => $user]);
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('PATCH', "/measurements/{$measurement->getId()->toRfc4122()}", [
     //         'headers' => ['content-type' => 'application/merge-patch+json'],
@@ -1032,11 +1032,11 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPatchReturns422WhenValueIsNotNumeric(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $measurement = repository(Measurement::class)->random(['user' => $user]);
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $measurement = repository(MeasurementEntity::class)->random(['user' => $user]);
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('PATCH', "/measurements/{$measurement->getId()->toRfc4122()}", [
     //         'headers' => ['content-type' => 'application/merge-patch+json'],
@@ -1062,11 +1062,11 @@ class MeasurementResourceTest extends ApiTestCase
 
     // public function testPatchReturns422WhenValueIsAnInvalidNumericValue(): void
     // {
-    //     $user = repository(User::class)->random();
-    //     $measurement = repository(Measurement::class)->random(['user' => $user]);
-    //     $labResult = repository(LabResult::class)->random(['user' => $user]);
-    //     $unit = repository(Unit::class)->random();
-    //     $hormone = repository(Hormone::class)->random();
+    //     $user = repository(UserEntity::class)->random();
+    //     $measurement = repository(MeasurementEntity::class)->random(['user' => $user]);
+    //     $labResult = repository(LabResultEntity::class)->random(['user' => $user]);
+    //     $unit = repository(UnitEntity::class)->random();
+    //     $hormone = repository(HormoneEntity::class)->random();
 
     //     self::createAuthenticatedClient($user)->request('PATCH', "/measurements/{$measurement->getId()->toRfc4122()}", [
     //         'headers' => ['content-type' => 'application/merge-patch+json'],
@@ -1119,7 +1119,7 @@ class MeasurementResourceTest extends ApiTestCase
 
     public function testDeleteReturns404ForNonOwnerAsRegularUser(): void
     {
-        [$user1, $user2] = repository(User::class)->randomSet(2);
+        [$user1, $user2] = repository(UserEntity::class)->randomSet(2);
         $measurement = MeasurementFactory::random(['user' => $user2]);
 
         $client = self::createAuthenticatedClient($user1);

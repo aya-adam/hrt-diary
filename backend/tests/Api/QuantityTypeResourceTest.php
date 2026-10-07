@@ -3,8 +3,8 @@
 namespace App\Tests\Api;
 
 use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
-use App\Entity\QuantityType;
-use App\Entity\Unit;
+use App\Entity\QuantityTypeEntity;
+use App\Entity\UnitEntity;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
 use App\Tests\Support\GraphQlTestTrait;
@@ -57,7 +57,7 @@ class QuantityTypeResourceTest extends ApiTestCase
         $this->assertCount(3, $body['data']['quantityTypes']);
 
         foreach ($body['data']['quantityTypes'] as $unit) {
-            $this->assertMatchesIri($unit['id'], QuantityType::class);
+            $this->assertMatchesIri($unit['id'], QuantityTypeEntity::class);
             $this->assertIsString($unit['label']);
             $this->assertIsString($unit['slug']);
         }
@@ -88,7 +88,7 @@ class QuantityTypeResourceTest extends ApiTestCase
     public function testGetItemReturnsQuantityType(): void
     {
         $user = UserFactory::random();
-        $quantityType = repository(QuantityType::class)->random();
+        $quantityType = repository(QuantityTypeEntity::class)->random();
 
         $client = self::createAuthenticatedClient($user);
 
@@ -116,7 +116,7 @@ class QuantityTypeResourceTest extends ApiTestCase
 
     public function testGetItemReturns401ForAnonymousUser(): void
     {
-        $quantityType = repository(QuantityType::class)->random();
+        $quantityType = repository(QuantityTypeEntity::class)->random();
 
         $client = self::createClient();
 
@@ -173,7 +173,7 @@ class QuantityTypeResourceTest extends ApiTestCase
     public function testPatchReturns405(): void
     {
         $user = UserFactory::random();
-        $quantityType = repository(QuantityType::class)->random();
+        $quantityType = repository(QuantityTypeEntity::class)->random();
 
         $client = self::createAuthenticatedClient($user);
 
@@ -203,7 +203,7 @@ class QuantityTypeResourceTest extends ApiTestCase
     public function testDeleteReturns405(): void
     {
         $user = UserFactory::random();
-        $quantityType = repository(QuantityType::class)->random();
+        $quantityType = repository(QuantityTypeEntity::class)->random();
 
         $client = self::createAuthenticatedClient($user);
 

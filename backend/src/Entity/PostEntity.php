@@ -20,7 +20,9 @@ use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: PostRepository::class)]
+#[ORM\Table(name: '`post`')]
 #[ApiResource(
+    shortName: 'Post',
     security: 'is_granted(\'IS_AUTHENTICATED\')',
     operations: [],
     graphQlOperations: [
@@ -48,7 +50,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
     ],
 )]
-class Post
+class PostEntity
 {
     #[Groups(['read'])]
     #[ORM\Id]
@@ -59,13 +61,13 @@ class Post
 
     #[ORM\ManyToOne(inversedBy: 'posts')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?User $user = null;
+    private ?UserEntity $user = null;
 
     /**
-     * @var Collection<int, LabResult>
+     * @var Collection<int, LabResultEntity>
      */
     #[Groups(['read', 'post:create', 'post:update'])]
-    #[ORM\ManyToMany(targetEntity: LabResult::class, mappedBy: 'posts')]
+    #[ORM\ManyToMany(targetEntity: LabResultEntity::class, mappedBy: 'posts')]
     private Collection $labResults;
 
     #[Assert\NotBlank]
@@ -113,12 +115,12 @@ class Post
         return $this->id;
     }
 
-    public function getUser(): ?User
+    public function getUser(): ?UserEntity
     {
         return $this->user;
     }
 
-    public function setUser(?User $user): static
+    public function setUser(?UserEntity $user): static
     {
         $this->user = $user;
 
@@ -126,14 +128,14 @@ class Post
     }
 
     /**
-     * @return Collection<int, LabResult>
+     * @return Collection<int, LabResultEntity>
      */
     public function getLabResults(): Collection
     {
         return $this->labResults;
     }
 
-    public function addLabResult(LabResult $labResult): static
+    public function addLabResult(LabResultEntity $labResult): static
     {
         if (!$this->labResults->contains($labResult)) {
             $this->labResults->add($labResult);
@@ -143,7 +145,7 @@ class Post
         return $this;
     }
 
-    public function removeLabResult(LabResult $labResult): static
+    public function removeLabResult(LabResultEntity $labResult): static
     {
         if ($this->labResults->removeElement($labResult)) {
             $labResult->removePost($this);

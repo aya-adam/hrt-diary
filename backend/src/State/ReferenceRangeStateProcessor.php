@@ -8,7 +8,7 @@ use ApiPlatform\Metadata\GraphQl\Query;
 use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use App\Entity\ReferenceRange;
+use App\Entity\ReferenceRangeEntity;
 use App\State\Trait\GraphQlOperationHelperTrait;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -62,7 +62,7 @@ final class ReferenceRangeStateProcessor implements ProcessorInterface
 
     private function assertOwnership(mixed $data): void
     {
-        if ($data instanceof ReferenceRange && (!$data->getUser() || $data->getUser()->getUserIdentifier() !== $this->security->getUser()->getUserIdentifier())) {
+        if ($data instanceof ReferenceRangeEntity && (!$data->getUser() || $data->getUser()->getUserIdentifier() !== $this->security->getUser()->getUserIdentifier())) {
             throw new AccessDeniedException('Access Denied.');
         }
     }
@@ -70,7 +70,7 @@ final class ReferenceRangeStateProcessor implements ProcessorInterface
     private function assertOwnershipOrPublic(mixed $data): void
     {
         if (
-            $data instanceof ReferenceRange
+            $data instanceof ReferenceRangeEntity
             && (!$data->getUser() || $data->getUser()->getUserIdentifier() !== $this->security->getUser()->getUserIdentifier())
         ) {
             throw new AccessDeniedException('Access Denied.');
@@ -79,7 +79,7 @@ final class ReferenceRangeStateProcessor implements ProcessorInterface
 
     private function setOwner(mixed $data): mixed
     {
-        if ($data instanceof ReferenceRange) {
+        if ($data instanceof ReferenceRangeEntity) {
             $data->setUser($this->security->getUser());
         }
         return $data;
@@ -87,7 +87,7 @@ final class ReferenceRangeStateProcessor implements ProcessorInterface
 
     private function setUnit(mixed $data): mixed
     {
-        if ($data instanceof ReferenceRange && !$data->getUnit()) {
+        if ($data instanceof ReferenceRangeEntity && !$data->getUnit()) {
             $data->setUnit($data->getHormone()->getDefaultUnit());
         }
         return $data;

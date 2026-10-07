@@ -3,7 +3,7 @@
 namespace App\Tests\Api;
 
 use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
-use App\Entity\LabResult;
+use App\Entity\LabResultEntity;
 use App\Factory\LabResultFactory;
 use App\Factory\PostFactory;
 use App\Factory\UserFactory;
@@ -65,7 +65,7 @@ class LabResultResourceTest extends ApiTestCase
         $this->assertCount(10, $body['data']['labResults']);
 
         foreach ($body['data']['labResults'] as $labResults) {
-            $this->assertMatchesIri($labResults['id'], LabResult::class);
+            $this->assertMatchesIri($labResults['id'], LabResultEntity::class);
             $this->assertArrayHasKey('notes', $labResults);
             $this->assertArrayHasKey('publishedAt', $labResults);
             $this->assertMatchesDate($labResults['drawnAt']);
@@ -227,7 +227,7 @@ class LabResultResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateLabResult')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['createLabResult']['labResult']['id'], LabResult::class);
+        $this->assertMatchesIri($body['data']['createLabResult']['labResult']['id'], LabResultEntity::class);
         $this->assertSame('New lab notes', $body['data']['createLabResult']['labResult']['notes']);
         $this->assertNull($body['data']['createLabResult']['labResult']['publishedAt']);
         $this->assertSame($drawnAt, $body['data']['createLabResult']['labResult']['drawnAt']);
@@ -267,7 +267,7 @@ class LabResultResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateLabResult')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['createLabResult']['labResult']['id'], LabResult::class);
+        $this->assertMatchesIri($body['data']['createLabResult']['labResult']['id'], LabResultEntity::class);
         $this->assertSame('New lab notes', $body['data']['createLabResult']['labResult']['notes']);
         $this->assertMatchesDate($body['data']['createLabResult']['labResult']['publishedAt']);
         $this->assertSame($drawnAt, $body['data']['createLabResult']['labResult']['drawnAt']);
@@ -511,7 +511,7 @@ class LabResultResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['updateLabResult']['labResult']['id'], LabResult::class);
+        $this->assertMatchesIri($body['data']['updateLabResult']['labResult']['id'], LabResultEntity::class);
         $this->assertSame('Updated lab notes', $body['data']['updateLabResult']['labResult']['notes']);
         $this->assertNull($body['data']['updateLabResult']['labResult']['publishedAt']);
         $this->assertSame($drawnAt, $body['data']['updateLabResult']['labResult']['drawnAt']);
@@ -553,7 +553,7 @@ class LabResultResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['updateLabResult']['labResult']['id'], LabResult::class);
+        $this->assertMatchesIri($body['data']['updateLabResult']['labResult']['id'], LabResultEntity::class);
         $this->assertSame('Updated lab notes', $body['data']['updateLabResult']['labResult']['notes']);
         $this->assertMatchesDate($body['data']['updateLabResult']['labResult']['publishedAt']);
         $this->assertSame($drawnAt, $body['data']['updateLabResult']['labResult']['drawnAt']);
@@ -595,7 +595,7 @@ class LabResultResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['updateLabResult']['labResult']['id'], LabResult::class);
+        $this->assertMatchesIri($body['data']['updateLabResult']['labResult']['id'], LabResultEntity::class);
         $this->assertSame('Updated lab notes', $body['data']['updateLabResult']['labResult']['notes']);
         $this->assertNull($body['data']['updateLabResult']['labResult']['publishedAt']);
         $this->assertSame($drawnAt, $body['data']['updateLabResult']['labResult']['drawnAt']);

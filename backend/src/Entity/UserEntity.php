@@ -7,7 +7,6 @@ use ApiPlatform\Metadata\GraphQl\DeleteMutation;
 use ApiPlatform\Metadata\GraphQl\Mutation;
 use ApiPlatform\Metadata\GraphQl\Query;
 use ApiPlatform\Metadata\GraphQl\QueryCollection;
-use App\Entity\Post as PostEntity;
 use App\Repository\UserRepository;
 use App\State\UserStateProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -27,6 +26,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
 #[UniqueEntity(fields: 'email', identifierFieldNames: ['id'], message: 'This email is already in use.')]
 #[ApiResource(
+    shortName: 'User',
     operations: [],
     graphQlOperations: [
         new Query(
@@ -59,7 +59,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
     ],
 )]
-class User implements UserInterface, PasswordAuthenticatedUserInterface
+class UserEntity implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[Groups(['read', 'user:login:read'])]
     #[ORM\Id]
@@ -69,17 +69,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?Uuid $id = null;
 
     /**
-     * @var Collection<int, LabResult>
+     * @var Collection<int, LabResultEntity>
      */
     #[Groups(['read'])]
-    #[ORM\OneToMany(targetEntity: LabResult::class, mappedBy: 'user', orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: LabResultEntity::class, mappedBy: 'user', orphanRemoval: true)]
     private Collection $labResults;
 
     /**
-     * @var Collection<int, Measurement>
+     * @var Collection<int, MeasurementEntity>
      */
     #[Groups(['read'])]
-    #[ORM\OneToMany(targetEntity: Measurement::class, mappedBy: 'user', orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: MeasurementEntity::class, mappedBy: 'user', orphanRemoval: true)]
     private Collection $measurements;
 
     /**
@@ -90,10 +90,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private Collection $posts;
 
     /**
-     * @var Collection<int, ReferenceRange>
+     * @var Collection<int, ReferenceRangeEntity>
      */
     #[Groups(['read'])]
-    #[ORM\OneToMany(targetEntity: ReferenceRange::class, mappedBy: 'user')]
+    #[ORM\OneToMany(targetEntity: ReferenceRangeEntity::class, mappedBy: 'user')]
     private Collection $referenceRanges;
 
     #[Assert\NotBlank]
@@ -148,14 +148,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * @return Collection<int, LabResult>
+     * @return Collection<int, LabResultEntity>
      */
     public function getLabResults(): Collection
     {
         return $this->labResults;
     }
 
-    public function addLabResult(LabResult $labResult): static
+    public function addLabResult(LabResultEntity $labResult): static
     {
         if (!$this->labResults->contains($labResult)) {
             $this->labResults->add($labResult);
@@ -165,7 +165,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function removeLabResult(LabResult $labResult): static
+    public function removeLabResult(LabResultEntity $labResult): static
     {
         if ($this->labResults->removeElement($labResult)) {
             // set the owning side to null (unless already changed)
@@ -178,14 +178,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * @return Collection<int, Measurement>
+     * @return Collection<int, MeasurementEntity>
      */
     public function getMeasurements(): Collection
     {
         return $this->measurements;
     }
 
-    public function addMeasurement(Measurement $measurement): static
+    public function addMeasurement(MeasurementEntity $measurement): static
     {
         if (!$this->measurements->contains($measurement)) {
             $this->measurements->add($measurement);
@@ -195,7 +195,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function removeMeasurement(Measurement $measurement): static
+    public function removeMeasurement(MeasurementEntity $measurement): static
     {
         if ($this->measurements->removeElement($measurement)) {
             // set the owning side to null (unless already changed)
@@ -238,14 +238,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * @return Collection<int, ReferenceRange>
+     * @return Collection<int, ReferenceRangeEntity>
      */
     public function getReferenceRanges(): Collection
     {
         return $this->referenceRanges;
     }
 
-    public function addReferenceRange(ReferenceRange $referenceRange): static
+    public function addReferenceRange(ReferenceRangeEntity $referenceRange): static
     {
         if (!$this->referenceRanges->contains($referenceRange)) {
             $this->referenceRanges->add($referenceRange);
@@ -255,7 +255,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function removeReferenceRange(ReferenceRange $referenceRange): static
+    public function removeReferenceRange(ReferenceRangeEntity $referenceRange): static
     {
         if ($this->referenceRanges->removeElement($referenceRange)) {
             // set the owning side to null (unless already changed)

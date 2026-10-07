@@ -2,22 +2,22 @@
 
 namespace App\Repository;
 
-use App\Entity\Hormone;
+use App\Entity\HormoneEntity;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * @extends ServiceEntityRepository<Hormone>
+ * @extends ServiceEntityRepository<HormoneEntity>
  */
 class HormoneRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, Hormone::class);
+        parent::__construct($registry, HormoneEntity::class);
     }
 
     //    /**
-    //     * @return Hormone[] Returns an array of Hormone objects
+    //     * @return HormoneEntity[] Returns an array of HormoneEntity objects
     //     */
     //    public function findByExampleField($value): array
     //    {

@@ -2,22 +2,22 @@
 
 namespace App\Repository;
 
-use App\Entity\ReferenceRange;
+use App\Entity\ReferenceRangeEntity;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * @extends ServiceEntityRepository<ReferenceRange>
+ * @extends ServiceEntityRepository<ReferenceRangeEntity>
  */
 class ReferenceRangeRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, ReferenceRange::class);
+        parent::__construct($registry, ReferenceRangeEntity::class);
     }
 
     //    /**
-    //     * @return ReferenceRange[] Returns an array of ReferenceRange objects
+    //     * @return ReferenceRangeEntity[] Returns an array of ReferenceRangeEntity objects
     //     */
     //    public function findByExampleField($value): array
     //    {

@@ -2,22 +2,22 @@
 
 namespace App\Repository;
 
-use App\Entity\Unit;
+use App\Entity\UnitEntity;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * @extends ServiceEntityRepository<Unit>
+ * @extends ServiceEntityRepository<UnitEntity>
  */
 class UnitRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, Unit::class);
+        parent::__construct($registry, UnitEntity::class);
     }
 
 //    /**
-//     * @return Unit[] Returns an array of Unit objects
+//     * @return UnitEntity[] Returns an array of UnitEntity objects
 //     */
 //    public function findByExampleField($value): array
 //    {

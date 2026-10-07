@@ -2,22 +2,22 @@
 
 namespace App\Repository;
 
-use App\Entity\Post;
+use App\Entity\PostEntity;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * @extends ServiceEntityRepository<Post>
+ * @extends ServiceEntityRepository<PostEntity>
  */
 class PostRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, Post::class);
+        parent::__construct($registry, PostEntity::class);
     }
 
     //    /**
-    //     * @return Post[] Returns an array of Post objects
+    //     * @return PostEntity[] Returns an array of PostEntity objects
     //     */
     //    public function findByExampleField($value): array
     //    {

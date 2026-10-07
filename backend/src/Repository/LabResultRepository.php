@@ -2,22 +2,22 @@
 
 namespace App\Repository;
 
-use App\Entity\LabResult;
+use App\Entity\LabResultEntity;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * @extends ServiceEntityRepository<LabResult>
+ * @extends ServiceEntityRepository<LabResultEntity>
  */
 class LabResultRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, LabResult::class);
+        parent::__construct($registry, LabResultEntity::class);
     }
 
     //    /**
-    //     * @return LabResult[] Returns an array of LabResult objects
+    //     * @return LabResultEntity[] Returns an array of LabResultEntity objects
     //     */
     //    public function findByExampleField($value): array
     //    {

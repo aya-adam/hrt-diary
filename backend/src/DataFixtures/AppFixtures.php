@@ -2,8 +2,8 @@
 
 namespace App\DataFixtures;
 
-use App\Entity\Hormone;
-use App\Entity\ReferenceRange;
+use App\Entity\HormoneEntity;
+use App\Entity\ReferenceRangeEntity;
 use App\Factory\LabResultFactory;
 use App\Factory\MeasurementFactory;
 use App\Factory\PostFactory;
@@ -87,15 +87,15 @@ class AppFixtures extends Fixture
         /** 
          * Create mock measurements and attach to labResults
          */
-        $hormoneLH = repository(Hormone::class)->findOneBy(['commonName' => 'LH']);
-        $hormoneFSH = repository(Hormone::class)->findOneBy(['commonName' => 'FSH']);
-        $hormonePRL = repository(Hormone::class)->findOneBy(['commonName' => 'PRL']);
-        $hormoneE2 = repository(Hormone::class)->findOneBy(['commonName' => 'E2']);
-        $hormoneProg = repository(Hormone::class)->findOneBy(['commonName' => 'Prog']);
-        $hormoneT = repository(Hormone::class)->findOneBy(['commonName' => 'T']);
+        $hormoneLH = repository(HormoneEntity::class)->findOneBy(['commonName' => 'LH']);
+        $hormoneFSH = repository(HormoneEntity::class)->findOneBy(['commonName' => 'FSH']);
+        $hormonePRL = repository(HormoneEntity::class)->findOneBy(['commonName' => 'PRL']);
+        $hormoneE2 = repository(HormoneEntity::class)->findOneBy(['commonName' => 'E2']);
+        $hormoneProg = repository(HormoneEntity::class)->findOneBy(['commonName' => 'Prog']);
+        $hormoneT = repository(HormoneEntity::class)->findOneBy(['commonName' => 'T']);
 
-        $wpathReferenceRangeE2 = repository(ReferenceRange::class)->findOneBy(['name' => 'WPATH SOC8', 'hormone' => $hormoneE2]);
-        $wpathReferenceRangeT = repository(ReferenceRange::class)->findOneBy(['name' => 'WPATH SOC8', 'hormone' => $hormoneT]);
+        $wpathReferenceRangeE2 = repository(ReferenceRangeEntity::class)->findOneBy(['name' => 'WPATH SOC8', 'hormone' => $hormoneE2]);
+        $wpathReferenceRangeT = repository(ReferenceRangeEntity::class)->findOneBy(['name' => 'WPATH SOC8', 'hormone' => $hormoneT]);
 
         foreach (LabResultFactory::all() as $labResult) {
             MeasurementFactory::new()

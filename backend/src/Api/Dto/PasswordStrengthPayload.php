@@ -3,7 +3,7 @@
 namespace App\Api\Dto;
 
 use ApiPlatform\Metadata\ApiProperty;
-use App\Entity\User;
+use App\Entity\UserEntity;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\Uid\Uuid;
 

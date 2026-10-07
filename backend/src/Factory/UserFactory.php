@@ -2,12 +2,12 @@
 
 namespace App\Factory;
 
-use App\Entity\User;
+use App\Entity\UserEntity;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Zenstruck\Foundry\Persistence\PersistentObjectFactory;
 
 /**
- * @extends PersistentObjectFactory<User>
+ * @extends PersistentObjectFactory<UserEntity>
  */
 final class UserFactory extends PersistentObjectFactory
 {
@@ -25,7 +25,7 @@ final class UserFactory extends PersistentObjectFactory
     #[\Override]
     public static function class(): string
     {
-        return User::class;
+        return UserEntity::class;
     }
 
     public function withGeneratedPassword(): self
@@ -55,7 +55,7 @@ final class UserFactory extends PersistentObjectFactory
     protected function initialize(): static
     {
         return $this
-            ->afterInstantiate(function(User $user, array $attributes): void {
+            ->afterInstantiate(function(UserEntity $user, array $attributes): void {
                 $user->setPassword($this->passwordHasher->hashPassword($user, $attributes['password']));
             })
         ;

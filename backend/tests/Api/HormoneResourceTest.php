@@ -3,7 +3,7 @@
 namespace App\Tests\Api;
 
 use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
-use App\Entity\Hormone;
+use App\Entity\HormoneEntity;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
 use App\Tests\Support\GraphQlTestTrait;
@@ -47,7 +47,7 @@ class HormoneResourceTest extends ApiTestCase
         $this->assertCount(8, $body['data']['hormones']);
 
         foreach ($body['data']['hormones'] as $hormone) {
-            $this->assertMatchesIri($hormone['id'], Hormone::class);
+            $this->assertMatchesIri($hormone['id'], HormoneEntity::class);
             $this->assertArrayHasKey('name', $hormone);
             $this->assertArrayHasKey('commonName', $hormone);
         }
@@ -78,7 +78,7 @@ class HormoneResourceTest extends ApiTestCase
     public function testGetItemReturnsUnit(): void
     {
         $user = UserFactory::createOne();
-        $hormone = repository(Hormone::class)->random();
+        $hormone = repository(HormoneEntity::class)->random();
 
         $client = self::createAuthenticatedClient($user);
 
@@ -106,7 +106,7 @@ class HormoneResourceTest extends ApiTestCase
 
     public function testGetItemReturns403ForAnonymousUser(): void
     {
-        $hormone = repository(Hormone::class)->random();
+        $hormone = repository(HormoneEntity::class)->random();
 
         $client = self::createClient();
 
@@ -164,7 +164,7 @@ class HormoneResourceTest extends ApiTestCase
     public function testPatchReturnsError(): void
     {
         $user = UserFactory::createOne();
-        $hormone = repository(Hormone::class)->random();
+        $hormone = repository(HormoneEntity::class)->random();
 
         $client = self::createAuthenticatedClient($user);
 
@@ -195,7 +195,7 @@ class HormoneResourceTest extends ApiTestCase
     public function testDeleteReturnsError(): void
     {
         $user = UserFactory::createOne();
-        $hormone = repository(Hormone::class)->random();
+        $hormone = repository(HormoneEntity::class)->random();
 
         $client = self::createAuthenticatedClient($user);
 

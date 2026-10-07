@@ -2,22 +2,22 @@
 
 namespace App\Repository;
 
-use App\Entity\QuantityType;
+use App\Entity\QuantityTypeEntity;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * @extends ServiceEntityRepository<QuantityType>
+ * @extends ServiceEntityRepository<QuantityTypeEntity>
  */
 class QuantityTypeRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, QuantityType::class);
+        parent::__construct($registry, QuantityTypeEntity::class);
     }
 
     //    /**
-    //     * @return QuantityType[] Returns an array of QuantityType objects
+    //     * @return QuantityTypeEntity[] Returns an array of QuantityTypeEntity objects
     //     */
     //    public function findByExampleField($value): array
     //    {

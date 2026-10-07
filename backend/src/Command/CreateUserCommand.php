@@ -2,7 +2,7 @@
 
 namespace App\Command;
 
-use App\Entity\User;
+use App\Entity\UserEntity;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -100,7 +100,7 @@ class CreateUserCommand extends Command
             }
         }
 
-        $user = new User();
+        $user = new UserEntity();
         $user->setEmail($this->email);
         $user->setPassword($this->userPasswordHasher->hashPassword($user, $this->plainPassword));
 

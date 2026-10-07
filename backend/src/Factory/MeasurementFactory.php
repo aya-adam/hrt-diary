@@ -2,15 +2,15 @@
 
 namespace App\Factory;
 
-use App\Entity\Hormone;
-use App\Entity\Measurement;
-use App\Entity\Unit;
+use App\Entity\HormoneEntity;
+use App\Entity\MeasurementEntity;
+use App\Entity\UnitEntity;
 use Zenstruck\Foundry\Persistence\PersistentObjectFactory;
 
 use function Zenstruck\Foundry\Persistence\repository;
 
 /**
- * @extends PersistentObjectFactory<Measurement>
+ * @extends PersistentObjectFactory<MeasurementEntity>
  */
 final class MeasurementFactory extends PersistentObjectFactory
 {
@@ -24,7 +24,7 @@ final class MeasurementFactory extends PersistentObjectFactory
     #[\Override]
     public static function class(): string
     {
-        return Measurement::class;
+        return MeasurementEntity::class;
     }
 
     /**
@@ -37,9 +37,9 @@ final class MeasurementFactory extends PersistentObjectFactory
     {
         return [
             'user' => UserFactory::new(),
-            'hormone' => repository(Hormone::class)->random(),
+            'hormone' => repository(HormoneEntity::class)->random(),
             'labResult' => LabResultFactory::new(),
-            'unit' => repository(Unit::class)->random(),
+            'unit' => repository(UnitEntity::class)->random(),
             'value' => number_format(self::faker()->randomFloat(2, 0, 9999.99), 2, '.', ''),
         ];
     }

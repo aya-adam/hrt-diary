@@ -12,7 +12,9 @@ use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: UnitRepository::class)]
+#[ORM\Table(name: '`unit`')]
 #[ApiResource(
+    shortName: 'Unit',
     security: 'is_granted(\'IS_AUTHENTICATED\')',
     normalizationContext: ['groups' => ['read']],
     operations: [],
@@ -21,7 +23,7 @@ use Symfony\Component\Uid\Uuid;
         new QueryCollection(),
     ],
 )]
-class Unit
+class UnitEntity
 {
     #[Groups(['read'])]
     #[ORM\Id]
@@ -32,7 +34,7 @@ class Unit
 
     #[Groups(['read'])]
     #[ORM\ManyToOne(inversedBy: 'units')]
-    private ?QuantityType $quantityType = null;
+    private ?QuantityTypeEntity $quantityType = null;
 
     #[Groups(['read'])]
     #[ORM\Column(length: 10)]
@@ -47,12 +49,12 @@ class Unit
         return $this->id;
     }
 
-    public function getQuantityType(): ?QuantityType
+    public function getQuantityType(): ?QuantityTypeEntity
     {
         return $this->quantityType;
     }
 
-    public function setQuantityType(?QuantityType $quantityType): static
+    public function setQuantityType(?QuantityTypeEntity $quantityType): static
     {
         $this->quantityType = $quantityType;
 

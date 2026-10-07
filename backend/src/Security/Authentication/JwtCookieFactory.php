@@ -2,8 +2,8 @@
 
 namespace App\Security\Authentication;
 
-use App\Entity\RefreshToken;
-use App\Entity\User;
+use App\Entity\RefreshTokenEntity;
+use App\Entity\UserEntity;
 use Doctrine\ORM\EntityManagerInterface;
 use Gesdinet\JWTRefreshTokenBundle\Generator\RefreshTokenGeneratorInterface;
 use Gesdinet\JWTRefreshTokenBundle\Model\RefreshTokenManagerInterface;
@@ -29,7 +29,7 @@ final class JwtCookieFactory
         private string $refreshTokenCookieName,
     ) {}
 
-    public function createAccessTokenCookie(User $user): Cookie
+    public function createAccessTokenCookie(UserEntity $user): Cookie
     {
         $token = $this->jwtManager->create($user);
 
@@ -43,7 +43,7 @@ final class JwtCookieFactory
             ->withPartitioned(true);
     }
 
-    public function createRefreshTokenCookie(User $user, ?string $previousIdentifier = null): Cookie
+    public function createRefreshTokenCookie(UserEntity $user, ?string $previousIdentifier = null): Cookie
     {
         $this->revokeExistingRefreshTokens($previousIdentifier ?? $user->getUserIdentifier());
 
@@ -72,7 +72,7 @@ final class JwtCookieFactory
             ->withPartitioned(true);
     }
 
-    public function createClearingRefreshTokenCookie(?User $user = null): Cookie
+    public function createClearingRefreshTokenCookie(?UserEntity $user = null): Cookie
     {
         if ($user) {
             $this->revokeExistingRefreshTokens($user->getUserIdentifier());
@@ -90,7 +90,7 @@ final class JwtCookieFactory
 
     private function revokeExistingRefreshTokens(string $identifier): void
     {
-        $repository = $this->entityManager->getRepository(RefreshToken::class);
+        $repository = $this->entityManager->getRepository(RefreshTokenEntity::class);
 
         foreach ($repository->findBy(['username' => $identifier]) as $old) {
             $this->refreshTokenManager->delete($old);

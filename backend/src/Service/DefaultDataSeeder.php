@@ -2,10 +2,10 @@
 
 namespace App\Service;
 
-use App\Entity\Hormone;
-use App\Entity\QuantityType;
-use App\Entity\ReferenceRange;
-use App\Entity\Unit;
+use App\Entity\HormoneEntity;
+use App\Entity\QuantityTypeEntity;
+use App\Entity\ReferenceRangeEntity;
+use App\Entity\UnitEntity;
 use App\Repository\HormoneRepository;
 use App\Repository\QuantityTypeRepository;
 use App\Repository\ReferenceRangeRepository;
@@ -153,9 +153,9 @@ final class DefaultDataSeeder
      */
     public function seed(): void
     {
-        $this->assertTableExists(Hormone::class);
-        $this->assertTableExists(QuantityType::class);
-        $this->assertTableExists(Unit::class);
+        $this->assertTableExists(HormoneEntity::class);
+        $this->assertTableExists(QuantityTypeEntity::class);
+        $this->assertTableExists(UnitEntity::class);
 
         $this->em->wrapInTransaction(function () {
             foreach (self::DATA as $quantityTypeLabel => $units) {
@@ -192,7 +192,7 @@ final class DefaultDataSeeder
         }
     }
 
-    private function seedHormone(Unit $unit, string $name, ?string $commonName): Hormone
+    private function seedHormone(UnitEntity $unit, string $name, ?string $commonName): HormoneEntity
     {
         $existing = $this->hormoneRepository->findOneBy(['name' => $name]);
 
@@ -200,7 +200,7 @@ final class DefaultDataSeeder
             return $existing;
         }
 
-        $hormone = new Hormone();
+        $hormone = new HormoneEntity();
         $hormone->setName($name);
         $hormone->setDefaultUnit($unit);
         if (!empty($commonName)) $hormone->setCommonName($commonName);
@@ -209,7 +209,7 @@ final class DefaultDataSeeder
         return $hormone;
     }
 
-    private function seedQuantityType(string $label): QuantityType
+    private function seedQuantityType(string $label): QuantityTypeEntity
     {
         $existing = $this->quantityTypeRepository->findOneBy(['label' => $label]);
 
@@ -217,14 +217,14 @@ final class DefaultDataSeeder
             return $existing;
         }
 
-        $quantityType = new QuantityType();
+        $quantityType = new QuantityTypeEntity();
         $quantityType->setLabel($label);
         $this->em->persist($quantityType);
 
         return $quantityType;
     }
 
-    private function seedUnit(QuantityType $quantityType, string $symbol, string $label): Unit
+    private function seedUnit(QuantityTypeEntity $quantityType, string $symbol, string $label): UnitEntity
     {
         $existing = $this->unitRepository->findOneBy(['symbol' => $symbol]);
 
@@ -232,7 +232,7 @@ final class DefaultDataSeeder
             return $existing;
         }
 
-        $unit = new Unit();
+        $unit = new UnitEntity();
         $unit->setSymbol($symbol);
         $unit->setLabel($label);
         $unit->setQuantityType($quantityType);
@@ -241,7 +241,7 @@ final class DefaultDataSeeder
         return $unit;
     }
 
-    private function seedReferenceRange(Hormone $hormone, string $name, string $lowerLimit, string $upperLimit, ?string $notes): ReferenceRange
+    private function seedReferenceRange(HormoneEntity $hormone, string $name, string $lowerLimit, string $upperLimit, ?string $notes): ReferenceRangeEntity
     {
         $existing = $this->referenceRangeRepository->findOneBy(['hormone' => $hormone, 'name' => $name]);
 
@@ -249,7 +249,7 @@ final class DefaultDataSeeder
             return $existing;
         }
 
-        $referenceRange = new ReferenceRange();
+        $referenceRange = new ReferenceRangeEntity();
         $referenceRange->setHormone($hormone);
         $referenceRange->setUnit($hormone->getDefaultUnit());
         $referenceRange->setName($name);

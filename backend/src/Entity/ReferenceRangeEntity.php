@@ -18,7 +18,9 @@ use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ReferenceRangeRepository::class)]
+#[ORM\Table(name: '`reference_range`')]
 #[ApiResource(
+    shortName: 'ReferenceRange',
     security: 'is_granted(\'IS_AUTHENTICATED\')',
     operations: [],
     graphQlOperations: [
@@ -46,7 +48,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
     ],
 )]
-class ReferenceRange
+class ReferenceRangeEntity
 {
     #[Groups(['read'])]
     #[ORM\Id]
@@ -56,21 +58,21 @@ class ReferenceRange
     private ?Uuid $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'referenceRanges')]
-    private ?User $user = null;
+    private ?UserEntity $user = null;
 
     #[Assert\NotBlank]
     #[Groups(['read', 'referenceRange:create', 'referenceRange:update'])]
     #[ORM\ManyToOne(inversedBy: 'referenceRanges')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Hormone $hormone = null;
+    private ?HormoneEntity $hormone = null;
 
     #[Assert\DisableAutoMapping]
     #[Assert\NotBlank(allowNull: true)]
-    #[Assert\Type(Unit::class)]
+    #[Assert\Type(UnitEntity::class)]
     #[Groups(['read', 'referenceRange:create', 'referenceRange:update'])]
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Unit $unit = null;
+    private ?UnitEntity $unit = null;
 
     #[Assert\NotBlank]
     #[Assert\Length(max: 255)]
@@ -114,36 +116,36 @@ class ReferenceRange
         return $this->id;
     }
 
-    public function getUser(): ?User
+    public function getUser(): ?UserEntity
     {
         return $this->user;
     }
 
-    public function setUser(?User $user): static
+    public function setUser(?UserEntity $user): static
     {
         $this->user = $user;
 
         return $this;
     }
 
-    public function getHormone(): ?Hormone
+    public function getHormone(): ?HormoneEntity
     {
         return $this->hormone;
     }
 
-    public function setHormone(?Hormone $hormone): static
+    public function setHormone(?HormoneEntity $hormone): static
     {
         $this->hormone = $hormone;
 
         return $this;
     }
 
-    public function getUnit(): ?Unit
+    public function getUnit(): ?UnitEntity
     {
         return $this->unit;
     }
 
-    public function setUnit(?Unit $unit): static
+    public function setUnit(?UnitEntity $unit): static
     {
         $this->unit = $unit;
 

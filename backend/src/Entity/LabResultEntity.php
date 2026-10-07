@@ -7,7 +7,6 @@ use ApiPlatform\Metadata\GraphQl\DeleteMutation;
 use ApiPlatform\Metadata\GraphQl\Mutation;
 use ApiPlatform\Metadata\GraphQl\Query;
 use ApiPlatform\Metadata\GraphQl\QueryCollection;
-use App\Entity\Post as PostEntity;
 use App\Repository\LabResultRepository;
 use App\State\LabResultStateProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -21,7 +20,9 @@ use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: LabResultRepository::class)]
+#[ORM\Table(name: '`lab_result`')]
 #[ApiResource(
+    shortName: 'LabResult',
     security: 'is_granted(\'IS_AUTHENTICATED\')',
     operations: [],
     graphQlOperations: [
@@ -49,7 +50,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
     ],
 )]
-class LabResult
+class LabResultEntity
 {
     #[Groups(['read'])]
     #[ORM\Id]
@@ -60,19 +61,22 @@ class LabResult
 
     #[ORM\ManyToOne(inversedBy: 'labResults')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?User $user = null;
+    private ?UserEntity $user = null;
 
     /**
-     * @var Collection<int, Measurement>
+     * @var Collection<int, MeasurementEntity>
      */
     #[Groups(['read', 'labResult:create'])]
-    #[ORM\OneToMany(targetEntity: Measurement::class, mappedBy: 'labResult', orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: MeasurementEntity::class, mappedBy: 'labResult', orphanRemoval: true)]
     private Collection $measurements;
 
     /**
      * @var Collection<int, PostEntity>
      */
     #[Groups(['read'])]
+    #[ORM\JoinTable(name: 'lab_result_post')]
+    #[ORM\JoinColumn(name: 'lab_result_id', referencedColumnName: 'id')]
+    #[ORM\InverseJoinColumn(name: 'post_id', referencedColumnName: 'id')]
     #[ORM\ManyToMany(targetEntity: PostEntity::class, inversedBy: 'labResults')]
     private Collection $posts;
 
@@ -132,12 +136,12 @@ class LabResult
         return $this->id;
     }
 
-    public function getUser(): ?User
+    public function getUser(): ?UserEntity
     {
         return $this->user;
     }
 
-    public function setUser(?User $user): static
+    public function setUser(?UserEntity $user): static
     {
         $this->user = $user;
 
@@ -145,14 +149,14 @@ class LabResult
     }
 
     /**
-     * @return Collection<int, Measurement>
+     * @return Collection<int, MeasurementEntity>
      */
     public function getMeasurements(): Collection
     {
         return $this->measurements;
     }
 
-    public function addMeasurement(Measurement $measurement): static
+    public function addMeasurement(MeasurementEntity $measurement): static
     {
         if (!$this->measurements->contains($measurement)) {
             $this->measurements->add($measurement);
@@ -162,7 +166,7 @@ class LabResult
         return $this;
     }
 
-    public function removeMeasurement(Measurement $measurement): static
+    public function removeMeasurement(MeasurementEntity $measurement): static
     {
         if ($this->measurements->removeElement($measurement)) {
             // set the owning side to null (unless already changed)

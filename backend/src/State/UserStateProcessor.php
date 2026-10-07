@@ -6,7 +6,7 @@ use ApiPlatform\Metadata\Exception\AccessDeniedException;
 use ApiPlatform\Metadata\GraphQl\DeleteMutation;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use App\Entity\User;
+use App\Entity\UserEntity;
 use App\Security\Authentication\AuthCookieQueue;
 use App\Security\Authentication\JwtCookieFactory;
 use App\State\Trait\GraphQlOperationHelperTrait;
@@ -74,7 +74,7 @@ final class UserStateProcessor implements ProcessorInterface
 
     private function assertOwnership(mixed $data): void
     {
-        if ($data instanceof User && $data->getUserIdentifier() !== $this->security->getUser()->getUserIdentifier()) {
+        if ($data instanceof UserEntity && $data->getUserIdentifier() !== $this->security->getUser()->getUserIdentifier()) {
             throw new AccessDeniedException('Access Denied.');
         }
     }
@@ -103,12 +103,12 @@ final class UserStateProcessor implements ProcessorInterface
      */
     private function getPreviousEmail(mixed $data): ?string
     {
-        if (!$data instanceof User || !$this->entityManager->contains($data)) {
+        if (!$data instanceof UserEntity || !$this->entityManager->contains($data)) {
             return null;
         }
 
         $unitOfWork = $this->entityManager->getUnitOfWork();
-        $unitOfWork->recomputeSingleEntityChangeSet($this->entityManager->getClassMetadata(User::class), $data);
+        $unitOfWork->recomputeSingleEntityChangeSet($this->entityManager->getClassMetadata(UserEntity::class), $data);
 
         $changeset = $unitOfWork->getEntityChangeSet($data);
 

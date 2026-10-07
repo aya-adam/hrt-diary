@@ -14,7 +14,9 @@ use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: HormoneRepository::class)]
+#[ORM\Table(name: '`hormone`')]
 #[ApiResource(
+    shortName: 'Hormone',
     security: 'is_granted(\'IS_AUTHENTICATED\')',
     normalizationContext: ['groups' => ['read']],
     operations: [],
@@ -23,7 +25,7 @@ use Symfony\Component\Uid\Uuid;
         new QueryCollection(),
     ],
 )]
-class Hormone
+class HormoneEntity
 {
     #[Groups(['read'])]
     #[ORM\Id]
@@ -33,17 +35,17 @@ class Hormone
     private ?Uuid $id = null;
 
     /**
-     * @var Collection<int, Measurement>
+     * @var Collection<int, MeasurementEntity>
      */
     #[Groups(['read'])]
-    #[ORM\OneToMany(targetEntity: Measurement::class, mappedBy: 'hormone', orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: MeasurementEntity::class, mappedBy: 'hormone', orphanRemoval: true)]
     private Collection $measurements;
 
     /**
-     * @var Collection<int, ReferenceRange>
+     * @var Collection<int, ReferenceRangeEntity>
      */
     #[Groups(['read'])]
-    #[ORM\OneToMany(targetEntity: ReferenceRange::class, mappedBy: 'hormone', orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: ReferenceRangeEntity::class, mappedBy: 'hormone', orphanRemoval: true)]
     private Collection $referenceRanges;
 
     #[Groups(['read'])]
@@ -57,7 +59,7 @@ class Hormone
     #[Groups(['read'])]
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Unit $defaultUnit = null;
+    private ?UnitEntity $defaultUnit = null;
 
     public function __construct()
     {
@@ -71,14 +73,14 @@ class Hormone
     }
 
     /**
-     * @return Collection<int, Measurement>
+     * @return Collection<int, MeasurementEntity>
      */
     public function getMeasurements(): Collection
     {
         return $this->measurements;
     }
 
-    public function addMeasurement(Measurement $measurement): static
+    public function addMeasurement(MeasurementEntity $measurement): static
     {
         if (!$this->measurements->contains($measurement)) {
             $this->measurements->add($measurement);
@@ -88,7 +90,7 @@ class Hormone
         return $this;
     }
 
-    public function removeMeasurement(Measurement $measurement): static
+    public function removeMeasurement(MeasurementEntity $measurement): static
     {
         if ($this->measurements->removeElement($measurement)) {
             // set the owning side to null (unless already changed)
@@ -101,14 +103,14 @@ class Hormone
     }
 
     /**
-     * @return Collection<int, ReferenceRange>
+     * @return Collection<int, ReferenceRangeEntity>
      */
     public function getReferenceRanges(): Collection
     {
         return $this->referenceRanges;
     }
 
-    public function addReferenceRange(ReferenceRange $referenceRange): static
+    public function addReferenceRange(ReferenceRangeEntity $referenceRange): static
     {
         if (!$this->referenceRanges->contains($referenceRange)) {
             $this->referenceRanges->add($referenceRange);
@@ -118,7 +120,7 @@ class Hormone
         return $this;
     }
 
-    public function removeReferenceRange(ReferenceRange $referenceRange): static
+    public function removeReferenceRange(ReferenceRangeEntity $referenceRange): static
     {
         if ($this->referenceRanges->removeElement($referenceRange)) {
             // set the owning side to null (unless already changed)
@@ -154,12 +156,12 @@ class Hormone
         return $this;
     }
 
-    public function getDefaultUnit(): ?Unit
+    public function getDefaultUnit(): ?UnitEntity
     {
         return $this->defaultUnit;
     }
 
-    public function setDefaultUnit(?Unit $defaultUnit): static
+    public function setDefaultUnit(?UnitEntity $defaultUnit): static
     {
         $this->defaultUnit = $defaultUnit;
 

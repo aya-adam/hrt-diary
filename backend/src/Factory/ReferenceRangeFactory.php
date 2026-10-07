@@ -2,15 +2,15 @@
 
 namespace App\Factory;
 
-use App\Entity\Hormone;
-use App\Entity\ReferenceRange;
-use App\Entity\Unit;
+use App\Entity\HormoneEntity;
+use App\Entity\ReferenceRangeEntity;
+use App\Entity\UnitEntity;
 use Zenstruck\Foundry\Persistence\PersistentObjectFactory;
 
 use function Zenstruck\Foundry\Persistence\repository;
 
 /**
- * @extends PersistentObjectFactory<ReferenceRange>
+ * @extends PersistentObjectFactory<ReferenceRangeEntity>
  */
 final class ReferenceRangeFactory extends PersistentObjectFactory
 {
@@ -24,7 +24,7 @@ final class ReferenceRangeFactory extends PersistentObjectFactory
     #[\Override]
     public static function class(): string
     {
-        return ReferenceRange::class;
+        return ReferenceRangeEntity::class;
     }
 
     /**
@@ -39,8 +39,8 @@ final class ReferenceRangeFactory extends PersistentObjectFactory
 
         return [
             'user' => UserFactory::new(),
-            'hormone' => repository(Hormone::class)->random(),
-            'unit' => repository(Unit::class)->random(),
+            'hormone' => repository(HormoneEntity::class)->random(),
+            'unit' => repository(UnitEntity::class)->random(),
             'name' => self::faker()->text(255),
             'lowerLimit' => number_format($lowerLimit, 2, '.', ''),
             'upperLimit' => number_format(self::faker()->randomFloat(2, $lowerLimit + 1, 9999.99), 2, '.', ''),

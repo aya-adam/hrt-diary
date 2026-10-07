@@ -2,11 +2,11 @@
 
 namespace App\Factory;
 
-use App\Entity\Post;
+use App\Entity\PostEntity;
 use Zenstruck\Foundry\Persistence\PersistentObjectFactory;
 
 /**
- * @extends PersistentObjectFactory<Post>
+ * @extends PersistentObjectFactory<PostEntity>
  */
 final class PostFactory extends PersistentObjectFactory
 {
@@ -22,7 +22,7 @@ final class PostFactory extends PersistentObjectFactory
     #[\Override]
     public static function class(): string
     {
-        return Post::class;
+        return PostEntity::class;
     }
 
     public function published(): self
