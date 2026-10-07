@@ -4,23 +4,25 @@ namespace App\Api\Resource;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GraphQl\Mutation;
-use App\Api\Dto\PasswordStrengthPayload;
-use App\State\PasswordStrengthStateProcessor;
+use App\Api\Dto\AuthPayload;
+use App\State\LoginStateProcessor;
 
 #[ApiResource(
+    shortName: 'Login',
     operations: [],
     graphQlOperations: [
         new Mutation(
-            name: 'check',
+            name: 'auth',
             args: [
+                'email' => ['type' => 'String!'],
                 'password' => ['type' => 'String!'],
             ],
-            output: PasswordStrengthPayload::class,
-            processor: PasswordStrengthStateProcessor::class,
+            output: AuthPayload::class,
+            processor: LoginStateProcessor::class,
         ),
     ],
 )]
-final class PasswordStrength
-{
+class LoginResource {
+    public string $email = '';
     public string $password = '';
 }

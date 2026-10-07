@@ -8,6 +8,7 @@ use App\Api\Dto\AuthPayload;
 use App\State\TokenRefreshStateProcessor;
 
 #[ApiResource(
+    shortName: 'TokenRefresh',
     operations: [],
     graphQlOperations: [
         new Mutation(
@@ -18,4 +19,4 @@ use App\State\TokenRefreshStateProcessor;
         ),
     ],
 )]
-class TokenRefresh {}
+class TokenRefreshResource {}

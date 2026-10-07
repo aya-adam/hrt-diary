@@ -5,7 +5,7 @@ namespace App\State;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Api\Dto\AuthPayload;
-use App\Api\Resource\Login;
+use App\Api\Resource\LoginResource;
 use App\Repository\UserRepository;
 use App\Security\Authentication\AuthCookieQueue;
 use App\Security\Authentication\JwtCookieFactory;
@@ -24,7 +24,7 @@ class LoginStateProcessor implements ProcessorInterface
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): AuthPayload
     {
-        if (!$data instanceof Login) {
+        if (!$data instanceof LoginResource) {
             throw new RuntimeException(sprintf('Invalid data type "%s". App\Api\Resource\Login require.', get_debug_type($data)));
         }
 

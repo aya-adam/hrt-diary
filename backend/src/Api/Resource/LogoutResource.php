@@ -11,6 +11,7 @@ use App\Controller\LogoutController;
 use App\State\LogoutStateProcessor;
 
 #[ApiResource(
+    shortName: 'Logout',
     operations: [],
     graphQlOperations: [
         new Mutation(
@@ -21,4 +22,4 @@ use App\State\LogoutStateProcessor;
         ),
     ],
 )]
-class Logout {}
+class LogoutResource {}
