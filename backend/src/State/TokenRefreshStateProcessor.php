@@ -2,9 +2,10 @@
 
 namespace App\State;
 
+use ApiPlatform\Metadata\IriConverterInterface;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use App\Api\Dto\AuthPayload;
+use App\Api\Dto\AuthOutput;
 use App\Repository\UserRepository;
 use App\Security\Authentication\AuthCookieQueue;
 use App\Security\Authentication\JwtCookieFactory;
@@ -21,11 +22,13 @@ class TokenRefreshStateProcessor implements ProcessorInterface
         private readonly AuthCookieQueue $cookieQueue,
         private readonly JwtCookieFactory $cookieFactory,
         private readonly UserRepository $userRepository,
+        #[Autowire(service: 'api_platform.symfony.iri_converter')]
+        private readonly IriConverterInterface $iriConverter,
         #[Autowire('%app.jwt_refresh_token_cookie_name%')]
         private string $refreshTokenCookieName,
     ) {}
 
-    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): AuthPayload
+    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): AuthOutput
     {
         $request = $this->requestStack->getMainRequest();
         $tokenValue = $request?->cookies->get($this->refreshTokenCookieName);
@@ -62,6 +65,11 @@ class TokenRefreshStateProcessor implements ProcessorInterface
 
         $this->cookieQueue->queueAuthCookies($accessTokenCookie, $refreshTokenCookie);
 
-        return new AuthPayload($user, $accessTokenCookie, 'Token successfully refreshed.');
+        return new AuthOutput(
+            'Token successfully refreshed.',
+            $this->iriConverter->getIriFromResource($user),
+            $user->getUserIdentifier(),
+            $accessTokenCookie,
+        );
     }
 }

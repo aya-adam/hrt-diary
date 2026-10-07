@@ -4,7 +4,7 @@ namespace App\Api\Resource;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GraphQl\Mutation;
-use App\Api\Dto\AuthPayload;
+use App\Api\Dto\AuthOutput;
 use App\State\TokenRefreshStateProcessor;
 
 #[ApiResource(
@@ -14,7 +14,7 @@ use App\State\TokenRefreshStateProcessor;
         new Mutation(
             name: 'auth',
             args: [],
-            output: AuthPayload::class,
+            output: AuthOutput::class,
             processor: TokenRefreshStateProcessor::class,
         ),
     ],

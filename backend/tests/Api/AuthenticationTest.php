@@ -110,7 +110,7 @@ class AuthenticationTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'AuthLogin')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertSame($user->getId()->toRfc4122(), $body['data']['authLogin']['login']['userId']);
+        $this->assertSame($this->getIriFromResource($user), $body['data']['authLogin']['login']['userId']);
         $this->assertSame($user->getUserIdentifier(), $body['data']['authLogin']['login']['userIdentifier']);
     }
 

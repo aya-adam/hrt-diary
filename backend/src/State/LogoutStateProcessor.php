@@ -4,7 +4,7 @@ namespace App\State;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use App\Api\Dto\AuthPayload;
+use App\Api\Dto\AuthOutput;
 use App\Security\Authentication\AuthCookieQueue;
 use App\Security\Authentication\JwtCookieFactory;
 use Gesdinet\JWTRefreshTokenBundle\Model\RefreshTokenManagerInterface;
@@ -22,7 +22,7 @@ class LogoutStateProcessor implements ProcessorInterface
         private string $refreshTokenCookieName,
     ) {}
 
-    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): AuthPayload
+    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): AuthOutput
     {
         $request = $this->requestStack->getMainRequest();
         $tokenValue = $request?->cookies->get($this->refreshTokenCookieName);
@@ -39,6 +39,6 @@ class LogoutStateProcessor implements ProcessorInterface
             $this->cookieFactory->createClearingRefreshTokenCookie(),
         );
 
-        return new AuthPayload(null, null, 'Successfully logged out.');
+        return new AuthOutput('Successfully logged out.');
     }
 }

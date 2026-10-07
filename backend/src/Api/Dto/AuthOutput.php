@@ -3,15 +3,11 @@
 namespace App\Api\Dto;
 
 use ApiPlatform\Metadata\ApiProperty;
-use App\Entity\UserEntity;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\Uid\Uuid;
 
-final class AuthPayload
+final class AuthOutput
 {
-    /**
-     * Any stable, non-null value works; it only exists to satisfy the normalizer.
-     */
     #[ApiProperty(identifier: true)]
     public readonly Uuid $id;
 
@@ -23,11 +19,11 @@ final class AuthPayload
 
     public readonly string $message;
 
-    public function __construct(?UserEntity $user = null, ?Cookie $accessTokenCookie = null, ?string $message = '')
+    public function __construct(string $message, ?string $userIri = null, ?string $userIdentifier = null, ?Cookie $accessTokenCookie = null)
     {
         $this->id = Uuid::v6();
-        $this->userId = $user?->getId()->toRfc4122();
-        $this->userIdentifier = $user?->getUserIdentifier();
+        $this->userId = $userIri;
+        $this->userIdentifier = $userIdentifier;
         $this->accessTokenExpiresAt = $accessTokenCookie
             ? \DateTimeImmutable::createFromTimestamp($accessTokenCookie->getExpiresTime())->format('c')
             : null;
