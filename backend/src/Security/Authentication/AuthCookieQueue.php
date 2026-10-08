@@ -2,7 +2,6 @@
 
 namespace App\Security\Authentication;
 
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\RequestStack;
 

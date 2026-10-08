@@ -3,7 +3,6 @@
 namespace App\Tests\Api;
 
 use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
-use App\Entity\UserEntity;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
 use App\Tests\Support\GraphQlTestTrait;

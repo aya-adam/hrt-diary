@@ -6,7 +6,6 @@ use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
 use App\Entity\HormoneEntity;
 use App\Entity\ReferenceRangeEntity;
 use App\Entity\UnitEntity;
-use App\Entity\UserEntity;
 use App\Factory\ReferenceRangeFactory;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
