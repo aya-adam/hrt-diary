@@ -4,7 +4,7 @@ namespace App\State;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use App\Api\Dto\PasswordStrengthPayload;
+use App\Api\Dto\PasswordStrengthInput;
 use App\Api\Resource\PasswordStrengthResource;
 use RuntimeException;
 use Symfony\Component\Validator\Constraints\PasswordStrengthValidator;
@@ -54,16 +54,16 @@ class PasswordStrengthStateProcessor implements ProcessorInterface
         ],
     ];
 
-    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): PasswordStrengthPayload
+    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): PasswordStrengthResource
     {
-        if (!$data instanceof PasswordStrengthResource) {
-            throw new RuntimeException(sprintf('Invalid data type "%s". %s required.', get_debug_type($data), PasswordStrengthResource::class));
+        if (!$data instanceof PasswordStrengthInput) {
+            throw new RuntimeException(sprintf('Invalid data type "%s". %s required.', get_debug_type($data), PasswordStrengthInput::class));
         }
 
         $passwordEstimatedStrength = PasswordStrengthValidator::estimateStrength($data->password);
 
         $messages = self::PASSWORD_STRENGTH_MESSAGES[$passwordEstimatedStrength];
 
-        return new PasswordStrengthPayload($passwordEstimatedStrength, $messages[array_rand($messages)]);
+        return new PasswordStrengthResource($passwordEstimatedStrength, $messages[array_rand($messages)]);
     }
 }
