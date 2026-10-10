@@ -11,8 +11,6 @@ api_platform:
         introspection: false
         graphiql:
             enabled: false
-        graphql_playground:
-            enabled: false
         collection:
             pagination:
                 enabled: false
@@ -22,6 +20,4 @@ when@dev:
         graphql:
             introspection: true
             graphiql:
-                enabled: true
-            graphql_playground:
                 enabled: true

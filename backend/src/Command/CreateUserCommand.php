@@ -42,14 +42,14 @@ class CreateUserCommand extends Command
         ;
     }
 
-    protected function initialize(InputInterface $input, OutputInterface $output)
+    protected function initialize(InputInterface $input, OutputInterface $output): void
     {
         $this->plainPassword = $input->getOption('password');
         $this->email = $input->getOption('email');
         $this->ifNotExists = $input->getOption('if-not-exists');
     }
 
-    protected function interact(InputInterface $input, OutputInterface $output)
+    protected function interact(InputInterface $input, OutputInterface $output): void
     {
         $io = new SymfonyStyle($input, $output);
 

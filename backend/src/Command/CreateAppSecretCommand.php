@@ -29,7 +29,7 @@ class CreateAppSecretCommand extends Command
             ->addOption('--bytes', null, InputOption::VALUE_OPTIONAL, 'Number of bytes to be used to generate the secret (default: 16)');
     }
 
-    protected function initialize(InputInterface $input, OutputInterface $output)
+    protected function initialize(InputInterface $input, OutputInterface $output): void
     {
         if (!$input->getOption('bytes')) {
             $this->numBytes = self::DEFAULT_NUM_BYTES;
