@@ -2,7 +2,7 @@
 
 namespace App\Tests\Api;
 
-use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
+use ApiPlatform\Test\ApiTestCase;
 use App\Entity\RefreshTokenEntity;
 use App\Entity\UserEntity;
 use App\Factory\UserFactory;

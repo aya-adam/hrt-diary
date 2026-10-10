@@ -2,7 +2,7 @@
 
 namespace App\Tests\Support;
 
-use ApiPlatform\Symfony\Bundle\Test\Client;
+use ApiPlatform\Test\Client;
 use App\Entity\UserEntity;
 use App\Factory\UserFactory;
 use RuntimeException;
