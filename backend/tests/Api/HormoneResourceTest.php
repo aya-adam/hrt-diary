@@ -3,6 +3,7 @@
 namespace App\Tests\Api;
 
 use ApiPlatform\Test\ApiTestCase;
+use App\Api\Resource\HormoneResource;
 use App\Entity\HormoneEntity;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
@@ -47,7 +48,7 @@ class HormoneResourceTest extends ApiTestCase
         $this->assertCount(8, $body['data']['hormones']);
 
         foreach ($body['data']['hormones'] as $hormone) {
-            $this->assertMatchesIri($hormone['id'], HormoneEntity::class);
+            $this->assertMatchesIri($hormone['id'], HormoneResource::class);
             $this->assertArrayHasKey('name', $hormone);
             $this->assertArrayHasKey('commonName', $hormone);
         }
@@ -93,13 +94,13 @@ class HormoneResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($hormone),
+            'id' => sprintf('/hormones/%s', $hormone->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'Hormone')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertSame($this->getIriFromResource($hormone), $body['data']['hormone']['id']);
+        $this->assertSame(sprintf('/hormones/%s', $hormone->getId()->toRfc4122()), $body['data']['hormone']['id']);
         $this->assertSame($hormone->getName(), $body['data']['hormone']['name']);
         $this->assertSame($hormone->getCommonName(), $body['data']['hormone']['commonName']);
     }
@@ -121,7 +122,7 @@ class HormoneResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($hormone),
+            'id' => sprintf('/hormones/%s', $hormone->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'Hormone')->toArray(false);
@@ -181,7 +182,7 @@ class HormoneResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($hormone),
+            'id' => sprintf('/hormones/%s', $hormone->getId()->toRfc4122()),
             'name' => 'Epinephrine',
             'commonName' => 'Adrenaline',
         ];
@@ -210,7 +211,7 @@ class HormoneResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($hormone),
+            'id' => sprintf('/hormones/%s', $hormone->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteHormone')->toArray(false);

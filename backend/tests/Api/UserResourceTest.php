@@ -3,14 +3,15 @@
 namespace App\Tests\Api;
 
 use ApiPlatform\Test\ApiTestCase;
+use App\Api\Resource\UserResource;
 use App\Entity\RefreshTokenEntity;
-use App\Entity\UserEntity;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
 use App\Tests\Support\GraphQlTestTrait;
 use App\Tests\Support\RegexTrait;
 use Override;
 
+use function Zenstruck\Foundry\faker;
 use function Zenstruck\Foundry\Persistence\repository;
 
 class UserResourceTest extends ApiTestCase
@@ -57,7 +58,7 @@ class UserResourceTest extends ApiTestCase
 
         $this->assertGraphQlHasNoErrors($body);
         $this->assertCount(1, $body['data']['users']);
-        $this->assertSame($this->getIriFromResource($user), $body['data']['users'][0]['id']);
+        $this->assertSame(sprintf('/users/%s', $user->getId()->toRfc4122()), $body['data']['users'][0]['id']);
         $this->assertSame($user->getEmail(), $body['data']['users'][0]['email']);
         $this->assertSame($user->getRoles(), $body['data']['users'][0]['roles']);
         $this->assertSame($user->getCreatedAt()->format('c'), $body['data']['users'][0]['createdAt']);
@@ -107,13 +108,13 @@ class UserResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($user),
+            'id' => sprintf('/users/%s', $user->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'User')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertSame($this->getIriFromResource($user), $body['data']['user']['id']);
+        $this->assertSame(sprintf('/users/%s', $user->getId()->toRfc4122()), $body['data']['user']['id']);
         $this->assertSame($user->getEmail(), $body['data']['user']['email']);
         $this->assertSame($user->getRoles(), $body['data']['user']['roles']);
         $this->assertSame($user->getCreatedAt()->format('c'), $body['data']['user']['createdAt']);
@@ -139,7 +140,7 @@ class UserResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($user2),
+            'id' => sprintf('/users/%s', $user2->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'User')->toArray(false);
@@ -167,7 +168,7 @@ class UserResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($user),
+            'id' => sprintf('/users/%s', $user->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'User')->toArray(false);
@@ -183,8 +184,8 @@ class UserResourceTest extends ApiTestCase
         $client = self::createClient();
 
         $query = <<<'GQL'
-            mutation CreateUser($email: String!, $plainPassword: String!) {
-                createUser(input: { email: $email, plainPassword: $plainPassword }) {
+            mutation CreateUser($email: String!, $password: String!) {
+                createUser(input: { email: $email, password: $password }) {
                     user {
                         id
                         email
@@ -198,13 +199,13 @@ class UserResourceTest extends ApiTestCase
 
         $variables = [
             'email' => 'test_user@example.org',
-            'plainPassword' => UserFactory::DEFAULT_PASSWORD,
+            'password' => faker()->password(20),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateUser')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['createUser']['user']['id'], UserEntity::class);
+        $this->assertMatchesIri($body['data']['createUser']['user']['id'], UserResource::class);
         $this->assertSame($variables['email'], $body['data']['createUser']['user']['email']);
         $this->assertSame(['ROLE_USER'], $body['data']['createUser']['user']['roles']);
         $this->assertMatchesDate($body['data']['createUser']['user']['createdAt']);
@@ -216,8 +217,8 @@ class UserResourceTest extends ApiTestCase
         $client = self::createClient();
 
         $query = <<<'GQL'
-            mutation CreateUser($plainPassword: String!) {
-                createUser(input: { plainPassword: $plainPassword }) {
+            mutation CreateUser($password: String!) {
+                createUser(input: { password: $password }) {
                     user {
                         id
                         email
@@ -230,12 +231,14 @@ class UserResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'plainPassword' => UserFactory::DEFAULT_PASSWORD,
+            'password' => faker()->password(20),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateUser')->toArray(false);
 
-        $this->assertGraphQlError($body, 'Field createUserInput.email of required type String! was not provided.');
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'email', 'This value should not be blank.');
+        $this->assertNull($body['data']['createUser']);
     }
 
     public function testPostReturns422WhenEmailIsBlank(): void
@@ -243,8 +246,8 @@ class UserResourceTest extends ApiTestCase
         $client = self::createClient();
 
         $query = <<<'GQL'
-            mutation CreateUser($email: String!, $plainPassword: String!) {
-                createUser(input: { email: $email, plainPassword: $plainPassword }) {
+            mutation CreateUser($email: String!, $password: String!) {
+                createUser(input: { email: $email, password: $password }) {
                     user {
                         id
                         email
@@ -258,7 +261,7 @@ class UserResourceTest extends ApiTestCase
 
         $variables = [
             'email' => '',
-            'plainPassword' => UserFactory::DEFAULT_PASSWORD,
+            'password' => faker()->password(20),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateUser')->toArray(false);
@@ -273,8 +276,8 @@ class UserResourceTest extends ApiTestCase
         $client = self::createClient();
 
         $query = <<<'GQL'
-            mutation CreateUser($email: String!, $plainPassword: String!) {
-                createUser(input: { email: $email, plainPassword: $plainPassword }) {
+            mutation CreateUser($email: String!, $password: String!) {
+                createUser(input: { email: $email, password: $password }) {
                     user {
                         id
                         email
@@ -288,7 +291,7 @@ class UserResourceTest extends ApiTestCase
 
         $variables = [
             'email' => 'test_user(at)example.org',
-            'plainPassword' => UserFactory::DEFAULT_PASSWORD,
+            'password' => faker()->password(20),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateUser')->toArray(false);
@@ -305,8 +308,8 @@ class UserResourceTest extends ApiTestCase
         $client = self::createClient();
 
         $query = <<<'GQL'
-            mutation CreateUser($email: String!, $plainPassword: String!) {
-                createUser(input: { email: $email, plainPassword: $plainPassword }) {
+            mutation CreateUser($email: String!, $password: String!) {
+                createUser(input: { email: $email, password: $password }) {
                     user {
                         id
                         email
@@ -320,7 +323,7 @@ class UserResourceTest extends ApiTestCase
 
         $variables = [
             'email' => $user->getEmail(),
-            'plainPassword' => UserFactory::DEFAULT_PASSWORD,
+            'password' => faker()->password(20),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateUser')->toArray(false);
@@ -354,7 +357,9 @@ class UserResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateUser')->toArray(false);
 
-        $this->assertGraphQlError($body, 'Field createUserInput.plainPassword of required type String! was not provided.');
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'password', 'This value should not be blank.');
+        $this->assertNull($body['data']['createUser']);
     }
 
     public function testPostReturns422WhenPasswordIsBlank(): void
@@ -362,8 +367,8 @@ class UserResourceTest extends ApiTestCase
         $client = self::createClient();
 
         $query = <<<'GQL'
-            mutation CreateUser($email: String!, $plainPassword: String!) {
-                createUser(input: { email: $email, plainPassword: $plainPassword }) {
+            mutation CreateUser($email: String!, $password: String!) {
+                createUser(input: { email: $email, password: $password }) {
                     user {
                         id
                         email
@@ -377,23 +382,23 @@ class UserResourceTest extends ApiTestCase
 
         $variables = [
             'email' => 'test_user@example.org',
-            'plainPassword' => '',
+            'password' => '',
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateUser')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 422);
-        $this->assertGraphQlFieldViolation($body, 'plainPassword', ['This value should not be blank.', 'This value is too short. It should have 8 characters or more.']);
+        $this->assertGraphQlFieldViolation($body, 'password', 'This value should not be blank.');
         $this->assertNull($body['data']['createUser']);
     }
 
-    public function testPostReturns422WhenPasswordIsTooShort(): void
+    public function testPostReturns422WhenPasswordIsTooWeak(): void
     {
         $client = self::createClient();
 
         $query = <<<'GQL'
-            mutation CreateUser($email: String!, $plainPassword: String!) {
-                createUser(input: { email: $email, plainPassword: $plainPassword }) {
+            mutation CreateUser($email: String!, $password: String!) {
+                createUser(input: { email: $email, password: $password }) {
                     user {
                         id
                         email
@@ -407,13 +412,13 @@ class UserResourceTest extends ApiTestCase
 
         $variables = [
             'email' => 'test_user@example.org',
-            'plainPassword' => 'pass',
+            'password' => 'password',
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateUser')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 422);
-        $this->assertGraphQlFieldViolation($body, 'plainPassword', 'This value is too short. It should have 8 characters or more.');
+        $this->assertGraphQlFieldViolation($body, 'password', 'The password strength is too low. Please use a stronger password.');
         $this->assertNull($body['data']['createUser']);
     }
 
@@ -426,8 +431,8 @@ class UserResourceTest extends ApiTestCase
         $passwordBefore = UserFactory::find($user->getId())->getPassword();
 
         $query = <<<'GQL'
-            mutation UpdateUser($id: ID!, $email: String!, $plainPassword: String!) {
-                updateUser(input: { id: $id, email: $email, plainPassword: $plainPassword }) {
+            mutation UpdateUser($id: ID!, $email: String!, $password: String!) {
+                updateUser(input: { id: $id, email: $email, password: $password }) {
                     user {
                         id
                         email
@@ -440,15 +445,15 @@ class UserResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($user),
+            'id' => sprintf('/users/%s', $user->getId()->toRfc4122()),
             'email' => 'updated_user@example.org',
-            'plainPassword' => 'new_password',
+            'password' => faker()->password(20),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertSame($this->getIriFromResource($user), $body['data']['updateUser']['user']['id']);
+        $this->assertSame(sprintf('/users/%s', $user->getId()->toRfc4122()), $body['data']['updateUser']['user']['id']);
         $this->assertSame('updated_user@example.org', $body['data']['updateUser']['user']['email']);
         $this->assertSame($user->getRoles(), $body['data']['updateUser']['user']['roles']);
         $this->assertMatchesDate($body['data']['updateUser']['user']['createdAt']);
@@ -485,7 +490,7 @@ class UserResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($user),
+            'id' => sprintf('/users/%s', $user->getId()->toRfc4122()),
             'email' => $emailNew,
         ];
 
@@ -506,8 +511,8 @@ class UserResourceTest extends ApiTestCase
         $client = self::createClient();
 
         $query = <<<'GQL'
-            mutation UpdateUser($id: ID!, $email: String!, $plainPassword: String!) {
-                updateUser(input: { id: $id, email: $email, plainPassword: $plainPassword }) {
+            mutation UpdateUser($id: ID!, $email: String!, $password: String!) {
+                updateUser(input: { id: $id, email: $email, password: $password }) {
                     user {
                         id
                         email
@@ -520,9 +525,9 @@ class UserResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($user),
+            'id' => sprintf('/users/%s', $user->getId()->toRfc4122()),
             'email' => 'updated_user@example.org',
-            'plainPassword' => 'new_password',
+            'password' => 'new_password',
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
@@ -540,8 +545,8 @@ class UserResourceTest extends ApiTestCase
         $client = self::createAuthenticatedClient($user1);
 
         $query = <<<'GQL'
-            mutation UpdateUser($id: ID!, $email: String!, $plainPassword: String!) {
-                updateUser(input: { id: $id, email: $email, plainPassword: $plainPassword }) {
+            mutation UpdateUser($id: ID!, $email: String!, $password: String!) {
+                updateUser(input: { id: $id, email: $email, password: $password }) {
                     user {
                         id
                         email
@@ -554,16 +559,16 @@ class UserResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($user2),
+            'id' => sprintf('/users/%s', $user2->getId()->toRfc4122()),
             'email' => 'updated_user@example.org',
-            'plainPassword' => 'new_password',
+            'password' => 'new_password',
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 404);
-        $this->assertGraphQlError($body, "Item \"{$this->getIriFromResource($user2)}\" not found.");
-        $this->assertGraphQlDebugMessage($body, "Item \"{$this->getIriFromResource($user2)}\" not found.");
+        $this->assertGraphQlError($body, sprintf('Item "/users/%s" not found.', $user2->getId()->toRfc4122()));
+        $this->assertGraphQlDebugMessage($body, sprintf('Item "/users/%s" not found.', $user2->getId()->toRfc4122()));
         $this->assertNull($body['data']['updateUser']);
     }
 
@@ -574,8 +579,8 @@ class UserResourceTest extends ApiTestCase
         $client = self::createAuthenticatedClient($user);
 
         $query = <<<'GQL'
-            mutation UpdateUser($id: ID!, $email: String!, $plainPassword: String!) {
-                updateUser(input: { id: $id, email: $email, plainPassword: $plainPassword }) {
+            mutation UpdateUser($id: ID!, $email: String!) {
+                updateUser(input: { id: $id, email: $email }) {
                     user {
                         id
                         email
@@ -588,9 +593,8 @@ class UserResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($user),
+            'id' => sprintf('/users/%s', $user->getId()->toRfc4122()),
             'email' => '',
-            'plainPassword' => 'new_password',
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
@@ -607,8 +611,8 @@ class UserResourceTest extends ApiTestCase
         $client = self::createAuthenticatedClient($user);
 
         $query = <<<'GQL'
-            mutation UpdateUser($id: ID!, $email: String!, $plainPassword: String!) {
-                updateUser(input: { id: $id, email: $email, plainPassword: $plainPassword }) {
+            mutation UpdateUser($id: ID!, $email: String!) {
+                updateUser(input: { id: $id, email: $email }) {
                     user {
                         id
                         email
@@ -621,9 +625,8 @@ class UserResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($user),
+            'id' => sprintf('/users/%s', $user->getId()->toRfc4122()),
             'email' => 'updated_user{at}example.org',
-            'plainPassword' => 'new_password',
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
@@ -640,8 +643,8 @@ class UserResourceTest extends ApiTestCase
         $client = self::createAuthenticatedClient($user1);
 
         $query = <<<'GQL'
-            mutation UpdateUser($id: ID!, $email: String!, $plainPassword: String!) {
-                updateUser(input: { id: $id, email: $email, plainPassword: $plainPassword }) {
+            mutation UpdateUser($id: ID!, $email: String!) {
+                updateUser(input: { id: $id, email: $email }) {
                     user {
                         id
                         email
@@ -654,9 +657,8 @@ class UserResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($user1),
+            'id' => sprintf('/users/%s', $user1->getId()->toRfc4122()),
             'email' => $user2->getEmail(),
-            'plainPassword' => 'new_password',
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
@@ -673,8 +675,8 @@ class UserResourceTest extends ApiTestCase
         $client = self::createAuthenticatedClient($user);
 
         $query = <<<'GQL'
-            mutation UpdateUser($id: ID!, $email: String!, $plainPassword: String!) {
-                updateUser(input: { id: $id, email: $email, plainPassword: $plainPassword }) {
+            mutation UpdateUser($id: ID!, $password: String!) {
+                updateUser(input: { id: $id, password: $password }) {
                     user {
                         id
                         email
@@ -687,27 +689,26 @@ class UserResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($user),
-            'email' => 'updated_user@example.org',
-            'plainPassword' => '',
+            'id' => sprintf('/users/%s', $user->getId()->toRfc4122()),
+            'password' => '',
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 422);
-        $this->assertGraphQlFieldViolation($body, 'plainPassword', 'This value is too short. It should have 8 characters or more.');
+        $this->assertGraphQlFieldViolation($body, 'password', 'This value should not be blank.');
         $this->assertNull($body['data']['updateUser']);
     }
 
-    public function testPatchReturns422WhenPasswordIsTooShort(): void
+    public function testPatchReturns422WhenPasswordIsTooWeak(): void
     {
         $user = UserFactory::random();
 
         $client = self::createAuthenticatedClient($user);
 
         $query = <<<'GQL'
-            mutation UpdateUser($id: ID!, $email: String!, $plainPassword: String!) {
-                updateUser(input: { id: $id, email: $email, plainPassword: $plainPassword }) {
+            mutation UpdateUser($id: ID!, $password: String!) {
+                updateUser(input: { id: $id, password: $password }) {
                     user {
                         id
                         email
@@ -720,15 +721,14 @@ class UserResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($user),
-            'email' => 'updated_user@example.org',
-            'plainPassword' => 'pass',
+            'id' => sprintf('/users/%s', $user->getId()->toRfc4122()),
+            'password' => 'pass',
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 422);
-        $this->assertGraphQlFieldViolation($body, 'plainPassword', 'This value is too short. It should have 8 characters or more.');
+        $this->assertGraphQlFieldViolation($body, 'password', 'The password strength is too low. Please use a stronger password.');
         $this->assertNull($body['data']['updateUser']);
     }
 
@@ -749,7 +749,7 @@ class UserResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($user),
+            'id' => sprintf('/users/%s', $user->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteUser')->toArray(false);
@@ -775,14 +775,14 @@ class UserResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($user2),
+            'id' => sprintf('/users/%s', $user2->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteUser')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 404);
-        $this->assertGraphQlError($body, "Item \"{$this->getIriFromResource($user2)}\" not found.");
-        $this->assertGraphQlDebugMessage($body, "Item \"{$this->getIriFromResource($user2)}\" not found.");
+        $this->assertGraphQlError($body, sprintf('Item "/users/%s" not found.', $user2->getId()->toRfc4122()));
+        $this->assertGraphQlDebugMessage($body, sprintf('Item "/users/%s" not found.', $user2->getId()->toRfc4122()));
         $this->assertNull($body['data']['deleteUser']);
     }
 
@@ -803,7 +803,7 @@ class UserResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($user),
+            'id' => sprintf('/users/%s', $user->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteUser')->toArray(false);

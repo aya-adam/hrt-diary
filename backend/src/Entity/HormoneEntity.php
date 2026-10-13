@@ -2,32 +2,17 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\GraphQl\Query;
-use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use App\Repository\HormoneRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
-use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: HormoneRepository::class)]
 #[ORM\Table(name: '`hormone`')]
-#[ApiResource(
-    shortName: 'Hormone',
-    security: 'is_granted(\'IS_AUTHENTICATED\')',
-    normalizationContext: ['groups' => ['read']],
-    operations: [],
-    graphQlOperations: [
-        new Query(),
-        new QueryCollection(),
-    ],
-)]
 class HormoneEntity
 {
-    #[Groups(['read'])]
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
@@ -37,26 +22,21 @@ class HormoneEntity
     /**
      * @var Collection<int, MeasurementEntity>
      */
-    #[Groups(['read'])]
     #[ORM\OneToMany(targetEntity: MeasurementEntity::class, mappedBy: 'hormone', orphanRemoval: true)]
     private Collection $measurements;
 
     /**
      * @var Collection<int, ReferenceRangeEntity>
      */
-    #[Groups(['read'])]
     #[ORM\OneToMany(targetEntity: ReferenceRangeEntity::class, mappedBy: 'hormone', orphanRemoval: true)]
     private Collection $referenceRanges;
 
-    #[Groups(['read'])]
     #[ORM\Column(length: 100)]
     private ?string $name = null;
 
-    #[Groups(['read'])]
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $commonName = null;
 
-    #[Groups(['read'])]
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
     private ?UnitEntity $defaultUnit = null;

@@ -2,57 +2,19 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\GraphQl\DeleteMutation;
-use ApiPlatform\Metadata\GraphQl\Mutation;
-use ApiPlatform\Metadata\GraphQl\Query;
-use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use App\Repository\PostRepository;
-use App\State\PostStateProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Symfony\Bridge\Doctrine\Types\UuidType;
-use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
-use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: PostRepository::class)]
 #[ORM\Table(name: '`post`')]
-#[ApiResource(
-    shortName: 'Post',
-    security: 'is_granted(\'IS_AUTHENTICATED\')',
-    operations: [],
-    graphQlOperations: [
-        new Query(
-            normalizationContext: ['groups' => ['read']],
-        ),
-        new QueryCollection(
-            normalizationContext: ['groups' => ['read']],
-        ),
-        new Mutation(
-            name: 'create',
-            normalizationContext: ['groups' => ['read']],
-            denormalizationContext: ['groups' => ['post:create']],
-            processor: PostStateProcessor::class,
-        ),
-        new Mutation(
-            name: 'update',
-            normalizationContext: ['groups' => ['read']],
-            denormalizationContext: ['groups' => ['post:update']],
-            processor: PostStateProcessor::class,
-        ),
-        new DeleteMutation(
-            name: 'delete',
-            processor: PostStateProcessor::class,
-        ),
-    ],
-)]
 class PostEntity
 {
-    #[Groups(['read'])]
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
@@ -66,41 +28,25 @@ class PostEntity
     /**
      * @var Collection<int, LabResultEntity>
      */
-    #[Groups(['read', 'post:create', 'post:update'])]
     #[ORM\ManyToMany(targetEntity: LabResultEntity::class, mappedBy: 'posts')]
     private Collection $labResults;
 
-    #[Assert\NotBlank]
-    #[Assert\Length(max: 255)]
-    #[Groups(['read', 'post:create', 'post:update'])]
     #[ORM\Column(length: 255)]
     private ?string $title = null;
 
-    #[Assert\NotBlank(allowNull: true)]
-    #[Assert\Length(max: 255)]
-    #[Groups(['read', 'post:create', 'post:update'])]
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $excerpt = null;
 
-    #[Assert\NotBlank(allowNull: true)]
-    #[Groups(['read', 'post:create', 'post:update'])]
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $text = null;
 
-    #[Assert\Type(['bool', 'null'])]
-    #[Groups(['post:create', 'post:update'])]
-    private ?bool $published = null;
-
-    #[Groups(['read'])]
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $publishedAt = null;
 
-    #[Groups(['read'])]
     #[ORM\Column]
     #[Gedmo\Timestampable(on: 'create')]
     private ?\DateTimeImmutable $createdAt = null;
 
-    #[Groups(['read'])]
     #[ORM\Column]
     #[Gedmo\Timestampable(on: 'update')]
     private ?\DateTimeImmutable $updatedAt = null;
@@ -186,18 +132,6 @@ class PostEntity
     public function setText(?string $text): static
     {
         $this->text = $text;
-
-        return $this;
-    }
-
-    public function isPublished(): ?bool
-    {
-        return $this->published;
-    }
-
-    public function setPublished(?bool $published): static
-    {
-        $this->published = $published;
 
         return $this;
     }

@@ -3,6 +3,7 @@
 namespace App\Tests\Api;
 
 use ApiPlatform\Test\ApiTestCase;
+use App\Api\Resource\QuantityTypeResource;
 use App\Entity\QuantityTypeEntity;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
@@ -56,7 +57,7 @@ class QuantityTypeResourceTest extends ApiTestCase
         $this->assertCount(3, $body['data']['quantityTypes']);
 
         foreach ($body['data']['quantityTypes'] as $unit) {
-            $this->assertMatchesIri($unit['id'], QuantityTypeEntity::class);
+            $this->assertMatchesIri($unit['id'], QuantityTypeResource::class);
             $this->assertIsString($unit['label']);
             $this->assertIsString($unit['slug']);
         }
@@ -102,13 +103,13 @@ class QuantityTypeResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($quantityType),
+            'id' => sprintf('/quantity_types/%s', $quantityType->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'QuantityType')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertSame($this->getIriFromResource($quantityType), $body['data']['quantityType']['id']);
+        $this->assertSame(sprintf('/quantity_types/%s', $quantityType->getId()->toRfc4122()), $body['data']['quantityType']['id']);
         $this->assertSame($quantityType->getLabel(), $body['data']['quantityType']['label']);
         $this->assertSame($quantityType->getSlug(), $body['data']['quantityType']['slug']);
     }
@@ -130,7 +131,7 @@ class QuantityTypeResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($quantityType),
+            'id' => sprintf('/quantity_types/%s', $quantityType->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'QuantityType')->toArray(false);
@@ -189,7 +190,7 @@ class QuantityTypeResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($quantityType),
+            'id' => sprintf('/quantity_types/%s', $quantityType->getId()->toRfc4122()),
             'label' => 'Updated quantity type label',
         ];
 
@@ -217,7 +218,7 @@ class QuantityTypeResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($quantityType),
+            'id' => sprintf('/quantity_types/%s', $quantityType->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteQuantityType')->toArray(false);

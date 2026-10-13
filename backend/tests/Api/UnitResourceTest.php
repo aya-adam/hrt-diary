@@ -3,6 +3,7 @@
 namespace App\Tests\Api;
 
 use ApiPlatform\Test\ApiTestCase;
+use App\Api\Resource\UnitResource;
 use App\Entity\UnitEntity;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
@@ -47,7 +48,7 @@ class UnitResourceTest extends ApiTestCase
         $this->assertCount(19, $body['data']['units']);
 
         foreach ($body['data']['units'] as $unit) {
-            $this->assertMatchesIri($unit['id'], UnitEntity::class);
+            $this->assertMatchesIri($unit['id'], UnitResource::class);
             $this->assertIsString($unit['symbol']);
             $this->assertIsString($unit['label']);
         }
@@ -93,13 +94,13 @@ class UnitResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($unit),
+            'id' => sprintf('/units/%s', $unit->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'Unit')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertSame($this->getIriFromResource($unit), $body['data']['unit']['id']);
+        $this->assertSame(sprintf('/units/%s', $unit->getId()->toRfc4122()), $body['data']['unit']['id']);
         $this->assertSame($unit->getSymbol(), $body['data']['unit']['symbol']);
         $this->assertSame($unit->getLabel(), $body['data']['unit']['label']);
     }
@@ -121,7 +122,7 @@ class UnitResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($unit),
+            'id' => sprintf('/units/%s', $unit->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'Unit')->toArray(false);
@@ -181,7 +182,7 @@ class UnitResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($unit),
+            'id' => sprintf('/units/%s', $unit->getId()->toRfc4122()),
             'symbol' => 'km/h',
             'label' => 'Kilometers per hour',
         ];
@@ -210,7 +211,7 @@ class UnitResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($unit),
+            'id' => sprintf('/units/%s', $unit->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteUnit')->toArray(false);

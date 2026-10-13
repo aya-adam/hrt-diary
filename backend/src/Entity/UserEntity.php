@@ -2,13 +2,7 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\GraphQl\DeleteMutation;
-use ApiPlatform\Metadata\GraphQl\Mutation;
-use ApiPlatform\Metadata\GraphQl\Query;
-use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use App\Repository\UserRepository;
-use App\State\UserStateProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -17,51 +11,14 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
-use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
 #[UniqueEntity(fields: 'email', identifierFieldNames: ['id'], message: 'This email is already in use.')]
-#[ApiResource(
-    shortName: 'User',
-    operations: [],
-    graphQlOperations: [
-        new Query(
-            normalizationContext: ['groups' => ['read']],
-            security: 'is_granted(\'IS_AUTHENTICATED\')',
-        ),
-        new QueryCollection(
-            normalizationContext: ['groups' => ['read']],
-            security: 'is_granted(\'IS_AUTHENTICATED\')',
-        ),
-        new Mutation(
-            name: 'create',
-            normalizationContext: ['groups' => ['read']],
-            denormalizationContext: ['groups' => ['user:create']],
-            validationContext: ['groups' => ['Default', 'user:create']],
-            processor: UserStateProcessor::class,
-        ),
-        new Mutation(
-            name: 'update',
-            normalizationContext: ['groups' => ['read']],
-            denormalizationContext: ['groups' => ['user:update']],
-            validationContext: ['groups' => ['Default', 'user:update']],
-            security: 'is_granted(\'IS_AUTHENTICATED\')',
-            processor: UserStateProcessor::class,
-        ),
-        new DeleteMutation(
-            name: 'delete',
-            security: 'is_granted(\'IS_AUTHENTICATED\')',
-            processor: UserStateProcessor::class,
-        ),
-    ],
-)]
 class UserEntity implements UserInterface, PasswordAuthenticatedUserInterface
 {
-    #[Groups(['read', 'user:login:read'])]
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
@@ -71,42 +28,33 @@ class UserEntity implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @var Collection<int, LabResultEntity>
      */
-    #[Groups(['read'])]
     #[ORM\OneToMany(targetEntity: LabResultEntity::class, mappedBy: 'user', orphanRemoval: true)]
     private Collection $labResults;
 
     /**
      * @var Collection<int, MeasurementEntity>
      */
-    #[Groups(['read'])]
     #[ORM\OneToMany(targetEntity: MeasurementEntity::class, mappedBy: 'user', orphanRemoval: true)]
     private Collection $measurements;
 
     /**
      * @var Collection<int, PostEntity>
      */
-    #[Groups(['read'])]
     #[ORM\OneToMany(targetEntity: PostEntity::class, mappedBy: 'user', orphanRemoval: true)]
     private Collection $posts;
 
     /**
      * @var Collection<int, ReferenceRangeEntity>
      */
-    #[Groups(['read'])]
     #[ORM\OneToMany(targetEntity: ReferenceRangeEntity::class, mappedBy: 'user')]
     private Collection $referenceRanges;
 
-    #[Assert\NotBlank]
-    #[Assert\Email]
-    #[Assert\Length(max: 180)]
-    #[Groups(['read', 'user:create', 'user:login:read', 'user:update'])]
     #[ORM\Column(length: 180)]
     private ?string $email = null;
 
     /**
      * @var list<string> The user roles
      */
-    #[Groups(['read'])]
     #[ORM\Column]
     private array $roles = [];
 
@@ -119,17 +67,12 @@ class UserEntity implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @var string The plain password (before hashing)
      */
-    #[Assert\NotBlank(groups: ['user:create'])]
-    #[Assert\Length(min: 8, groups: ['user:create', 'user:update'])]
-    #[Groups(['user:create', 'user:update'])]
     private ?string $plainPassword = null;
 
-    #[Groups(['read', 'user:login:read'])]
     #[ORM\Column]
     #[Gedmo\Timestampable(on: 'create')]
     private ?\DateTimeImmutable $createdAt = null;
 
-    #[Groups(['read', 'user:login:read'])]
     #[ORM\Column]
     #[Gedmo\Timestampable(on: 'update')]
     private ?\DateTimeImmutable $updatedAt = null;

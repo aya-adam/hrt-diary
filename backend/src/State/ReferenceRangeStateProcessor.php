@@ -10,12 +10,13 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\ReferenceRangeEntity;
 use App\State\Trait\GraphQlOperationHelperTrait;
+use App\State\Trait\MapperAwareInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 final class ReferenceRangeStateProcessor implements ProcessorInterface
 {
-    use GraphQlOperationHelperTrait;
+    use MapperAwareInterface, GraphQlOperationHelperTrait;
 
     public function __construct(
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
@@ -27,6 +28,11 @@ final class ReferenceRangeStateProcessor implements ProcessorInterface
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
+        /**
+         * @disregard P1013 Undefined method
+         */
+        $data = $this->dtoToEntity($data, $operation->getStateOptions()->getEntityClass(), $context['graphql_context']['previous_object']->id ?? null);
+
         if (self::isMutationCreate($operation)) {
             $data = $this->setOwner($data);
         } elseif ($operation instanceof Query || $operation instanceof QueryCollection) {
@@ -37,9 +43,13 @@ final class ReferenceRangeStateProcessor implements ProcessorInterface
 
         $data = $this->setUnit($data);
 
-        return $operation instanceof DeleteMutation
+        $result = $operation instanceof DeleteMutation
             ? $this->remove($data, $operation, $uriVariables, $context)
             : $this->persist($data, $operation, $uriVariables, $context);
+
+        return $result
+            ? $this->entityToDto($data, $operation->getClass())
+            : $result;
     }
 
     private function persist(mixed $data, Operation $operation, array $uriVariables, array $context): mixed

@@ -2,7 +2,6 @@
 
 namespace App\State;
 
-use ApiPlatform\Metadata\IriConverterInterface;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Api\Dto\AuthOutput;
@@ -10,16 +9,16 @@ use App\Api\Dto\LoginInput;
 use App\Repository\UserRepository;
 use App\Security\Authentication\AuthCookieQueue;
 use App\Security\Authentication\JwtCookieFactory;
+use App\State\Trait\MapperAwareInterface;
 use RuntimeException;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class LoginStateProcessor implements ProcessorInterface
 {
+    use MapperAwareInterface;
+
     public function __construct(
-        #[Autowire(service: 'api_platform.symfony.iri_converter')]
-        private readonly IriConverterInterface $iriConverter,
         private readonly UserRepository $userRepository,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly JwtCookieFactory $cookieFactory,
@@ -48,9 +47,8 @@ class LoginStateProcessor implements ProcessorInterface
 
         return new AuthOutput(
             'Successfully authenticated.',
-            $this->iriConverter->getIriFromResource($user),
-            $user->getUserIdentifier(),
             $accessTokenCookie,
+            $user,
         );
     }
 }

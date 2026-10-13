@@ -2,13 +2,13 @@
 
 namespace App\State;
 
-use ApiPlatform\Metadata\IriConverterInterface;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Api\Dto\AuthOutput;
 use App\Repository\UserRepository;
 use App\Security\Authentication\AuthCookieQueue;
 use App\Security\Authentication\JwtCookieFactory;
+use App\State\Trait\MapperAwareInterface;
 use Gesdinet\JWTRefreshTokenBundle\Model\RefreshTokenManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -16,14 +16,14 @@ use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
 class TokenRefreshStateProcessor implements ProcessorInterface
 {
+    use MapperAwareInterface;
+
     public function __construct(
         private readonly RequestStack $requestStack,
         private readonly RefreshTokenManagerInterface $refreshTokenManager,
         private readonly AuthCookieQueue $cookieQueue,
         private readonly JwtCookieFactory $cookieFactory,
         private readonly UserRepository $userRepository,
-        #[Autowire(service: 'api_platform.symfony.iri_converter')]
-        private readonly IriConverterInterface $iriConverter,
         #[Autowire('%app.jwt_refresh_token_cookie_name%')]
         private string $refreshTokenCookieName,
     ) {}
@@ -67,9 +67,8 @@ class TokenRefreshStateProcessor implements ProcessorInterface
 
         return new AuthOutput(
             'Token successfully refreshed.',
-            $this->iriConverter->getIriFromResource($user),
-            $user->getUserIdentifier(),
             $accessTokenCookie,
+            $user,
         );
     }
 }

@@ -46,10 +46,6 @@ class AuthenticationTest extends ApiTestCase
             mutation AuthLogin($email: String!, $password: String!) {
                 authLogin(input: { email: $email, password: $password }) {
                     login {
-                        id
-                        userId
-                        userIdentifier
-                        accessTokenExpiresAt
                         message
                     }
                 }
@@ -91,11 +87,10 @@ class AuthenticationTest extends ApiTestCase
             mutation AuthLogin($email: String!, $password: String!) {
                 authLogin(input: { email: $email, password: $password }) {
                     login {
-                        id
+                        message
+                        accessTokenExpiresAt
                         userId
                         userIdentifier
-                        accessTokenExpiresAt
-                        message
                     }
                 }
             }
@@ -109,7 +104,7 @@ class AuthenticationTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'AuthLogin')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertSame($this->getIriFromResource($user), $body['data']['authLogin']['login']['userId']);
+        $this->assertSame(sprintf('/users/%s', $user->getId()->toRfc4122()), $body['data']['authLogin']['login']['userId']);
         $this->assertSame($user->getUserIdentifier(), $body['data']['authLogin']['login']['userIdentifier']);
     }
 
@@ -123,11 +118,7 @@ class AuthenticationTest extends ApiTestCase
             mutation AuthLogin($email: String!, $password: String!) {
                 authLogin(input: { email: $email, password: $password }) {
                     login {
-                        id
-                        userId
-                        userIdentifier
                         accessTokenExpiresAt
-                        message
                     }
                 }
             }
@@ -163,10 +154,6 @@ class AuthenticationTest extends ApiTestCase
             mutation AuthLogin($email: String!, $password: String!) {
                 authLogin(input: { email: $email, password: $password }) {
                     login {
-                        id
-                        userId
-                        userIdentifier
-                        accessTokenExpiresAt
                         message
                     }
                 }
@@ -200,10 +187,6 @@ class AuthenticationTest extends ApiTestCase
             mutation AuthTokenRefresh {
                 authTokenRefresh(input: {  }) {
                     tokenRefresh {
-                        id
-                        userId
-                        userIdentifier
-                        accessTokenExpiresAt
                         message
                     }
                 }
@@ -257,10 +240,6 @@ class AuthenticationTest extends ApiTestCase
             mutation AuthTokenRefresh {
                 authTokenRefresh(input: {  }) {
                     tokenRefresh {
-                        id
-                        userId
-                        userIdentifier
-                        accessTokenExpiresAt
                         message
                     }
                 }
@@ -287,7 +266,7 @@ class AuthenticationTest extends ApiTestCase
         $this->assertSame('deleted', $cookies[self::COOKIE_NAME_ACCESS_TOKEN]->getValue());
         $this->assertSame('deleted', $cookies[self::COOKIE_NAME_REFRESH_TOKEN]->getValue());
     }
-    
+
     public function testTokenRefreshReturns401WhenRefreshTokenIsExpired(): void
     {
         $user = UserFactory::random();
@@ -300,10 +279,6 @@ class AuthenticationTest extends ApiTestCase
             mutation AuthTokenRefresh {
                 authTokenRefresh(input: {  }) {
                     tokenRefresh {
-                        id
-                        userId
-                        userIdentifier
-                        accessTokenExpiresAt
                         message
                     }
                 }
@@ -330,11 +305,10 @@ class AuthenticationTest extends ApiTestCase
             mutation AuthLogout {
                 authLogout(input: {  }) {
                     logout {
-                        id
+                        message
+                        accessTokenExpiresAt
                         userId
                         userIdentifier
-                        accessTokenExpiresAt
-                        message
                     }
                 }
             }

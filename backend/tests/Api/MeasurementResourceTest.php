@@ -3,16 +3,11 @@
 namespace App\Tests\Api;
 
 use ApiPlatform\Test\ApiTestCase;
-use App\Entity\HormoneEntity;
-use App\Entity\LabResultEntity;
-use App\Entity\MeasurementEntity;
-use App\Entity\ReferenceRangeEntity;
-use App\Entity\UnitEntity;
+use App\Api\Resource\MeasurementResource;
 use App\Entity\UserEntity;
 use App\Factory\LabResultFactory;
 use App\Factory\MeasurementFactory;
 use App\Factory\UserFactory;
-use App\Tests\Story\MeasurementsStory;
 use App\Tests\Support\AuthenticatedClientTrait;
 use App\Tests\Support\GraphQlTestTrait;
 use App\Tests\Support\RegexTrait;
@@ -38,7 +33,7 @@ class MeasurementResourceTest extends ApiTestCase
     public function setUp(): void
     {
         parent::setUp();
-        
+
         UserFactory::createMany(3);
 
         foreach (UserFactory::all() as $user) {
@@ -61,7 +56,6 @@ class MeasurementResourceTest extends ApiTestCase
                 measurements {
                     id
                     value
-                    drawnAt
                     createdAt
                     updatedAt
                 }
@@ -74,9 +68,8 @@ class MeasurementResourceTest extends ApiTestCase
         $this->assertCount(15, $body['data']['measurements']);
 
         foreach ($body['data']['measurements'] as $measurement) {
-            $this->assertMatchesIri($measurement['id'], MeasurementEntity::class);
+            $this->assertMatchesIri($measurement['id'], MeasurementResource::class);
             $this->assertIsNumeric($measurement['value']);
-            $this->assertMatchesDate($measurement['drawnAt']);
             $this->assertMatchesDate($measurement['createdAt']);
             $this->assertMatchesDate($measurement['updatedAt']);
         }
@@ -91,7 +84,6 @@ class MeasurementResourceTest extends ApiTestCase
                 measurements {
                     id
                     value
-                    drawnAt
                     createdAt
                     updatedAt
                 }
@@ -118,7 +110,6 @@ class MeasurementResourceTest extends ApiTestCase
                 measurement(id: $id) {
                     id
                     value
-                    drawnAt
                     createdAt
                     updatedAt
                 }
@@ -126,15 +117,14 @@ class MeasurementResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($measurement),
+            'id' => sprintf('/measurements/%s', $measurement->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'Measurement')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertSame($this->getIriFromResource($measurement), $body['data']['measurement']['id']);
+        $this->assertSame(sprintf('/measurements/%s', $measurement->getId()->toRfc4122()), $body['data']['measurement']['id']);
         $this->assertSame($measurement->getValue(), $body['data']['measurement']['value']);
-        $this->assertSame($measurement->getDrawnAt()->format('c'), $body['data']['measurement']['drawnAt']);
         $this->assertSame($measurement->getCreatedAt()->format('c'), $body['data']['measurement']['createdAt']);
         $this->assertSame($measurement->getUpdatedAt()->format('c'), $body['data']['measurement']['updatedAt']);
     }
@@ -151,7 +141,6 @@ class MeasurementResourceTest extends ApiTestCase
                 measurement(id: $id) {
                     id
                     value
-                    drawnAt
                     createdAt
                     updatedAt
                 }
@@ -159,7 +148,7 @@ class MeasurementResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($measurement),
+            'id' => sprintf('/measurements/%s', $measurement->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'Measurement')->toArray(false);
@@ -179,7 +168,6 @@ class MeasurementResourceTest extends ApiTestCase
                 measurement(id: $id) {
                     id
                     value
-                    drawnAt
                     createdAt
                     updatedAt
                 }
@@ -187,7 +175,7 @@ class MeasurementResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($measurement),
+            'id' => sprintf('/measurements/%s', $measurement->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'Measurement')->toArray(false);
@@ -1108,7 +1096,7 @@ class MeasurementResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($measurement),
+            'id' => sprintf('/measurements/%s', $measurement->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteMeasurement')->toArray(false);
@@ -1135,14 +1123,14 @@ class MeasurementResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($measurement),
+            'id' => sprintf('/measurements/%s', $measurement->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteMeasurement')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 404);
-        $this->assertGraphQlError($body, sprintf('Item "%s" not found.', $this->getIriFromResource($measurement)));
-        $this->assertGraphQlDebugMessage($body, sprintf('Item "%s" not found.', $this->getIriFromResource($measurement)));
+        $this->assertGraphQlError($body, sprintf('Item "/measurements/%s" not found.', $measurement->getId()->toRfc4122()));
+        $this->assertGraphQlDebugMessage($body, sprintf('Item "/measurements/%s" not found.', $measurement->getId()->toRfc4122()));
         $this->assertNull($body['data']['deleteMeasurement']);
     }
 
@@ -1163,7 +1151,7 @@ class MeasurementResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($measurement),
+            'id' => sprintf('/measurements/%s', $measurement->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteMeasurement')->toArray(false);

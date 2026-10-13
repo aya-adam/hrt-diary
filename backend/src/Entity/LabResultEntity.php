@@ -2,57 +2,19 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\GraphQl\DeleteMutation;
-use ApiPlatform\Metadata\GraphQl\Mutation;
-use ApiPlatform\Metadata\GraphQl\Query;
-use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use App\Repository\LabResultRepository;
-use App\State\LabResultStateProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Symfony\Bridge\Doctrine\Types\UuidType;
-use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
-use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: LabResultRepository::class)]
 #[ORM\Table(name: '`lab_result`')]
-#[ApiResource(
-    shortName: 'LabResult',
-    security: 'is_granted(\'IS_AUTHENTICATED\')',
-    operations: [],
-    graphQlOperations: [
-        new Query(
-            normalizationContext: ['groups' => ['read']],
-        ),
-        new QueryCollection(
-            normalizationContext: ['groups' => ['read']],
-        ),
-        new Mutation(
-            name: 'create',
-            normalizationContext: ['groups' => ['read']],
-            denormalizationContext: ['groups' => ['labResult:create']],
-            processor: LabResultStateProcessor::class,
-        ),
-        new Mutation(
-            name: 'update',
-            normalizationContext: ['groups' => ['read']],
-            denormalizationContext: ['groups' => ['labResult:update']],
-            processor: LabResultStateProcessor::class,
-        ),
-        new DeleteMutation(
-            name: 'delete',
-            processor: LabResultStateProcessor::class,
-        ),
-    ],
-)]
 class LabResultEntity
 {
-    #[Groups(['read'])]
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
@@ -66,45 +28,31 @@ class LabResultEntity
     /**
      * @var Collection<int, MeasurementEntity>
      */
-    #[Groups(['read', 'labResult:create'])]
     #[ORM\OneToMany(targetEntity: MeasurementEntity::class, mappedBy: 'labResult', orphanRemoval: true)]
     private Collection $measurements;
 
     /**
      * @var Collection<int, PostEntity>
      */
-    #[Groups(['read'])]
     #[ORM\JoinTable(name: 'lab_result_post')]
     #[ORM\JoinColumn(name: 'lab_result_id', referencedColumnName: 'id')]
     #[ORM\InverseJoinColumn(name: 'post_id', referencedColumnName: 'id')]
     #[ORM\ManyToMany(targetEntity: PostEntity::class, inversedBy: 'labResults')]
     private Collection $posts;
 
-    #[Assert\NotBlank(allowNull: true)]
-    #[Groups(['read', 'labResult:create', 'labResult:update'])]
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $notes = null;
 
-    #[Assert\Type(['bool', 'null'])]
-    #[Groups(['labResult:create', 'labResult:update'])]
-    private ?bool $published = null;
-
-    #[Groups(['read'])]
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $publishedAt = null;
 
-    #[Assert\NotBlank]
-    #[Assert\Type('DateTimeInterface')]
-    #[Groups(['read', 'labResult:create', 'labResult:update'])]
     #[ORM\Column]
     private ?\DateTimeImmutable $drawnAt = null;
 
-    #[Groups(['read'])]
     #[ORM\Column]
     #[Gedmo\Timestampable(on: 'create')]
     private ?\DateTimeImmutable $createdAt = null;
 
-    #[Groups(['read'])]
     #[ORM\Column]
     #[Gedmo\Timestampable(on: 'update')]
     private ?\DateTimeImmutable $updatedAt = null;
@@ -210,18 +158,6 @@ class LabResultEntity
     public function setNotes(?string $notes): static
     {
         $this->notes = $notes;
-
-        return $this;
-    }
-
-    public function isPublished(): ?bool
-    {
-        return $this->published;
-    }
-
-    public function setPublished(?bool $published): static
-    {
-        $this->published = $published;
 
         return $this;
     }

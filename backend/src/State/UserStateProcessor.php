@@ -10,14 +10,14 @@ use App\Entity\UserEntity;
 use App\Security\Authentication\AuthCookieQueue;
 use App\Security\Authentication\JwtCookieFactory;
 use App\State\Trait\GraphQlOperationHelperTrait;
-use Doctrine\ORM\EntityManagerInterface;
+use App\State\Trait\MapperAwareInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final class UserStateProcessor implements ProcessorInterface
 {
-    use GraphQlOperationHelperTrait;
+    use MapperAwareInterface, GraphQlOperationHelperTrait;
 
     public function __construct(
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
@@ -25,7 +25,6 @@ final class UserStateProcessor implements ProcessorInterface
         #[Autowire(service: 'api_platform.doctrine.orm.state.remove_processor')]
         private readonly ProcessorInterface $removeProcessor,
         private readonly Security $security,
-        private readonly EntityManagerInterface $entityManager,
         private UserPasswordHasherInterface $passwordHasher,
         private readonly AuthCookieQueue $cookieQueue,
         private readonly JwtCookieFactory $cookieFactory,
@@ -33,17 +32,22 @@ final class UserStateProcessor implements ProcessorInterface
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
+        /**
+         * @disregard P1013 Undefined method
+         */
+        $data = $this->dtoToEntity($data, $operation->getStateOptions()->getEntityClass(), $context['graphql_context']['previous_object']->id ?? null);
+
         if (!self::isMutationCreate($operation)) {
             $this->assertOwnership($data);
         }
 
-        if (self::isMutationCreate($operation) || self::isMutationUpdate($operation)) {
-            $data = $this->hashUserPassword($data);
-        }
-
-        return $operation instanceof DeleteMutation
+        $result = $operation instanceof DeleteMutation
             ? $this->remove($data, $operation, $uriVariables, $context)
             : $this->persist($data, $operation, $uriVariables, $context);
+
+        return $result
+            ? $this->entityToDto($data, $operation->getClass())
+            : $result;
     }
 
     private function persist(mixed $data, Operation $operation, array $uriVariables, array $context): mixed

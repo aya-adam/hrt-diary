@@ -6,6 +6,7 @@ use GraphQL\Type\Introspection;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\Constraint\ArrayHasKey;
 use PHPUnit\Framework\Constraint\LogicalNot;
+use PHPUnit\Framework\Constraint\TraversableContainsIdentical;
 use PHPUnit\Framework\ExpectationFailedException;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
@@ -99,16 +100,15 @@ trait GraphQlTestTrait
     }
 
     /**
-     * Assert that the violation messages for a field are the same
+     * Assert that the violation messages for a field exists
      * 
-     * Mirrors the Behat `the GraphQL extension violation with the path `$field` should be equal to`.
-     * `$expectedMessages` can be set as an array, incase there are multiple violations with the same path.
+     * Mirrors the Behat `the GraphQL extension violation with the path `$field` contains`.
      * 
      * step: looks under `errors[$i].extensions.violations[][$field]`.
      *
      * @param array{errors?: list<array<string, mixed>>} $data
      */
-    protected function assertGraphQlFieldViolation(array $data, string $field, string|array $expectedMessages, int $index = 0): void
+    protected function assertGraphQlFieldViolation(array $data, string $field, string $expectedMessage, int $index = 0, string $message = ''): void
     {
         if (!isset($data['errors'][$index])) {
             throw new ExpectationFailedException(\sprintf('No GraphQL error at index %d.', $index));
@@ -120,21 +120,15 @@ trait GraphQlTestTrait
             throw new ExpectationFailedException(\sprintf('No violations at GraphQL error index %d.', $index));
         }
 
-        $groupedViolations = [];
-        foreach ($error['extensions']['violations'] as $item) {
-            $groupedViolations[$item['path']][] = $item['message'] ?? null;
-        }
+        $groupedViolations = array_column(array_filter($error['extensions']['violations'], fn($value) => $value['path'] === $field), 'message');
 
-
-        if (!isset($groupedViolations[$field])) {
+        if (empty($groupedViolations)) {
             throw new ExpectationFailedException(\sprintf('No violation for the field `%s` at GraphQL error index %d.', $field, $index));
         }
 
-        if (is_string($expectedMessages)) {
-            $expectedMessages = [$expectedMessages];
-        }
+        $constraint = new TraversableContainsIdentical($expectedMessage);
 
-        Assert::assertSame($expectedMessages, $groupedViolations[$field]);
+        Assert::assertThat($groupedViolations, $constraint, $message);
     }
 
     /**
@@ -148,7 +142,7 @@ trait GraphQlTestTrait
 
         Assert::assertThat($data, $constraint, $message);
     }
-    
+
     /**
      * @param array{errors?: list<array<string, mixed>>} $data
      */

@@ -3,7 +3,7 @@
 namespace App\Tests\Api;
 
 use ApiPlatform\Test\ApiTestCase;
-use App\Entity\PostEntity;
+use App\Api\Resource\PostResource;
 use App\Factory\PostFactory;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
@@ -65,7 +65,7 @@ class PostResourceTest extends ApiTestCase
         $this->assertCount(10, $body['data']['posts']);
 
         foreach ($body['data']['posts'] as $post) {
-            $this->assertMatchesIri($post['id'], PostEntity::class);
+            $this->assertMatchesIri($post['id'], PostResource::class);
             $this->assertIsString($post['title']);
             $this->assertArrayHasKey('excerpt', $post);
             $this->assertArrayHasKey('text', $post);
@@ -123,13 +123,13 @@ class PostResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($post),
+            'id' => sprintf('/posts/%s', $post->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'Post')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertSame($this->getIriFromResource($post), $body['data']['post']['id']);
+        $this->assertSame(sprintf('/posts/%s', $post->getId()->toRfc4122()), $body['data']['post']['id']);
         $this->assertSame($post->getTitle(), $body['data']['post']['title']);
         $this->assertSame($post->getExcerpt(), $body['data']['post']['excerpt']);
         $this->assertSame($post->getText(), $body['data']['post']['text']);
@@ -159,7 +159,7 @@ class PostResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($post),
+            'id' => sprintf('/posts/%s', $post->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'Post')->toArray(false);
@@ -189,7 +189,7 @@ class PostResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($post),
+            'id' => sprintf('/posts/%s', $post->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'Post')->toArray(false);
@@ -231,7 +231,7 @@ class PostResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'CreatePost')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['createPost']['post']['id'], PostEntity::class);
+        $this->assertMatchesIri($body['data']['createPost']['post']['id'], PostResource::class);
         $this->assertSame('New post title', $body['data']['createPost']['post']['title']);
         $this->assertSame('New post excerpt', $body['data']['createPost']['post']['excerpt']);
         $this->assertSame('New post text', $body['data']['createPost']['post']['text']);
@@ -272,7 +272,7 @@ class PostResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'CreatePost')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['createPost']['post']['id'], PostEntity::class);
+        $this->assertMatchesIri($body['data']['createPost']['post']['id'], PostResource::class);
         $this->assertSame('New post title', $body['data']['createPost']['post']['title']);
         $this->assertSame('New post excerpt', $body['data']['createPost']['post']['excerpt']);
         $this->assertSame('New post text', $body['data']['createPost']['post']['text']);
@@ -346,7 +346,9 @@ class PostResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreatePost')->toArray(false);
 
-        $this->assertGraphQlError($body, 'Field createPostInput.title of required type String! was not provided.');
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'title', 'This value should not be blank.');
+        $this->assertNull($body['data']['createPost']);
     }
 
     public function testPostReturns422WhenTitleIsBlank(): void
@@ -587,7 +589,7 @@ class PostResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($post),
+            'id' => sprintf('/posts/%s', $post->getId()->toRfc4122()),
             'title' => 'Updated post title',
             'excerpt' => 'Updated post excerpt',
             'text' => 'Updated post text',
@@ -597,7 +599,7 @@ class PostResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['updatePost']['post']['id'], PostEntity::class);
+        $this->assertMatchesIri($body['data']['updatePost']['post']['id'], PostResource::class);
         $this->assertSame('Updated post title', $body['data']['updatePost']['post']['title']);
         $this->assertSame('Updated post excerpt', $body['data']['updatePost']['post']['excerpt']);
         $this->assertSame('Updated post text', $body['data']['updatePost']['post']['text']);
@@ -630,7 +632,7 @@ class PostResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($post),
+            'id' => sprintf('/posts/%s', $post->getId()->toRfc4122()),
             'title' => 'Updated post title',
             'excerpt' => 'Updated post excerpt',
             'text' => 'Updated post text',
@@ -640,7 +642,7 @@ class PostResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['updatePost']['post']['id'], PostEntity::class);
+        $this->assertMatchesIri($body['data']['updatePost']['post']['id'], PostResource::class);
         $this->assertSame('Updated post title', $body['data']['updatePost']['post']['title']);
         $this->assertSame('Updated post excerpt', $body['data']['updatePost']['post']['excerpt']);
         $this->assertSame('Updated post text', $body['data']['updatePost']['post']['text']);
@@ -673,7 +675,7 @@ class PostResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($post),
+            'id' => sprintf('/posts/%s', $post->getId()->toRfc4122()),
             'title' => 'Updated post title',
             'excerpt' => 'Updated post excerpt',
             'text' => 'Updated post text',
@@ -683,7 +685,7 @@ class PostResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['updatePost']['post']['id'], PostEntity::class);
+        $this->assertMatchesIri($body['data']['updatePost']['post']['id'], PostResource::class);
         $this->assertSame('Updated post title', $body['data']['updatePost']['post']['title']);
         $this->assertSame('Updated post excerpt', $body['data']['updatePost']['post']['excerpt']);
         $this->assertSame('Updated post text', $body['data']['updatePost']['post']['text']);
@@ -715,7 +717,7 @@ class PostResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($post),
+            'id' => sprintf('/posts/%s', $post->getId()->toRfc4122()),
             'title' => 'Updated post title',
             'excerpt' => 'Updated post excerpt',
             'text' => 'Updated post text',
@@ -754,7 +756,7 @@ class PostResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($post),
+            'id' => sprintf('/posts/%s', $post->getId()->toRfc4122()),
             'title' => 'Updated post title',
             'excerpt' => 'Updated post excerpt',
             'text' => 'Updated post text',
@@ -764,8 +766,8 @@ class PostResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePost')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 404);
-        $this->assertGraphQlError($body, "Item \"{$this->getIriFromResource($post)}\" not found.");
-        $this->assertGraphQlDebugMessage($body, "Item \"{$this->getIriFromResource($post)}\" not found.");
+        $this->assertGraphQlError($body, sprintf('Item "/posts/%s" not found.', $post->getId()->toRfc4122()));
+        $this->assertGraphQlDebugMessage($body, sprintf('Item "/posts/%s" not found.', $post->getId()->toRfc4122()));
         $this->assertNull($body['data']['updatePost']);
     }
 
@@ -793,7 +795,7 @@ class PostResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($post),
+            'id' => sprintf('/posts/%s', $post->getId()->toRfc4122()),
             'title' => '',
             'excerpt' => 'Updated post excerpt',
             'text' => 'Updated post text',
@@ -831,7 +833,7 @@ class PostResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($post),
+            'id' => sprintf('/posts/%s', $post->getId()->toRfc4122()),
             'title' => faker()->text(1000),
             'excerpt' => 'Updated post excerpt',
             'text' => 'Updated post text',
@@ -869,7 +871,7 @@ class PostResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($post),
+            'id' => sprintf('/posts/%s', $post->getId()->toRfc4122()),
             'title' => 'Updated post title',
             'excerpt' => '',
             'text' => 'Updated post text',
@@ -907,7 +909,7 @@ class PostResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($post),
+            'id' => sprintf('/posts/%s', $post->getId()->toRfc4122()),
             'title' => 'Updated post title',
             'excerpt' => faker()->text(1000),
             'text' => 'Updated post text',
@@ -945,7 +947,7 @@ class PostResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($post),
+            'id' => sprintf('/posts/%s', $post->getId()->toRfc4122()),
             'title' => 'Updated post title',
             'excerpt' => 'Updated post excerpt',
             'text' => '',
@@ -983,7 +985,7 @@ class PostResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($post),
+            'id' => sprintf('/posts/%s', $post->getId()->toRfc4122()),
             'title' => 'Updated post title',
             'excerpt' => 'Updated post excerpt',
             'text' => 'Updated post text',
@@ -1013,7 +1015,7 @@ class PostResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($post),
+            'id' => sprintf('/posts/%s', $post->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'DeletePost')->toArray(false);
@@ -1040,14 +1042,14 @@ class PostResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($post),
+            'id' => sprintf('/posts/%s', $post->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'DeletePost')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 404);
-        $this->assertGraphQlError($body, "Item \"{$this->getIriFromResource($post)}\" not found.");
-        $this->assertGraphQlDebugMessage($body, "Item \"{$this->getIriFromResource($post)}\" not found.");
+        $this->assertGraphQlError($body, sprintf('Item "/posts/%s" not found.', $post->getId()->toRfc4122()));
+        $this->assertGraphQlDebugMessage($body, sprintf('Item "/posts/%s" not found.', $post->getId()->toRfc4122()));
         $this->assertNull($body['data']['deletePost']);
     }
 
@@ -1068,7 +1070,7 @@ class PostResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($post),
+            'id' => sprintf('/posts/%s', $post->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'DeletePost')->toArray(false);

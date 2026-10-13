@@ -3,13 +3,14 @@
 namespace App\Tests\Api;
 
 use ApiPlatform\Test\ApiTestCase;
-use App\Entity\LabResultEntity;
+use App\Api\Resource\LabResultResource;
 use App\Factory\LabResultFactory;
 use App\Factory\PostFactory;
 use App\Factory\UserFactory;
 use App\Tests\Support\AuthenticatedClientTrait;
 use App\Tests\Support\GraphQlTestTrait;
 use App\Tests\Support\RegexTrait;
+use DateTimeInterface;
 use Override;
 
 use function Zenstruck\Foundry\faker;
@@ -65,7 +66,7 @@ class LabResultResourceTest extends ApiTestCase
         $this->assertCount(10, $body['data']['labResults']);
 
         foreach ($body['data']['labResults'] as $labResults) {
-            $this->assertMatchesIri($labResults['id'], LabResultEntity::class);
+            $this->assertMatchesIri($labResults['id'], LabResultResource::class);
             $this->assertArrayHasKey('notes', $labResults);
             $this->assertArrayHasKey('publishedAt', $labResults);
             $this->assertMatchesDate($labResults['drawnAt']);
@@ -120,18 +121,18 @@ class LabResultResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($labResult),
+            'id' => sprintf('/lab_results/%s', $labResult->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'LabResult')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertSame($this->getIriFromResource($labResult), $body['data']['labResult']['id']);
+        $this->assertSame(sprintf('/lab_results/%s', $labResult->getId()->toRfc4122()), $body['data']['labResult']['id']);
         $this->assertSame($labResult->getNotes(), $body['data']['labResult']['notes']);
         $this->assertSame($labResult->getPublishedAt(), $body['data']['labResult']['publishedAt']);
-        $this->assertSame($labResult->getDrawnAt()->format('c'), $body['data']['labResult']['drawnAt']);
-        $this->assertSame($labResult->getCreatedAt()->format('c'), $body['data']['labResult']['createdAt']);
-        $this->assertSame($labResult->getUpdatedAt()->format('c'), $body['data']['labResult']['updatedAt']);
+        $this->assertSame($labResult->getDrawnAt()->format(DateTimeInterface::ATOM), $body['data']['labResult']['drawnAt']);
+        $this->assertSame($labResult->getCreatedAt()->format(DateTimeInterface::ATOM), $body['data']['labResult']['createdAt']);
+        $this->assertSame($labResult->getUpdatedAt()->format(DateTimeInterface::ATOM), $body['data']['labResult']['updatedAt']);
     }
 
     public function testGetItemReturnsNullForNonOwnerAsRegularUser(): void
@@ -155,7 +156,7 @@ class LabResultResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($labResult),
+            'id' => sprintf('/lab_results/%s', $labResult->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'LabResult')->toArray(false);
@@ -184,7 +185,7 @@ class LabResultResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($labResult),
+            'id' => sprintf('/lab_results/%s', $labResult->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'LabResult')->toArray(false);
@@ -216,7 +217,7 @@ class LabResultResourceTest extends ApiTestCase
             }
         GQL;
 
-        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format(DateTimeInterface::ATOM);
 
         $variables = [
             'notes' => 'New lab notes',
@@ -227,7 +228,7 @@ class LabResultResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateLabResult')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['createLabResult']['labResult']['id'], LabResultEntity::class);
+        $this->assertMatchesIri($body['data']['createLabResult']['labResult']['id'], LabResultResource::class);
         $this->assertSame('New lab notes', $body['data']['createLabResult']['labResult']['notes']);
         $this->assertNull($body['data']['createLabResult']['labResult']['publishedAt']);
         $this->assertSame($drawnAt, $body['data']['createLabResult']['labResult']['drawnAt']);
@@ -256,7 +257,7 @@ class LabResultResourceTest extends ApiTestCase
             }
         GQL;
 
-        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format(DateTimeInterface::ATOM);
 
         $variables = [
             'notes' => 'New lab notes',
@@ -267,7 +268,7 @@ class LabResultResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateLabResult')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['createLabResult']['labResult']['id'], LabResultEntity::class);
+        $this->assertMatchesIri($body['data']['createLabResult']['labResult']['id'], LabResultResource::class);
         $this->assertSame('New lab notes', $body['data']['createLabResult']['labResult']['notes']);
         $this->assertMatchesDate($body['data']['createLabResult']['labResult']['publishedAt']);
         $this->assertSame($drawnAt, $body['data']['createLabResult']['labResult']['drawnAt']);
@@ -294,7 +295,7 @@ class LabResultResourceTest extends ApiTestCase
             }
         GQL;
 
-        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format(DateTimeInterface::ATOM);
 
         $variables = [
             'notes' => 'New lab notes',
@@ -338,7 +339,9 @@ class LabResultResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateLabResult')->toArray(false);
 
-        $this->assertGraphQlError($body, 'Field createLabResultInput.drawnAt of required type String! was not provided.');
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'drawnAt', 'This value should not be blank.');
+        $this->assertNull($body['data']['createLabResult']);
     }
 
     public function testPostReturns422WhenDrawnAtIsBlank(): void
@@ -370,7 +373,9 @@ class LabResultResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateLabResult')->toArray(false);
 
-        $this->assertGraphQlError($body, 'The data is either not an string, an empty string, or null; you should pass a string that can be parsed with the passed format or a valid DateTime string.');
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'drawnAt', 'This value should not be blank.');
+        $this->assertNull($body['data']['createLabResult']);
     }
 
     public function testPostReturns422WhenDrawnAtIsNotDateValue(): void
@@ -394,7 +399,7 @@ class LabResultResourceTest extends ApiTestCase
             }
         GQL;
 
-        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format(DateTimeInterface::ATOM);
 
         $variables = [
             'notes' => 'New lab notes',
@@ -404,7 +409,9 @@ class LabResultResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'CreateLabResult')->toArray(false);
 
-        $this->assertGraphQlError($body, 'Failed to parse time string (invalid_date_value) at position 0 (i): The timezone could not be found in the database');
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'drawnAt', 'Invalid value. Enter a date in the ATOM (Y-m-d\\TH:i:sP) format.');
+        $this->assertNull($body['data']['createLabResult']);
     }
 
     public function testPostReturns422WhenNotesIsBlank(): void
@@ -428,7 +435,7 @@ class LabResultResourceTest extends ApiTestCase
             }
         GQL;
 
-        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format(DateTimeInterface::ATOM);
 
         $variables = [
             'notes' => '',
@@ -464,7 +471,7 @@ class LabResultResourceTest extends ApiTestCase
             }
         GQL;
 
-        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format(DateTimeInterface::ATOM);
 
         $variables = [
             'notes' => 'New lab notes',
@@ -499,10 +506,10 @@ class LabResultResourceTest extends ApiTestCase
             }
         GQL;
 
-        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format(DateTimeInterface::ATOM);
 
         $variables = [
-            'id' => $this->getIriFromResource($labResult),
+            'id' => sprintf('/lab_results/%s', $labResult->getId()->toRfc4122()),
             'notes' => 'Updated lab notes',
             'published' => null,
             'drawnAt' => $drawnAt,
@@ -511,7 +518,7 @@ class LabResultResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['updateLabResult']['labResult']['id'], LabResultEntity::class);
+        $this->assertMatchesIri($body['data']['updateLabResult']['labResult']['id'], LabResultResource::class);
         $this->assertSame('Updated lab notes', $body['data']['updateLabResult']['labResult']['notes']);
         $this->assertNull($body['data']['updateLabResult']['labResult']['publishedAt']);
         $this->assertSame($drawnAt, $body['data']['updateLabResult']['labResult']['drawnAt']);
@@ -541,10 +548,10 @@ class LabResultResourceTest extends ApiTestCase
             }
         GQL;
 
-        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format(DateTimeInterface::ATOM);
 
         $variables = [
-            'id' => $this->getIriFromResource($labResult),
+            'id' => sprintf('/lab_results/%s', $labResult->getId()->toRfc4122()),
             'notes' => 'Updated lab notes',
             'published' => true,
             'drawnAt' => $drawnAt,
@@ -553,7 +560,7 @@ class LabResultResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['updateLabResult']['labResult']['id'], LabResultEntity::class);
+        $this->assertMatchesIri($body['data']['updateLabResult']['labResult']['id'], LabResultResource::class);
         $this->assertSame('Updated lab notes', $body['data']['updateLabResult']['labResult']['notes']);
         $this->assertMatchesDate($body['data']['updateLabResult']['labResult']['publishedAt']);
         $this->assertSame($drawnAt, $body['data']['updateLabResult']['labResult']['drawnAt']);
@@ -583,10 +590,10 @@ class LabResultResourceTest extends ApiTestCase
             }
         GQL;
 
-        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format(DateTimeInterface::ATOM);
 
         $variables = [
-            'id' => $this->getIriFromResource($labResult),
+            'id' => sprintf('/lab_results/%s', $labResult->getId()->toRfc4122()),
             'notes' => 'Updated lab notes',
             'published' => false,
             'drawnAt' => $drawnAt,
@@ -595,7 +602,7 @@ class LabResultResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertMatchesIri($body['data']['updateLabResult']['labResult']['id'], LabResultEntity::class);
+        $this->assertMatchesIri($body['data']['updateLabResult']['labResult']['id'], LabResultResource::class);
         $this->assertSame('Updated lab notes', $body['data']['updateLabResult']['labResult']['notes']);
         $this->assertNull($body['data']['updateLabResult']['labResult']['publishedAt']);
         $this->assertSame($drawnAt, $body['data']['updateLabResult']['labResult']['drawnAt']);
@@ -624,10 +631,10 @@ class LabResultResourceTest extends ApiTestCase
             }
         GQL;
 
-        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format(DateTimeInterface::ATOM);
 
         $variables = [
-            'id' => $this->getIriFromResource($labResult),
+            'id' => sprintf('/lab_results/%s', $labResult->getId()->toRfc4122()),
             'notes' => 'Updated lab notes',
             'published' => null,
             'drawnAt' => $drawnAt,
@@ -663,10 +670,10 @@ class LabResultResourceTest extends ApiTestCase
             }
         GQL;
 
-        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format(DateTimeInterface::ATOM);
 
         $variables = [
-            'id' => $this->getIriFromResource($labResult),
+            'id' => sprintf('/lab_results/%s', $labResult->getId()->toRfc4122()),
             'notes' => 'Updated lab notes',
             'published' => null,
             'drawnAt' => $drawnAt,
@@ -675,8 +682,8 @@ class LabResultResourceTest extends ApiTestCase
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 404);
-        $this->assertGraphQlError($body, "Item \"{$this->getIriFromResource($labResult)}\" not found.");
-        $this->assertGraphQlDebugMessage($body, "Item \"{$this->getIriFromResource($labResult)}\" not found.");
+        $this->assertGraphQlError($body, sprintf('Item "/lab_results/%s" not found.', $labResult->getId()->toRfc4122()));
+        $this->assertGraphQlDebugMessage($body, sprintf('Item "/lab_results/%s" not found.', $labResult->getId()->toRfc4122()));
         $this->assertNull($body['data']['updateLabResult']);
     }
 
@@ -703,7 +710,7 @@ class LabResultResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($labResult),
+            'id' => sprintf('/lab_results/%s', $labResult->getId()->toRfc4122()),
             'notes' => 'Updated lab notes',
             'published' => null,
             'drawnAt' => '',
@@ -711,7 +718,9 @@ class LabResultResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
 
-        $this->assertGraphQlError($body, 'The data is either not an string, an empty string, or null; you should pass a string that can be parsed with the passed format or a valid DateTime string.');
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'drawnAt', 'This value should not be blank.');
+        $this->assertNull($body['data']['createLabResult']);
     }
 
     public function testPatchReturns422WhenDrawnAtIsNotDateValue(): void
@@ -737,7 +746,7 @@ class LabResultResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($labResult),
+            'id' => sprintf('/lab_results/%s', $labResult->getId()->toRfc4122()),
             'notes' => 'Updated lab notes',
             'published' => null,
             'drawnAt' => 'invalid_date_value',
@@ -745,7 +754,9 @@ class LabResultResourceTest extends ApiTestCase
 
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateLabResult')->toArray(false);
 
-        $this->assertGraphQlError($body, 'Failed to parse time string (invalid_date_value) at position 0 (i): The timezone could not be found in the database');
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'drawnAt', 'Invalid value. Enter a date in the ATOM (Y-m-d\\TH:i:sP) format.');
+        $this->assertNull($body['data']['createLabResult']);
     }
 
     public function testPatchReturns422WhenNotesIsBlank(): void
@@ -770,10 +781,10 @@ class LabResultResourceTest extends ApiTestCase
             }
         GQL;
 
-        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format(DateTimeInterface::ATOM);
 
         $variables = [
-            'id' => $this->getIriFromResource($labResult),
+            'id' => sprintf('/lab_results/%s', $labResult->getId()->toRfc4122()),
             'notes' => '',
             'published' => null,
             'drawnAt' => $drawnAt,
@@ -808,10 +819,10 @@ class LabResultResourceTest extends ApiTestCase
             }
         GQL;
 
-        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format('c');
+        $drawnAt = faker()->dateTimeBetween('-1 month', '-1 day')->format(DateTimeInterface::ATOM);
 
         $variables = [
-            'id' => $this->getIriFromResource($labResult),
+            'id' => sprintf('/lab_results/%s', $labResult->getId()->toRfc4122()),
             'notes' => 'Updated lab notes',
             'published' => 'true',
             'drawnAt' => $drawnAt,
@@ -840,7 +851,7 @@ class LabResultResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($labResult),
+            'id' => sprintf('/lab_results/%s', $labResult->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteLabResult')->toArray(false);
@@ -867,14 +878,14 @@ class LabResultResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($labResult),
+            'id' => sprintf('/lab_results/%s', $labResult->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteLabResult')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 404);
-        $this->assertGraphQlError($body, "Item \"{$this->getIriFromResource($labResult)}\" not found.");
-        $this->assertGraphQlDebugMessage($body, "Item \"{$this->getIriFromResource($labResult)}\" not found.");
+        $this->assertGraphQlError($body, sprintf('Item "/lab_results/%s" not found.', $labResult->getId()->toRfc4122()));
+        $this->assertGraphQlDebugMessage($body, sprintf('Item "/lab_results/%s" not found.', $labResult->getId()->toRfc4122()));
         $this->assertNull($body['data']['deleteLabResult']);
     }
 
@@ -895,7 +906,7 @@ class LabResultResourceTest extends ApiTestCase
         GQL;
 
         $variables = [
-            'id' => $this->getIriFromResource($labResult),
+            'id' => sprintf('/lab_results/%s', $labResult->getId()->toRfc4122()),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'DeleteLabResult')->toArray(false);
