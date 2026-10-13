@@ -9,6 +9,7 @@ use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
 use ApiPlatform\Metadata\GraphQl\Query;
 use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use ApiPlatform\Metadata\Operation;
+use App\Entity\EventEntity;
 use App\Entity\LabResultEntity;
 use App\Entity\MeasurementEntity;
 use App\Entity\PostEntity;
@@ -64,6 +65,7 @@ final class OwnerExtension implements QueryCollectionExtensionInterface, QueryIt
     private function getSupportedClasses(): array
     {
         return [
+            EventEntity::class,
             LabResultEntity::class,
             MeasurementEntity::class,
             PostEntity::class,

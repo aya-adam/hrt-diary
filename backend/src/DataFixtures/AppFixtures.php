@@ -4,6 +4,7 @@ namespace App\DataFixtures;
 
 use App\Entity\HormoneEntity;
 use App\Entity\ReferenceRangeEntity;
+use App\Factory\EventFactory;
 use App\Factory\LabResultFactory;
 use App\Factory\MeasurementFactory;
 use App\Factory\PostFactory;
@@ -80,6 +81,38 @@ class AppFixtures extends Fixture
                     ['labResults' => LabResultFactory::new()->published()->many(3)->reuse($user)->create()],
                     ['labResults' => LabResultFactory::new()->many(3)->reuse($user)->create()],
                 ])
+                ->reuse($user)
+                ->create();
+        }
+
+        /**
+         * Create mock events
+         * 
+         * Event with criticality
+         * Event with early notification
+         * Event with reapeat interval
+         * Event with criticality, early notification and repeat interval
+         */
+        foreach (UserFactory::all() as $user) {
+            EventFactory::new()
+                ->isCritical()
+                ->reuse($user)
+                ->create();
+
+            EventFactory::new()
+                ->withEarlyNotification(7)
+                ->reuse($user)
+                ->create();
+
+            EventFactory::new()
+                ->withRepeatInterval(30 * 3)
+                ->reuse($user)
+                ->create();
+
+            EventFactory::new()
+                ->isCritical()
+                ->withEarlyNotification(7)
+                ->withRepeatInterval(15)
                 ->reuse($user)
                 ->create();
         }

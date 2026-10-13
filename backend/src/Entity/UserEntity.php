@@ -26,6 +26,12 @@ class UserEntity implements UserInterface, PasswordAuthenticatedUserInterface
     private ?Uuid $id = null;
 
     /**
+     * @var Collection<int, EventEntity>
+     */
+    #[ORM\OneToMany(targetEntity: EventEntity::class, mappedBy: 'user', orphanRemoval: true)]
+    private Collection $events;
+
+    /**
      * @var Collection<int, LabResultEntity>
      */
     #[ORM\OneToMany(targetEntity: LabResultEntity::class, mappedBy: 'user', orphanRemoval: true)]
@@ -79,6 +85,7 @@ class UserEntity implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function __construct()
     {
+        $this->events = new ArrayCollection();
         $this->labResults = new ArrayCollection();
         $this->measurements = new ArrayCollection();
         $this->posts = new ArrayCollection();
@@ -88,6 +95,36 @@ class UserEntity implements UserInterface, PasswordAuthenticatedUserInterface
     public function getId(): ?Uuid
     {
         return $this->id;
+    }
+
+    /**
+     * @return Collection<int, EventEntity>
+     */
+    public function getEvents(): Collection
+    {
+        return $this->events;
+    }
+
+    public function addEvent(EventEntity $event): static
+    {
+        if (!$this->events->contains($event)) {
+            $this->events->add($event);
+            $event->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeEvent(EventEntity $event): static
+    {
+        if ($this->events->removeElement($event)) {
+            // set the owning side to null (unless already changed)
+            if ($event->getUser() === $this) {
+                $event->setUser(null);
+            }
+        }
+
+        return $this;
     }
 
     /**
