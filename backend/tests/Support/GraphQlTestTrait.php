@@ -128,7 +128,14 @@ trait GraphQlTestTrait
 
         $constraint = new TraversableContainsIdentical($expectedMessage);
 
-        Assert::assertThat($groupedViolations, $constraint, $message);
+        try {
+            Assert::assertThat($groupedViolations, $constraint);
+        } catch (\PHPUnit\Framework\ExpectationFailedException) {
+            throw new \PHPUnit\Framework\ExpectationFailedException(
+                sprintf('Failed asserting that the \'%s\' field violations contain the message \'%s\'', $field, $expectedMessage),
+                new \SebastianBergmann\Comparator\ComparisonFailure([$expectedMessage], $groupedViolations, $expectedMessage, implode("\r\n", $groupedViolations))
+            );
+        }
     }
 
     /**
