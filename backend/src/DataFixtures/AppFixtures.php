@@ -4,6 +4,7 @@ namespace App\DataFixtures;
 
 use App\Entity\HormoneEntity;
 use App\Entity\ReferenceRangeEntity;
+use App\Factory\AdministrationCycleFactory;
 use App\Factory\EventFactory;
 use App\Factory\LabResultFactory;
 use App\Factory\MeasurementFactory;
@@ -114,6 +115,16 @@ class AppFixtures extends Fixture
                 ->withEarlyNotification(7)
                 ->withRepeatInterval(15)
                 ->reuse($user)
+                ->create();
+        }
+
+        /**
+         * Create mock administration cycles
+         */
+        foreach (UserFactory::all() as $user) {
+            AdministrationCycleFactory::new()
+                ->reuse($user)
+                ->many(3)
                 ->create();
         }
 

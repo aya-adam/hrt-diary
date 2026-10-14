@@ -26,6 +26,12 @@ class UserEntity implements UserInterface, PasswordAuthenticatedUserInterface
     private ?Uuid $id = null;
 
     /**
+     * @var Collection<int, AdministrationCycleEntity>
+     */
+    #[ORM\OneToMany(targetEntity: AdministrationCycleEntity::class, mappedBy: 'user', orphanRemoval: true)]
+    private Collection $administrationCycles;
+
+    /**
      * @var Collection<int, EventEntity>
      */
     #[ORM\OneToMany(targetEntity: EventEntity::class, mappedBy: 'user', orphanRemoval: true)]
@@ -85,6 +91,7 @@ class UserEntity implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function __construct()
     {
+        $this->administrationCycles = new ArrayCollection();
         $this->events = new ArrayCollection();
         $this->labResults = new ArrayCollection();
         $this->measurements = new ArrayCollection();
@@ -95,6 +102,36 @@ class UserEntity implements UserInterface, PasswordAuthenticatedUserInterface
     public function getId(): ?Uuid
     {
         return $this->id;
+    }
+
+    /**
+     * @return Collection<int, AdministrationCycleEntity>
+     */
+    public function getAdministrationCycles(): Collection
+    {
+        return $this->administrationCycles;
+    }
+
+    public function addAdministrationCycle(AdministrationCycleEntity $administrationCycle): static
+    {
+        if (!$this->administrationCycles->contains($administrationCycle)) {
+            $this->administrationCycles->add($administrationCycle);
+            $administrationCycle->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAdministrationCycle(AdministrationCycleEntity $administrationCycle): static
+    {
+        if ($this->administrationCycles->removeElement($administrationCycle)) {
+            // set the owning side to null (unless already changed)
+            if ($administrationCycle->getUser() === $this) {
+                $administrationCycle->setUser(null);
+            }
+        }
+
+        return $this;
     }
 
     /**
