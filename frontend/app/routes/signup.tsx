@@ -1,5 +1,5 @@
 import type { Route } from "./+types/signup";
-import { constants } from "~/utils";
+import { constants, User } from "~/utils";
 import SignUpForm from "~/components/forms/signUpForm";
 import { Link, useNavigate } from "react-router";
 
@@ -10,8 +10,8 @@ export function meta({}: Route.MetaArgs) {
 export default function SignUp() {
     const navigate = useNavigate();
 
-    const handleSuccess = (e: any) => {
-        navigate("/signin", { state: { email: e.createUser.user.email } });
+    const handleSuccess = (user: User) => {
+        navigate("/signin", { state: { email: user.email } });
     };
 
     return (
@@ -33,7 +33,7 @@ export default function SignUp() {
             </div>
 
             <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-                <SignUpForm onSuccess={(e) => handleSuccess(e)} />
+                <SignUpForm onSuccess={handleSuccess} />
                 <p className="mt-10 text-center text-sm/6 text-gray-500 dark:text-gray-400">
                     Already have an account?{" "}
                     <Link

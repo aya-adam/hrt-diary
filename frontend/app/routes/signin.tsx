@@ -10,7 +10,7 @@ export function meta({}: Route.MetaArgs) {
 export default function SignIn() {
     const navigate = useNavigate();
 
-    const handleSuccess = (e: any) => {
+    const handleSuccess = () => {
         navigate("/dashboard");
     };
 
@@ -33,7 +33,7 @@ export default function SignIn() {
             </div>
 
             <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-                <SignInForm onSuccess={(e) => handleSuccess(e)} prefill={{ email: useLocation().state?.email }} />
+                <SignInForm onSuccess={handleSuccess} prefill={{ email: useLocation().state?.email }} />
                 <p className="mt-10 text-center text-sm/6 text-gray-500 dark:text-gray-400">
                     Not an account yet?{" "}
                     <Link

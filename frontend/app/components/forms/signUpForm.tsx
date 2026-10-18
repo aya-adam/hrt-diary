@@ -58,7 +58,7 @@ export default function SignUpForm({ prefill, onSuccess, onFail }: SignUpFormInt
                     password: formData.password,
                 },
             });
-            if (onSuccess) onSuccess(data);
+            if (onSuccess) onSuccess(User.fromDto(data?.createUser.user));
         } catch (error: any) {
             if (CombinedGraphQLErrors.is(error)) {
                 error.errors.forEach((graphQlError) => {
