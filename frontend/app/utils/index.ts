@@ -1,5 +1,17 @@
+export { assertDefined } from "./assertions";
 export { constants } from "./constants";
 export { joinClasses } from "./css";
+export { AdministrationCycle, type AdministrationCycleDto } from "./domains/AdministrationCycle";
+export { Auth, type AuthDto } from "./domains/Auth";
+export { Event, type EventDto } from "./domains/Event";
+export { Hormone, type HormoneDto } from "./domains/Hormone";
+export { LabResult, type LabResultDto } from "./domains/LabResult";
+export { Measurement, type MeasurementDto } from "./domains/Measurements";
+export { Post, type PostDto } from "./domains/Post";
+export { QuantityType, type QuantityTypeDto } from "./domains/QuantityType";
+export { ReferenceRange, type ReferenceRangeDto } from "./domains/ReferenceRange";
+export { Unit, type UnitDto } from "./domains/Unit";
+export { User, type UserDto } from "./domains/User";
 export { apolloClient } from "./apollo/client";
 export { getErrorMessage } from "./apollo/errorLink";
 export { LOGIN_MUTATION, REFRESH_MUTATION, LOGOUT_MUTATION, CREATE_USER_MUTATION } from "./apollo/queries";
