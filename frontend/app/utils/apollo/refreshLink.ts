@@ -1,7 +1,8 @@
 import { SetContextLink } from "@apollo/client/link/context";
 import { isAccessTokenExpiringSoon, runExclusiveRefresh } from "./authState";
 import { useAuthStore } from "~/stores/authStore";
-import { REFRESH_MUTATION } from "./queries";
+import { Auth } from "../domains/Auth";
+import { print } from "graphql";
 
 const GRAPHQL_ENDPOINT = import.meta.env.VITE_GRAPHQL_ENDPOINT_URL;
 
@@ -12,7 +13,10 @@ export async function performRefresh(): Promise<boolean> {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: REFRESH_MUTATION }),
+        body: JSON.stringify({
+            query: print(Auth.REFRESH_MUTATION),
+            operationName: "AuthTokenRefresh",
+        }),
     });
 
     if (!response.ok) {

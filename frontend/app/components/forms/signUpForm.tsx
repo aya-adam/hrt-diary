@@ -7,28 +7,28 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { CombinedGraphQLErrors } from "@apollo/client";
 import Loader from "../loaders/loader";
 import { useState } from "react";
-import { apolloClient, CREATE_USER_MUTATION } from "~/utils";
+import { apolloClient, User } from "~/utils";
 
 const schema = yup
     .object({
         email: yup.string().required("Email is required").email("Please enter a valid remail"),
-        plainPassword: yup.string().required("Password is required"),
+        password: yup.string().required("Password is required"),
         passwordConfirmation: yup
             .string()
             .required("Password confirmation is required")
-            .oneOf([yup.ref("plainPassword")], "Password must match"),
+            .oneOf([yup.ref("password")], "Password must match"),
     })
     .required();
 
 interface SignUpFormInput {
     email: string;
-    plainPassword: string;
+    password: string;
     passwordConfirmation: string;
 }
 
 interface SignUpFormInterface {
-    prefill?: { email?: string; plainPassword?: string; passwordConfirmation?: string };
-    onSuccess?: (e?: any) => void;
+    prefill?: { email?: string; password?: string; passwordConfirmation?: string };
+    onSuccess?: (user: User) => void;
     onFail?: (e?: any) => void;
 }
 
@@ -43,7 +43,7 @@ export default function SignUpForm({ prefill, onSuccess, onFail }: SignUpFormInt
         resolver: yupResolver(schema),
         defaultValues: {
             email: prefill?.email,
-            plainPassword: prefill?.plainPassword,
+            password: prefill?.password,
             passwordConfirmation: prefill?.passwordConfirmation,
         },
     });
@@ -52,10 +52,10 @@ export default function SignUpForm({ prefill, onSuccess, onFail }: SignUpFormInt
         setLoading(true);
         try {
             const { data } = await apolloClient.mutate({
-                mutation: CREATE_USER_MUTATION,
+                mutation: User.CREATE_MUTATION,
                 variables: {
                     email: formData.email,
-                    plainPassword: formData.plainPassword,
+                    password: formData.password,
                 },
             });
             if (onSuccess) onSuccess(data);
@@ -97,7 +97,7 @@ export default function SignUpForm({ prefill, onSuccess, onFail }: SignUpFormInt
             </div>
 
             <div>
-                <Input label="Password" {...register("plainPassword")} type="password" error={errors.plainPassword} />
+                <Input label="Password" {...register("password")} type="password" error={errors.password} />
             </div>
 
             <div>

@@ -1,6 +1,6 @@
 import { Outlet, redirect, useNavigation } from "react-router";
 import { useAuthStore } from "~/stores/authStore";
-import { apolloClient, getErrorMessage, joinClasses, REFRESH_MUTATION } from "~/utils";
+import { apolloClient, Auth, getErrorMessage, joinClasses } from "~/utils";
 import type { Route } from "./+types/publicShell";
 import Alert from "../notifications/alert";
 import Loader from "../loaders/loader";
@@ -20,7 +20,7 @@ export async function clientLoader() {
 
     if (userId || userIdentifier || accessTokenExpiresAt) {
         try {
-            const { data } = await apolloClient.mutate({ mutation: REFRESH_MUTATION });
+            const { data } = await apolloClient.mutate({ mutation: Auth.REFRESH_MUTATION });
             setUserId(data?.authTokenRefresh.tokenRefresh.userId ?? null);
             setUserIdentifier(data?.authTokenRefresh.tokenRefresh.userIdentifier ?? null);
             setAccessTokenExpiresAt(data?.authTokenRefresh.tokenRefresh.accessTokenExpiresAt ?? null);

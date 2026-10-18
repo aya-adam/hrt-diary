@@ -6,7 +6,7 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import Loader from "../loaders/loader";
 import { CombinedGraphQLErrors } from "@apollo/client";
-import { apolloClient, LOGIN_MUTATION } from "~/utils";
+import { apolloClient, Auth } from "~/utils";
 import { useState } from "react";
 import { useAuthStore } from "~/stores/authStore";
 
@@ -48,7 +48,7 @@ export default function SignInForm({ prefill, onSuccess, onFail }: SignInFormInt
         setLoading(true);
         try {
             const { data } = await apolloClient.mutate({
-                mutation: LOGIN_MUTATION,
+                mutation: Auth.LOGIN_MUTATION,
                 variables: {
                     email: formData.email,
                     password: formData.password,

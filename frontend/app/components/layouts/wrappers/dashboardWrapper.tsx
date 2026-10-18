@@ -15,7 +15,7 @@ import {
     UserIcon,
     XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { apolloClient, isCurrentPage, joinClasses, LOGOUT_MUTATION } from "~/utils";
+import { apolloClient, Auth, isCurrentPage, joinClasses } from "~/utils";
 import Loader from "~/components/loaders/loader";
 import BasicWrapper from "./basicWrapper";
 
@@ -38,7 +38,7 @@ export default function DashboardWrapper({ children }: React.PropsWithChildren) 
     const handleLogout = async () => {
         setLoading(true);
         try {
-            await apolloClient.mutate({ mutation: LOGOUT_MUTATION });
+            await apolloClient.mutate({ mutation: Auth.LOGOUT_MUTATION });
             useAuthStore.getState().clearAll();
             navigate("/signin");
         } catch (error: any) {
