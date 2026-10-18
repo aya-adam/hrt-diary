@@ -32,6 +32,7 @@ const mainNavigation = [
 export default function DashboardWrapper({ children }: React.PropsWithChildren) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [loading, setLoading] = useState<boolean>(false);
+    const { userIdentifier } = useAuthStore()
     const navigate = useNavigate();
     const locationPathname = useLocation().pathname;
 
@@ -186,7 +187,7 @@ export default function DashboardWrapper({ children }: React.PropsWithChildren) 
                                         className="size-8 rounded-full bg-gray-800 outline -outline-offset-1 outline-white/10"
                                     />
                                     <span className="sr-only">Your profile</span>
-                                    <span aria-hidden="true">Tom Cook</span>
+                                    <span aria-hidden="true">{userIdentifier}</span>
                                 </Link>
                             </li>
                         </ul>
