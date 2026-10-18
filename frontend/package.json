@@ -37,5 +37,10 @@
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3",
     "vite": "^8.0.3"
+  },
+  "overrides": {
+    "@apollo/client-integration-react-router": {
+      "react-router": "$react-router"
+    }
   }
 }
