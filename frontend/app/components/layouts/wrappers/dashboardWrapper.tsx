@@ -9,10 +9,10 @@ import {
     BookOpenIcon,
     CalendarDaysIcon,
     ChartBarIcon,
+    Cog8ToothIcon,
     HomeIcon,
     PowerIcon,
     UserCircleIcon,
-    UserIcon,
     XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { apolloClient, Auth, isCurrentPage, joinClasses } from "~/utils";
@@ -26,7 +26,7 @@ const mainNavigation = [
     { name: "Charts", href: "/dashboard/charts", icon: ChartBarIcon, pathMatchExact: false },
     { name: "Cycles", href: "/dashboard/cycles", icon: ArrowPathIcon, pathMatchExact: false },
     { name: "Events", href: "/dashboard/events", icon: CalendarDaysIcon, pathMatchExact: false },
-    { name: "Account", href: "/dashboard/account", icon: UserIcon, pathMatchExact: false },
+    { name: "Settings", href: "/dashboard/settings/profile", icon: Cog8ToothIcon, pathMatchExact: false },
 ];
 
 export default function DashboardWrapper({ children }: React.PropsWithChildren) {

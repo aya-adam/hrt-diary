@@ -3,19 +3,20 @@ import DashboardWrapper from "./wrappers/dashboardWrapper";
 import { isCurrentPage } from "~/utils";
 
 const accountNavigation = [
-    { name: 'Account', href: '/dashboard/account' },
-    { name: 'Password & Security', href: '/dashboard/account/passwort-and-security' },
-    { name: 'Privacy & Data', href: '/dashboard/account/privacy-and-data' },
+    { name: 'Profile', href: '/dashboard/settings/profile' },
+    { name: 'Range references', href: '/dashboard/settings/range-references' },
+    { name: 'Password & Security', href: '/dashboard/settings/password-and-security' },
+    { name: 'Privacy & Data', href: '/dashboard/settings/privacy-and-data' },
 ]
 
-export default function DashboardAccountLayout() {
+export default function DashboardSettingsLayout() {
     const locationPathname = useLocation().pathname;
 
     return (
         <DashboardWrapper>
             <div className="lg:pl-72">
                 <main>
-                    <h1 className="sr-only">Account Settings</h1>
+                    <h1 className="sr-only">Settings</h1>
 
                     <header className="border-b border-gray-200 dark:border-white/5">
                         {/* Secondary navigation */}

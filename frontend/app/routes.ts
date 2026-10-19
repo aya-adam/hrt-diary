@@ -18,10 +18,11 @@ export default [
                 route("cycles", "routes/dashboard/cycles.tsx"),
                 route("events", "routes/dashboard/events.tsx"),
             ]),
-            route("account", "components/layouts/dashboardAccountLayout.tsx", [
-                index("routes/dashboard/account/account.tsx"),
-                route("passwort-and-security", "routes/dashboard/account/passwortSecurity.tsx"),
-                route("privacy-and-data", "routes/dashboard/account/privacyData.tsx"),
+            route("settings", "components/layouts/dashboardSettingsLayout.tsx", [
+                route("profile", "routes/dashboard/settings/profile.tsx"),
+                route("range-references", "routes/dashboard/settings/rangeReferences.tsx"),
+                route("password-and-security", "routes/dashboard/settings/passwordSecurity.tsx"),
+                route("privacy-and-data", "routes/dashboard/settings/privacyData.tsx"),
             ]),
         ]),
     ]),
