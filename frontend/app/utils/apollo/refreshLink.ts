@@ -6,7 +6,7 @@ import { print } from "graphql";
 
 const GRAPHQL_ENDPOINT = import.meta.env.VITE_GRAPHQL_ENDPOINT_URL;
 
-const SKIP_OPERATIONS = new Set(["AuthLogin", "AuthTokenRefresh"]);
+const SKIP_OPERATIONS = new Set(["AuthLogin", "AuthTokenRefresh", "CheckPasswordStrength", "CreateUser"]);
 
 export async function performRefresh(): Promise<boolean> {
     const response = await fetch(GRAPHQL_ENDPOINT, {
