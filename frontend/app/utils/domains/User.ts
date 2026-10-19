@@ -54,6 +54,19 @@ type UserDeleteMutationResponse = {
     },
 };
 
+type CheckPasswordStrengthMutationInput = {
+    password: string,
+};
+
+type CheckPasswordStrengthMutationResponse = {
+    checkPasswordStrength: {
+        passwordStrength: {
+            estimatedStrength: number,
+            message: string,
+        },
+    },
+};
+
 export class User {
     readonly id: string;
     readonly email: string;
@@ -118,6 +131,17 @@ export class User {
             updateUser(input: { id: $id }) {
                 user {
                     id
+                }
+            }
+        }
+    `;
+
+    static readonly CHECK_PW_STRENGTH_MUTATION: TypedDocumentNode<CheckPasswordStrengthMutationResponse, CheckPasswordStrengthMutationInput> = gql`
+        mutation CheckPasswordStrength($password: String!) {
+            checkPasswordStrength(input: { password: $password }) {
+                passwordStrength {
+                    estimatedStrength
+                    message
                 }
             }
         }

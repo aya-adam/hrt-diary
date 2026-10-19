@@ -2,12 +2,13 @@ import * as yup from "yup";
 import Input from "~/components/forms/fields/input";
 import Button from "~/components/elements/button";
 import Alert from "~/components/notifications/alert";
-import { useForm, type SubmitHandler } from "react-hook-form";
+import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { CombinedGraphQLErrors } from "@apollo/client";
 import Loader from "../loaders/loader";
-import { useState } from "react";
-import { apolloClient, User } from "~/utils";
+import { useEffect, useState } from "react";
+import { apolloClient, useDebounce, User } from "~/utils";
+import PasswordStrength from "../notifications/passwordStrength";
 
 const schema = yup
     .object({
@@ -34,7 +35,11 @@ interface SignUpFormInterface {
 
 export default function SignUpForm({ prefill, onSuccess, onFail }: SignUpFormInterface) {
     const [loading, setLoading] = useState<boolean>(false);
+    const [passwordStrength, setPasswordStrength] = useState<number>();
+    const [passwordStrengthMessage, setPasswordStrengthMessage] = useState<string>();
+    const [passwordStrengthError, setPasswordStrengthError] = useState<string>();
     const {
+        control,
         register,
         handleSubmit,
         setError,
@@ -47,6 +52,9 @@ export default function SignUpForm({ prefill, onSuccess, onFail }: SignUpFormInt
             passwordConfirmation: prefill?.passwordConfirmation,
         },
     });
+
+    const password = useWatch({ control, name: "password" });
+    const debouncedPassword = useDebounce(password, 800);
 
     const onSubmit: SubmitHandler<SignUpFormInput> = async (formData) => {
         setLoading(true);
@@ -88,6 +96,36 @@ export default function SignUpForm({ prefill, onSuccess, onFail }: SignUpFormInt
         }
     };
 
+    useEffect(() => {
+        if (!debouncedPassword) {
+            setPasswordStrength(undefined);
+            setPasswordStrengthMessage(undefined);
+            return;
+        }
+
+        const controller = new AbortController();
+
+        const checkPasswordStrength = async () => {
+            try {
+                const { data } = await apolloClient.mutate({
+                    mutation: User.CHECK_PW_STRENGTH_MUTATION,
+                    variables: { password: debouncedPassword },
+                });
+                setPasswordStrength(data?.checkPasswordStrength.passwordStrength.estimatedStrength);
+                setPasswordStrengthMessage(data?.checkPasswordStrength.passwordStrength.message);
+            } catch (error) {
+                setPasswordStrengthError("An error occured while trying to determine the strength of the password.");
+                setPasswordStrength(undefined);
+                setPasswordStrengthMessage(undefined);
+            }
+        };
+
+
+        checkPasswordStrength();
+
+        return () => controller.abort();
+    }, [debouncedPassword]);
+
     if (loading) return <Loader />;
 
     return (
@@ -99,6 +137,12 @@ export default function SignUpForm({ prefill, onSuccess, onFail }: SignUpFormInt
             <div>
                 <Input label="Password" {...register("password")} type="password" error={errors.password} />
             </div>
+
+            {undefined !== passwordStrength && (
+                <div>
+                    <PasswordStrength strength={passwordStrength} message={passwordStrengthMessage} error={passwordStrengthError} />
+                </div>
+            )}
 
             <div>
                 <Input

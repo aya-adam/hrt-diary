@@ -15,6 +15,7 @@ use Symfony\Component\Uid\Uuid;
     graphQlOperations: [
         new Mutation(
             name: 'check',
+            args: ['password' => ['type' => 'String!'],],
             input: PasswordStrengthInput::class,
             processor: PasswordStrengthStateProcessor::class,
         ),

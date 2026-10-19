@@ -15,3 +15,4 @@ export { User, type UserDto } from "./domains/User";
 export { apolloClient } from "./apollo/client";
 export { getErrorMessage } from "./apollo/errorLink";
 export { isCurrentPage } from "./navigation";
+export { useDebounce } from "./hooks/useDebounce";
