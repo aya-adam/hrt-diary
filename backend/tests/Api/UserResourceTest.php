@@ -428,11 +428,9 @@ class UserResourceTest extends ApiTestCase
 
         $client = self::createAuthenticatedClient($user);
 
-        $passwordBefore = UserFactory::find($user->getId())->getPassword();
-
         $query = <<<'GQL'
-            mutation UpdateUser($id: ID!, $email: String!, $password: String!) {
-                updateUser(input: { id: $id, email: $email, password: $password }) {
+            mutation UpdateUser($id: ID!, $email: String!) {
+                updateUser(input: { id: $id, email: $email }) {
                     user {
                         id
                         email
@@ -447,7 +445,6 @@ class UserResourceTest extends ApiTestCase
         $variables = [
             'id' => sprintf('/users/%s', $user->getId()->toRfc4122()),
             'email' => 'updated_user@example.org',
-            'password' => faker()->password(20),
         ];
 
         $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
@@ -458,10 +455,6 @@ class UserResourceTest extends ApiTestCase
         $this->assertSame($user->getRoles(), $body['data']['updateUser']['user']['roles']);
         $this->assertMatchesDate($body['data']['updateUser']['user']['createdAt']);
         $this->assertMatchesDate($body['data']['updateUser']['user']['updatedAt']);
-
-        // Check if the password was updated
-        $passwordAfter = UserFactory::find($user->getId())->getPassword();
-        $this->assertNotEquals($passwordBefore, $passwordAfter);
     }
 
     public function testPatchUpdatesPersistedRefreshTokenAfterEmailUpdate(): void
@@ -511,8 +504,8 @@ class UserResourceTest extends ApiTestCase
         $client = self::createClient();
 
         $query = <<<'GQL'
-            mutation UpdateUser($id: ID!, $email: String!, $password: String!) {
-                updateUser(input: { id: $id, email: $email, password: $password }) {
+            mutation UpdateUser($id: ID!, $email: String!) {
+                updateUser(input: { id: $id, email: $email }) {
                     user {
                         id
                         email
@@ -545,8 +538,8 @@ class UserResourceTest extends ApiTestCase
         $client = self::createAuthenticatedClient($user1);
 
         $query = <<<'GQL'
-            mutation UpdateUser($id: ID!, $email: String!, $password: String!) {
-                updateUser(input: { id: $id, email: $email, password: $password }) {
+            mutation UpdateUser($id: ID!, $email: String!) {
+                updateUser(input: { id: $id, email: $email }) {
                     user {
                         id
                         email
@@ -668,21 +661,19 @@ class UserResourceTest extends ApiTestCase
         $this->assertNull($body['data']['updateUser']);
     }
 
-    public function testPatchReturns422WhenPasswordIsBlank(): void
+    public function testPatchUpdatesUserPassword(): void
     {
         $user = UserFactory::random();
 
         $client = self::createAuthenticatedClient($user);
 
+        $passwordBefore = UserFactory::find($user->getId())->getPassword();
+
         $query = <<<'GQL'
-            mutation UpdateUser($id: ID!, $password: String!) {
-                updateUser(input: { id: $id, password: $password }) {
+            mutation UpdatePasswordUser($id: ID!, $oldPassword: String!, $newPassword: String!) {
+                updatePasswordUser(input: { id: $id, oldPassword: $oldPassword, newPassword: $newPassword }) {
                     user {
                         id
-                        email
-                        roles
-                        createdAt
-                        updatedAt
                     }
                 }
             }
@@ -690,31 +681,30 @@ class UserResourceTest extends ApiTestCase
 
         $variables = [
             'id' => sprintf('/users/%s', $user->getId()->toRfc4122()),
-            'password' => '',
+            'oldPassword' => UserFactory::DEFAULT_PASSWORD,
+            'newPassword' => faker()->password(20),
         ];
 
-        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
+        $this->executeGraphQl($client, $query, $variables, 'UpdatePasswordUser');
 
-        $this->assertGraphQlErrorStatus($body, 422);
-        $this->assertGraphQlFieldViolation($body, 'password', 'This value should not be blank.');
-        $this->assertNull($body['data']['updateUser']);
+        // Check if the password was updated
+        $passwordAfter = UserFactory::find($user->getId())->getPassword();
+        $this->assertNotEquals($passwordBefore, $passwordAfter);
     }
 
-    public function testPatchReturns422WhenPasswordIsTooWeak(): void
+    public function testPatchReturns422WhenOldPasswordIsMissing(): void
     {
         $user = UserFactory::random();
 
         $client = self::createAuthenticatedClient($user);
 
+        $passwordBefore = UserFactory::find($user->getId())->getPassword();
+
         $query = <<<'GQL'
-            mutation UpdateUser($id: ID!, $password: String!) {
-                updateUser(input: { id: $id, password: $password }) {
+            mutation UpdatePasswordUser($id: ID!, $newPassword: String!) {
+                updatePasswordUser(input: { id: $id, newPassword: $newPassword }) {
                     user {
                         id
-                        email
-                        roles
-                        createdAt
-                        updatedAt
                     }
                 }
             }
@@ -722,14 +712,192 @@ class UserResourceTest extends ApiTestCase
 
         $variables = [
             'id' => sprintf('/users/%s', $user->getId()->toRfc4122()),
-            'password' => 'pass',
+            'newPassword' => faker()->password(20),
         ];
 
-        $body = $this->executeGraphQl($client, $query, $variables, 'UpdateUser')->toArray(false);
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePasswordUser')->toArray(false);
 
         $this->assertGraphQlErrorStatus($body, 422);
-        $this->assertGraphQlFieldViolation($body, 'password', 'The password strength is too low. Please use a stronger password.');
-        $this->assertNull($body['data']['updateUser']);
+        $this->assertGraphQlFieldViolation($body, 'oldPassword', 'This value should not be blank.');
+        $this->assertNull($body['data']['updatePasswordUser']);
+
+        // Check if the password is still the same
+        $passwordAfter = UserFactory::find($user->getId())->getPassword();
+        $this->assertSame($passwordBefore, $passwordAfter);
+    }
+    
+    public function testPatchReturns422WhenOldPasswordIsBlank(): void
+    {
+        $user = UserFactory::random();
+
+        $client = self::createAuthenticatedClient($user);
+
+        $passwordBefore = UserFactory::find($user->getId())->getPassword();
+
+        $query = <<<'GQL'
+            mutation UpdatePasswordUser($id: ID!, $oldPassword: String! $newPassword: String!) {
+                updatePasswordUser(input: { id: $id, oldPassword: $oldPassword, newPassword: $newPassword }) {
+                    user {
+                        id
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => sprintf('/users/%s', $user->getId()->toRfc4122()),
+            'oldPassword' => '',
+            'newPassword' => faker()->password(20),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePasswordUser')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'oldPassword', 'This value should not be blank.');
+        $this->assertNull($body['data']['updatePasswordUser']);
+
+        // Check if the password is still the same
+        $passwordAfter = UserFactory::find($user->getId())->getPassword();
+        $this->assertSame($passwordBefore, $passwordAfter);
+    }
+    
+    public function testPatchReturns422WhenOldPasswordIsInvalid(): void
+    {
+        $user = UserFactory::random();
+
+        $client = self::createAuthenticatedClient($user);
+
+        $passwordBefore = UserFactory::find($user->getId())->getPassword();
+
+        $query = <<<'GQL'
+            mutation UpdatePasswordUser($id: ID!, $oldPassword: String!, $newPassword: String!) {
+                updatePasswordUser(input: { id: $id, oldPassword: $oldPassword, newPassword: $newPassword }) {
+                    user {
+                        id
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => sprintf('/users/%s', $user->getId()->toRfc4122()),
+            'oldPassword' => 'invalid_password',
+            'newPassword' => faker()->password(20),
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePasswordUser')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'oldPassword', 'Wrong value for your current password.');
+        $this->assertNull($body['data']['updatePasswordUser']);
+
+        // Check if the password is still the same
+        $passwordAfter = UserFactory::find($user->getId())->getPassword();
+        $this->assertSame($passwordBefore, $passwordAfter);
+    }
+
+    public function testPatchReturns422WhenNewPasswordIsMissing(): void
+    {
+        $user = UserFactory::random();
+
+        $client = self::createAuthenticatedClient($user);
+
+        $passwordBefore = UserFactory::find($user->getId())->getPassword();
+
+        $query = <<<'GQL'
+            mutation UpdatePasswordUser($id: ID!, $oldPassword: String!) {
+                updatePasswordUser(input: { id: $id, oldPassword: $oldPassword }) {
+                    user {
+                        id
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => sprintf('/users/%s', $user->getId()->toRfc4122()),
+            'oldPassword' => UserFactory::DEFAULT_PASSWORD,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePasswordUser')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'newPassword', 'This value should not be blank.');
+        $this->assertNull($body['data']['updatePasswordUser']);
+
+        // Check if the password is still the same
+        $passwordAfter = UserFactory::find($user->getId())->getPassword();
+        $this->assertSame($passwordBefore, $passwordAfter);
+    }
+    
+    public function testPatchReturns422WhenNewPasswordIsBlank(): void
+    {
+        $user = UserFactory::random();
+
+        $client = self::createAuthenticatedClient($user);
+
+        $passwordBefore = UserFactory::find($user->getId())->getPassword();
+
+        $query = <<<'GQL'
+            mutation UpdatePasswordUser($id: ID!, $oldPassword: String!, $newPassword: String!) {
+                updatePasswordUser(input: { id: $id, oldPassword: $oldPassword, newPassword: $newPassword }) {
+                    user {
+                        id
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => sprintf('/users/%s', $user->getId()->toRfc4122()),
+            'oldPassword' => UserFactory::DEFAULT_PASSWORD,
+            'newPassword' => '',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePasswordUser')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'newPassword', 'This value should not be blank.');
+        $this->assertNull($body['data']['updatePasswordUser']);
+
+        // Check if the password is still the same
+        $passwordAfter = UserFactory::find($user->getId())->getPassword();
+        $this->assertSame($passwordBefore, $passwordAfter);
+    }
+    
+    public function testPatchReturns422WhenNewPasswordIsTooWeak(): void
+    {
+        $user = UserFactory::random();
+
+        $client = self::createAuthenticatedClient($user);
+
+        $passwordBefore = UserFactory::find($user->getId())->getPassword();
+
+        $query = <<<'GQL'
+            mutation UpdatePasswordUser($id: ID!, $oldPassword: String!, $newPassword: String!) {
+                updatePasswordUser(input: { id: $id, oldPassword: $oldPassword, newPassword: $newPassword }) {
+                    user {
+                        id
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'id' => sprintf('/users/%s', $user->getId()->toRfc4122()),
+            'oldPassword' => UserFactory::DEFAULT_PASSWORD,
+            'newPassword' => 'password',
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'UpdatePasswordUser')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'newPassword', 'The password strength is too low. Please use a stronger password.');
+        $this->assertNull($body['data']['updatePasswordUser']);
+
+        // Check if the password is still the same
+        $passwordAfter = UserFactory::find($user->getId())->getPassword();
+        $this->assertSame($passwordBefore, $passwordAfter);
     }
 
     public function testDeleteRemovesUser(): void

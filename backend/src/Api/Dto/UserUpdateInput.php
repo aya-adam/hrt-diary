@@ -18,9 +18,4 @@ final class UserUpdateInput
     #[Assert\Email]
     #[Map(if: new IsNotNull())]
     public ?string $email = null;
-
-    #[Assert\NotBlank(allowNull: true)]
-    #[Assert\PasswordStrength(minScore: PasswordStrength::STRENGTH_STRONG)]
-    #[Map(if: new IsNotNull(), transform: UserPasswordTransformer::class)]
-    public ?string $password = null;
 }

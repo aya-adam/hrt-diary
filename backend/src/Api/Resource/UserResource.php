@@ -10,6 +10,7 @@ use ApiPlatform\Metadata\GraphQl\Query;
 use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use App\Api\Dto\UserCreateInput;
 use App\Api\Dto\UserUpdateInput;
+use App\Api\Dto\UserUpdatePasswordInput;
 use App\Entity\UserEntity;
 use App\State\DtoStateProvider;
 use App\State\UserStateProcessor;
@@ -39,6 +40,13 @@ use Symfony\Component\Uid\Uuid;
         new Mutation(
             name: 'update',
             input: UserUpdateInput::class,
+            provider: DtoStateProvider::class,
+            processor: UserStateProcessor::class,
+            security: 'is_granted(\'IS_AUTHENTICATED\')',
+        ),
+        new Mutation(
+            name: 'updatePassword',
+            input: UserUpdatePasswordInput::class,
             provider: DtoStateProvider::class,
             processor: UserStateProcessor::class,
             security: 'is_granted(\'IS_AUTHENTICATED\')',
