@@ -9,6 +9,7 @@ import Loader from "../loaders/loader";
 import { useEffect, useState } from "react";
 import { apolloClient, useDebounce, User } from "~/utils";
 import PasswordStrength from "../notifications/passwordStrength";
+import PasswordInput from "./fields/passwordInput";
 
 const schema = yup
     .object({
@@ -135,7 +136,7 @@ export default function SignUpForm({ prefill, onSuccess, onFail }: SignUpFormInt
             </div>
 
             <div>
-                <Input label="Password" {...register("password")} type="password" error={errors.password} />
+                <PasswordInput label="Password" {...register("password")} autoComplete="new-password" error={errors.password} />
             </div>
 
             {undefined !== passwordStrength && (
@@ -145,10 +146,10 @@ export default function SignUpForm({ prefill, onSuccess, onFail }: SignUpFormInt
             )}
 
             <div>
-                <Input
+                <PasswordInput
                     label="Confirm Password"
                     {...register("passwordConfirmation")}
-                    type="password"
+                    autoComplete="new-password"
                     error={errors.passwordConfirmation}
                 />
             </div>

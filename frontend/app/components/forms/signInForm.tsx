@@ -9,6 +9,7 @@ import { CombinedGraphQLErrors } from "@apollo/client";
 import { apolloClient, Auth } from "~/utils";
 import { useState } from "react";
 import { useAuthStore } from "~/stores/authStore";
+import PasswordInput from "./fields/passwordInput";
 
 const schema = yup
     .object({
@@ -96,7 +97,7 @@ export default function SignInForm({ prefill, onSuccess, onFail }: SignInFormInt
             </div>
 
             <div>
-                <Input label="Password" {...register("password")} type="password" error={errors.password} />
+                <PasswordInput label="Password" {...register("password")} autoComplete="current-password" error={errors.password} />
             </div>
 
             {errors.root && (
