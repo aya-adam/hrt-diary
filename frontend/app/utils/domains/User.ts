@@ -26,6 +26,12 @@ type UserUpdateMutationInput = {
     password?: string,
 };
 
+type UserPasswordUpdateMutationInput = {
+    id: UserItemIdentifierInput['id'],
+    oldPassword: string,
+    newPassword: string,
+};
+
 type UserCollectionQueryResponse = {
     users: UserDto[],
 };
@@ -42,6 +48,12 @@ type UserCreateMutationResponse = {
 
 type UserUpdateMutationResponse = {
     updateUser: {
+        user: UserDto,
+    },
+};
+
+type UserPasswordUpdateMutationResponse = {
+    updatePasswordUser: {
         user: UserDto,
     },
 };
@@ -115,6 +127,20 @@ export class User {
     static readonly UPDATE_MUTATION: TypedDocumentNode<UserUpdateMutationResponse, UserUpdateMutationInput> = gql`
         mutation UpdateUser($id: ID!, $email: String, $password: String) {
             updateUser(input: { id: $id, email: $email, password: $password }) {
+                user {
+                    id
+                    email
+                    roles
+                    createdAt
+                    updatedAt
+                }
+            }
+        }
+    `;
+
+    static readonly UPDATE_PASSWORD_MUTATION: TypedDocumentNode<UserPasswordUpdateMutationResponse, UserPasswordUpdateMutationInput> = gql`
+        mutation UpdatePasswordUser($id: ID!, $oldPassword: String!, $newPassword: String!) {
+            updatePasswordUser(input: { id: $id, oldPassword: $oldPassword, newPassword: $newPassword }) {
                 user {
                     id
                     email

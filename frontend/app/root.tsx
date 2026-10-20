@@ -1,6 +1,7 @@
 import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 
 import type { Route } from "./+types/root";
+import { ToastContainer } from "react-toastify";
 import "./app.css";
 
 if (process.env.NODE_ENV !== "development") {
@@ -33,6 +34,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </head>
             <body className="h-full">
                 {children}
+                <ToastContainer theme="colored" />
                 <ScrollRestoration />
                 <Scripts />
             </body>
