@@ -1,5 +1,6 @@
 import { gql, type TypedDocumentNode } from "@apollo/client";
 import { assertDefined } from "../assertions";
+import { User } from "./User";
 
 export type AuthDto = {
     message: string,
@@ -78,7 +79,7 @@ export class Auth {
     constructor(message: string, accessTokenExpiresAt: string | null | undefined, userId: string | null | undefined, userIdentifier: string | null | undefined) {
         this.message = message;
         this.accessTokenExpiresAt = accessTokenExpiresAt ? Number(accessTokenExpiresAt) : undefined;
-        this.userId = userId ?? undefined;
+        this.userId = userId ? User.toUuid(userId) : undefined;
         this.userIdentifier = userIdentifier ?? undefined;
     };
 

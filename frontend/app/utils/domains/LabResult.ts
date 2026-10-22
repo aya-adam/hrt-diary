@@ -57,6 +57,8 @@ type LabResultDeleteMutationResponse = {
     }
 };
 
+const LAB_RESULT_IRI_PREFIX = "/lab_results/";
+
 export class LabResult {
     readonly id: string;
     readonly notes?: string;
@@ -132,7 +134,7 @@ export class LabResult {
     `;
 
     constructor(id: string, notes: string | null | undefined, publishedAt: string | null | undefined, drawnAt: string, createdAt: string, updatedAt: string) {
-        this.id = id;
+        this.id = LabResult.toUuid(id);
         this.notes = notes ?? undefined;
         this.publishedAt = publishedAt ? moment(publishedAt) : undefined;
         this.drawnAt = moment(drawnAt);
@@ -151,5 +153,13 @@ export class LabResult {
             dto.createdAt,
             dto.updatedAt,
         );
+    }
+
+    static toUuid(id: string): string {
+        return id.replace(LAB_RESULT_IRI_PREFIX, "");
+    }
+    
+    static toIri(uuid: string): string {
+        return uuid.startsWith(LAB_RESULT_IRI_PREFIX) ? uuid : `${LAB_RESULT_IRI_PREFIX}${uuid}`;
     }
 }

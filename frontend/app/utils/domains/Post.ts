@@ -60,6 +60,8 @@ type PostDeleteMutationResponse = {
     },
 };
 
+const POST_IRI_PREFIX = "/posts/";
+
 export class Post {
     readonly id: string;
     readonly title: string;
@@ -140,7 +142,7 @@ export class Post {
     `;
 
     constructor(id: string, title: string, excerpt: string | null | undefined, text: string | null | undefined, publishedAt: string | null | undefined, createdAt: string, updatedAt: string) {
-        this.id = id;
+        this.id = Post.toUuid(id);
         this.title = title;
         this.excerpt = excerpt ?? undefined;
         this.text = text ?? undefined;
@@ -161,5 +163,13 @@ export class Post {
             dto.createdAt,
             dto.updatedAt,
         );
+    }
+
+    static toUuid(id: string): string {
+        return id.replace(POST_IRI_PREFIX, "");
+    }
+    
+    static toIri(uuid: string): string {
+        return uuid.startsWith(POST_IRI_PREFIX) ? uuid : `${POST_IRI_PREFIX}${uuid}`;
     }
 }

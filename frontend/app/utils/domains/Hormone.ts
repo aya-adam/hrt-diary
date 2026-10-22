@@ -19,6 +19,8 @@ type HormoneCollectionQueryResponse = {
     hormones: HormoneDto[],
 };
 
+const HORMONE_IRI_PREFIX = "/hormones/";
+
 export class Hormone {
     readonly id: string;
     readonly name: string;
@@ -45,7 +47,7 @@ export class Hormone {
     `;
 
     constructor(id: string, name: string, commonName: string | null | undefined) {
-        this.id = id;
+        this.id = Hormone.toUuid(id);
         this.name = name;
         this.commonName = commonName ?? undefined;
     };
@@ -58,5 +60,13 @@ export class Hormone {
             dto.name,
             dto.commonName,
         );
+    }
+
+    static toUuid(id: string): string {
+        return id.replace(HORMONE_IRI_PREFIX, "");
+    }
+    
+    static toIri(uuid: string): string {
+        return uuid.startsWith(HORMONE_IRI_PREFIX) ? uuid : `${HORMONE_IRI_PREFIX}${uuid}`;
     }
 }

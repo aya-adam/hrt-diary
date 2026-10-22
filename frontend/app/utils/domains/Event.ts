@@ -63,6 +63,8 @@ type EventDeleteMutationResponse = {
     }
 };
 
+const EVENT_IRI_PREFIX = "/events/";
+
 export class Event {
     readonly id: string;
     readonly name: string;
@@ -148,7 +150,7 @@ export class Event {
     `;
 
     constructor(id: string, name: string, date: string, repeatInterval: string, earlyNotification: string, critical: boolean, createdAt: string, updatedAt: string) {
-        this.id = id;
+        this.id = Event.toUuid(id);
         this.name = name;
         this.date = moment(date);
         this.repeatInterval = repeatInterval;
@@ -171,5 +173,13 @@ export class Event {
             dto.createdAt,
             dto.updatedAt,
         );
+    }
+
+    static toUuid(id: string): string {
+        return id.replace(EVENT_IRI_PREFIX, "");
+    }
+    
+    static toIri(uuid: string): string {
+        return uuid.startsWith(EVENT_IRI_PREFIX) ? uuid : `${EVENT_IRI_PREFIX}${uuid}`;
     }
 }

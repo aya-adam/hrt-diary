@@ -68,6 +68,8 @@ type MeasurementDeleteMutationResponse = {
     }
 };
 
+const MEASUREMENT_IRI_PREFIX = "/measurements/";
+
 export class Measurement {
     readonly id: string;
     readonly labResult: LabResult;
@@ -285,7 +287,7 @@ export class Measurement {
     `;
 
     constructor(id: string, labResult: LabResultDto, unit: UnitDto, hormone: HormoneDto, referenceRange: ReferenceRangeDto | null, value: string, createdAt: string, updatedAt: string) {
-        this.id = id;
+        this.id = Measurement.toUuid(id);
         this.labResult = LabResult.fromDto(labResult);
         this.unit = Unit.fromDto(unit);
         this.hormone = Hormone.fromDto(hormone);
@@ -308,5 +310,13 @@ export class Measurement {
             dto.createdAt,
             dto.updatedAt,
         );
+    }
+
+    static toUuid(id: string): string {
+        return id.replace(MEASUREMENT_IRI_PREFIX, "");
+    }
+    
+    static toIri(uuid: string): string {
+        return uuid.startsWith(MEASUREMENT_IRI_PREFIX) ? uuid : `${MEASUREMENT_IRI_PREFIX}${uuid}`;
     }
 }

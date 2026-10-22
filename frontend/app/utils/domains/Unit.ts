@@ -19,6 +19,8 @@ type UnitItemQueryResponse = {
     unit: UnitDto,
 };
 
+const UNIT_IRI_PREFIX = "/units/";
+
 export class Unit {
     readonly id: string;
     readonly symbol: string;
@@ -45,7 +47,7 @@ export class Unit {
     `;
 
     constructor(id: string, symbol: string, label: string) {
-        this.id = id;
+        this.id = Unit.toUuid(id);
         this.symbol = symbol;
         this.label = label;
     };
@@ -58,5 +60,13 @@ export class Unit {
             dto.symbol,
             dto.label,
         );
+    }
+
+    static toUuid(id: string): string {
+        return id.replace(UNIT_IRI_PREFIX, "");
+    }
+    
+    static toIri(uuid: string): string {
+        return uuid.startsWith(UNIT_IRI_PREFIX) ? uuid : `${UNIT_IRI_PREFIX}${uuid}`;
     }
 }

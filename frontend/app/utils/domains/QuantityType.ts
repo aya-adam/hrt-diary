@@ -19,6 +19,8 @@ type QuantityTypeItemQueryResponse = {
     quantityType: QuantityTypeDto,
 };
 
+const QUANTITY_TYPE_IRI_PREFIX = "/quantity_types/";
+
 export class QuantityType {
     readonly id: string;
     readonly label: string;
@@ -45,7 +47,7 @@ export class QuantityType {
     `;
 
     constructor(id: string, label: string, slug: string) {
-        this.id = id;
+        this.id = QuantityType.toUuid(id);
         this.label = label;
         this.slug = slug;
     };
@@ -58,5 +60,13 @@ export class QuantityType {
             dto.label,
             dto.slug,
         );
+    }
+
+    static toUuid(id: string): string {
+        return id.replace(QUANTITY_TYPE_IRI_PREFIX, "");
+    }
+    
+    static toIri(uuid: string): string {
+        return uuid.startsWith(QUANTITY_TYPE_IRI_PREFIX) ? uuid : `${QUANTITY_TYPE_IRI_PREFIX}${uuid}`;
     }
 }

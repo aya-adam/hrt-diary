@@ -79,6 +79,8 @@ type CheckPasswordStrengthMutationResponse = {
     },
 };
 
+const USER_IRI_PREFIX = "/users/";
+
 export class User {
     readonly id: string;
     readonly email: string;
@@ -174,7 +176,7 @@ export class User {
     `;
 
     constructor(id: string, email: string, roles: string[], createdAt: string, updatedAt: string) {
-        this.id = id;
+        this.id = User.toUuid(id);
         this.email = email;
         this.roles = roles;
         this.createdAt = moment(createdAt);
@@ -191,5 +193,13 @@ export class User {
             dto.createdAt,
             dto.updatedAt,
         );
+    }
+
+    static toUuid(id: string): string {
+        return id.replace(USER_IRI_PREFIX, "");
+    }
+
+    static toIri(uuid: string): string {
+        return uuid.startsWith(USER_IRI_PREFIX) ? uuid : `${USER_IRI_PREFIX}${uuid}`;
     }
 }

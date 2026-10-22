@@ -69,6 +69,8 @@ type ReferenceRangeDeleteMutationResponse = {
     }
 };
 
+const REFERENCE_RANGE_IRI_PREFIX = "/reference_ranges/";
+
 export class ReferenceRange {
     id: string;
     hormone?: Hormone;
@@ -191,7 +193,7 @@ export class ReferenceRange {
     `;
 
     constructor(id: string, hormone: HormoneDto, unit: UnitDto, name: string, lowerLimit: string, upperLimit: string, notes: string | null, createdAt: string, updatedAt: string) {
-        this.id = id;
+        this.id = ReferenceRange.toUuid(id);
         this.hormone = hormone ? Hormone.fromDto(hormone) : undefined;
         this.unit = Unit.fromDto(unit);
         this.name = name;
@@ -216,5 +218,13 @@ export class ReferenceRange {
             dto.createdAt,
             dto.updatedAt,
         );
+    }
+
+    static toUuid(id: string): string {
+        return id.replace(REFERENCE_RANGE_IRI_PREFIX, "");
+    }
+    
+    static toIri(uuid: string): string {
+        return uuid.startsWith(REFERENCE_RANGE_IRI_PREFIX) ? uuid : `${REFERENCE_RANGE_IRI_PREFIX}${uuid}`;
     }
 }

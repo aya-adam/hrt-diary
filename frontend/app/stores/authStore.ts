@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { User } from "~/utils";
 
 type AuthStoreState = {
     userId: string | null;
@@ -25,7 +26,7 @@ export const useAuthStore = create<AuthStore>()(
             userId: null,
             userIdentifier: null,
             accessTokenExpiresAt: null,
-            setUserId: (userId) => set({ userId }),
+            setUserId: (userId) => set({ userId: userId ? User.toUuid(userId) : null }),
             setUserIdentifier: (userIdentifier) => set({ userIdentifier }),
             setAccessTokenExpiresAt: (accessTokenExpiresAt) =>
                 set({ accessTokenExpiresAt: accessTokenExpiresAt ? new Date(accessTokenExpiresAt).getTime() : null }),

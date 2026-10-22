@@ -60,6 +60,8 @@ type AdministrationCycleDeleteMutationResponse = {
     }
 };
 
+const ADMINISTRATION_CYCLE_IRI_PREFIX = "/administration_cycles/";
+
 export class AdministrationCycle {
     readonly id: string;
     readonly name: string;
@@ -140,7 +142,7 @@ export class AdministrationCycle {
     `;
 
     constructor(id: string, name: string, startingDate: string, locations: string[], startingIndex: number, createdAt: string, updatedAt: string) {
-        this.id = id;
+        this.id = AdministrationCycle.toUuid(id);
         this.name = name;
         this.startingDate = moment(startingDate);
         this.locations = locations;
@@ -161,5 +163,13 @@ export class AdministrationCycle {
             dto.createdAt,
             dto.updatedAt,
         );
+    }
+
+    static toUuid(id: string): string {
+        return id.replace(ADMINISTRATION_CYCLE_IRI_PREFIX, "");
+    }
+    
+    static toIri(uuid: string): string {
+        return uuid.startsWith(ADMINISTRATION_CYCLE_IRI_PREFIX) ? uuid : `${ADMINISTRATION_CYCLE_IRI_PREFIX}${uuid}`;
     }
 }
