@@ -6,7 +6,7 @@ import { print } from "graphql";
 
 const GRAPHQL_ENDPOINT = import.meta.env.VITE_GRAPHQL_ENDPOINT_URL;
 
-const SKIP_OPERATIONS = new Set(["AuthLogin", "AuthTokenRefresh", "CheckPasswordStrength", "CreateUser"]);
+const SKIP_OPERATIONS = new Set(["GetAuth", "RefreshAuth", "CheckPasswordStrength", "CreateUser"]);
 
 export async function performRefresh(): Promise<boolean> {
     const response = await fetch(GRAPHQL_ENDPOINT, {
@@ -15,7 +15,7 @@ export async function performRefresh(): Promise<boolean> {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             query: print(Auth.REFRESH_MUTATION),
-            operationName: "AuthTokenRefresh",
+            operationName: "RefreshAuth",
         }),
     });
 
@@ -25,15 +25,15 @@ export async function performRefresh(): Promise<boolean> {
     }
 
     const { data, errors } = await response.json();
-    const payload = data?.authTokenRefresh?.tokenRefresh;
+    const payload = data?.refreshAuth?.auth;
 
     if (errors?.length || !payload?.accessTokenExpiresAt) {
         useAuthStore.getState().clearAll();
         return false;
     }
 
-    useAuthStore.getState().setUserId(payload.userId);
-    useAuthStore.getState().setUserIdentifier(payload.userIdentifier);
+    useAuthStore.getState().setUserId(payload.user.id);
+    useAuthStore.getState().setUserIdentifier(payload.user.email);
     useAuthStore.getState().setAccessTokenExpiresAt(payload.accessTokenExpiresAt);
 
     return true;

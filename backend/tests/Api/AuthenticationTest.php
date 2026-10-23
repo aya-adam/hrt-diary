@@ -43,10 +43,15 @@ class AuthenticationTest extends ApiTestCase
         $client = self::createClient();
 
         $query = <<<'GQL'
-            mutation AuthLogin($email: String!, $password: String!) {
-                authLogin(input: { email: $email, password: $password }) {
-                    login {
+            mutation GetAuth($email: String!, $password: String!) {
+                getAuth(input: { email: $email, password: $password }) {
+                    auth {
                         message
+                        accessTokenExpiresAt
+                        user {
+                            id
+                            email
+                        }
                     }
                 }
             }
@@ -57,7 +62,7 @@ class AuthenticationTest extends ApiTestCase
             'password' => UserFactory::DEFAULT_PASSWORD,
         ];
 
-        $response = $this->executeGraphQl($client, $query, $variables, 'AuthLogin');
+        $response = $this->executeGraphQl($client, $query, $variables, 'GetAuth');
 
         $body = $response->toArray(false);
         $headers = $response->getHeaders(false);
@@ -84,13 +89,15 @@ class AuthenticationTest extends ApiTestCase
         $client = self::createClient();
 
         $query = <<<'GQL'
-            mutation AuthLogin($email: String!, $password: String!) {
-                authLogin(input: { email: $email, password: $password }) {
-                    login {
+            mutation GetAuth($email: String!, $password: String!) {
+                getAuth(input: { email: $email, password: $password }) {
+                    auth {
                         message
                         accessTokenExpiresAt
-                        userId
-                        userIdentifier
+                        user {
+                            id
+                            email
+                        }
                     }
                 }
             }
@@ -101,11 +108,12 @@ class AuthenticationTest extends ApiTestCase
             'password' => UserFactory::DEFAULT_PASSWORD,
         ];
 
-        $body = $this->executeGraphQl($client, $query, $variables, 'AuthLogin')->toArray(false);
+        $body = $this->executeGraphQl($client, $query, $variables, 'GetAuth')->toArray(false);
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertSame(sprintf('/users/%s', $user->getId()->toRfc4122()), $body['data']['authLogin']['login']['userId']);
-        $this->assertSame($user->getUserIdentifier(), $body['data']['authLogin']['login']['userIdentifier']);
+        $this->assertNotNull($body['data']['getAuth']['auth']['user']);
+        $this->assertSame(sprintf('/users/%s', $user->getId()->toRfc4122()), $body['data']['getAuth']['auth']['user']['id']);
+        $this->assertSame($user->getEmail(), $body['data']['getAuth']['auth']['user']['email']);
     }
 
     public function testAuthenticationReturnsCookieInformation(): void
@@ -115,10 +123,15 @@ class AuthenticationTest extends ApiTestCase
         $client = self::createClient();
 
         $query = <<<'GQL'
-            mutation AuthLogin($email: String!, $password: String!) {
-                authLogin(input: { email: $email, password: $password }) {
-                    login {
+            mutation GetAuth($email: String!, $password: String!) {
+                getAuth(input: { email: $email, password: $password }) {
+                    auth {
+                        message
                         accessTokenExpiresAt
+                        user {
+                            id
+                            email
+                        }
                     }
                 }
             }
@@ -129,7 +142,7 @@ class AuthenticationTest extends ApiTestCase
             'password' => UserFactory::DEFAULT_PASSWORD,
         ];
 
-        $response = $this->executeGraphQl($client, $query, $variables, 'AuthLogin');
+        $response = $this->executeGraphQl($client, $query, $variables, 'GetAuth');
 
         $body = $response->toArray(false);
         $headers = $response->getHeaders(false);
@@ -141,7 +154,7 @@ class AuthenticationTest extends ApiTestCase
         }
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertSame(\DateTimeImmutable::createFromTimestamp($cookies[self::COOKIE_NAME_ACCESS_TOKEN]->getExpiresTime())->format('c'), $body['data']['authLogin']['login']['accessTokenExpiresAt']);
+        $this->assertSame(\DateTimeImmutable::createFromTimestamp($cookies[self::COOKIE_NAME_ACCESS_TOKEN]->getExpiresTime())->format('c'), $body['data']['getAuth']['auth']['accessTokenExpiresAt']);
     }
 
     public function testAuthenticationReturns401WhenPasswordInvalid(): void
@@ -151,10 +164,15 @@ class AuthenticationTest extends ApiTestCase
         $client = self::createClient();
 
         $query = <<<'GQL'
-            mutation AuthLogin($email: String!, $password: String!) {
-                authLogin(input: { email: $email, password: $password }) {
-                    login {
+            mutation GetAuth($email: String!, $password: String!) {
+                getAuth(input: { email: $email, password: $password }) {
+                    auth {
                         message
+                        accessTokenExpiresAt
+                        user {
+                            id
+                            email
+                        }
                     }
                 }
             }
@@ -165,7 +183,7 @@ class AuthenticationTest extends ApiTestCase
             'password' => 'invalid_password',
         ];
 
-        $response = $this->executeGraphQl($client, $query, $variables, 'AuthLogin');
+        $response = $this->executeGraphQl($client, $query, $variables, 'GetAuth');
 
         $body = $response->toArray(false);
         $headers = $response->getHeaders(false);
@@ -184,16 +202,21 @@ class AuthenticationTest extends ApiTestCase
         $client->getCookieJar()->expire(self::COOKIE_NAME_ACCESS_TOKEN);
 
         $query = <<<'GQL'
-            mutation AuthTokenRefresh {
-                authTokenRefresh(input: {  }) {
-                    tokenRefresh {
+            mutation RefreshAuth {
+                refreshAuth(input: {  }) {
+                    auth {
                         message
+                        accessTokenExpiresAt
+                        user {
+                            id
+                            email
+                        }
                     }
                 }
             }
         GQL;
 
-        $response = $this->executeGraphQl($client, $query, [], 'AuthTokenRefresh');
+        $response = $this->executeGraphQl($client, $query, [], 'RefreshAuth');
 
         $body = $response->toArray(false);
         $headers = $response->getHeaders(false);
@@ -237,16 +260,21 @@ class AuthenticationTest extends ApiTestCase
         $client->getCookieJar()->set($newRefreshTokenCookie);
 
         $query = <<<'GQL'
-            mutation AuthTokenRefresh {
-                authTokenRefresh(input: {  }) {
-                    tokenRefresh {
+            mutation RefreshAuth {
+                refreshAuth(input: {  }) {
+                    auth {
                         message
+                        accessTokenExpiresAt
+                        user {
+                            id
+                            email
+                        }
                     }
                 }
             }
         GQL;
 
-        $response = $this->executeGraphQl($client, $query, [], 'AuthTokenRefresh');
+        $response = $this->executeGraphQl($client, $query, [], 'RefreshAuth');
 
         $body = $response->toArray(false);
         $headers = $response->getHeaders(false);
@@ -276,16 +304,21 @@ class AuthenticationTest extends ApiTestCase
         $client->getCookieJar()->expire(self::COOKIE_NAME_REFRESH_TOKEN);
 
         $query = <<<'GQL'
-            mutation AuthTokenRefresh {
-                authTokenRefresh(input: {  }) {
-                    tokenRefresh {
+            mutation RefreshAuth {
+                refreshAuth(input: {  }) {
+                    auth {
                         message
+                        accessTokenExpiresAt
+                        user {
+                            id
+                            email
+                        }
                     }
                 }
             }
         GQL;
 
-        $response = $this->executeGraphQl($client, $query, [], 'AuthTokenRefresh');
+        $response = $this->executeGraphQl($client, $query, [], 'RefreshAuth');
 
         $body = $response->toArray(false);
         $headers = $response->getHeaders(false);
@@ -302,19 +335,21 @@ class AuthenticationTest extends ApiTestCase
         $client = self::createAuthenticatedClient($user);
 
         $query = <<<'GQL'
-            mutation AuthLogout {
-                authLogout(input: {  }) {
-                    logout {
+            mutation RevokeAuth {
+                revokeAuth(input: {  }) {
+                    auth {
                         message
                         accessTokenExpiresAt
-                        userId
-                        userIdentifier
+                        user {
+                            id
+                            email
+                        }
                     }
                 }
             }
         GQL;
 
-        $response = $this->executeGraphQl($client, $query, [], 'AuthLogout');
+        $response = $this->executeGraphQl($client, $query, [], 'RevokeAuth');
 
         $body = $response->toArray(false);
         $headers = $response->getHeaders(false);
@@ -326,10 +361,9 @@ class AuthenticationTest extends ApiTestCase
         }
 
         $this->assertGraphQlHasNoErrors($body);
-        $this->assertSame('Successfully logged out.', $body['data']['authLogout']['logout']['message']);
-        $this->assertNull($body['data']['authLogout']['logout']['userId']);
-        $this->assertNull($body['data']['authLogout']['logout']['userIdentifier']);
-        $this->assertNull($body['data']['authLogout']['logout']['accessTokenExpiresAt']);
+        $this->assertSame('Successfully logged out.', $body['data']['revokeAuth']['auth']['message']);
+        $this->assertNull($body['data']['revokeAuth']['auth']['accessTokenExpiresAt']);
+        $this->assertNull($body['data']['revokeAuth']['auth']['user']);
         $this->assertNotNull($cookies[self::COOKIE_NAME_ACCESS_TOKEN]);
         $this->assertNotNull($cookies[self::COOKIE_NAME_REFRESH_TOKEN]);
         $this->assertTrue($cookies[self::COOKIE_NAME_ACCESS_TOKEN]->isExpired());

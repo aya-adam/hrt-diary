@@ -18,10 +18,15 @@ trait AuthenticatedClientTrait
         $client = static::createClient($kernelOptions, $defaultOptions);
 
         $query = <<<'GQL'
-            mutation AuthLogin($email: String!, $password: String!) {
-                authLogin(input: { email: $email, password: $password }) {
-                    login {
-                        id
+            mutation GetAuth($email: String!, $password: String!) {
+                getAuth(input: { email: $email, password: $password }) {
+                    auth {
+                        message
+                        accessTokenExpiresAt
+                        user {
+                            id
+                            email
+                        }
                     }
                 }
             }
@@ -35,7 +40,7 @@ trait AuthenticatedClientTrait
                     'email' => $user->getUserIdentifier(),
                     'password' => $password,
                 ],
-                'operationName' => 'AuthLogin'
+                'operationName' => 'GetAuth'
             ],
         ];
 

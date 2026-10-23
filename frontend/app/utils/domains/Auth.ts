@@ -1,12 +1,11 @@
 import { gql, type TypedDocumentNode } from "@apollo/client";
 import { assertDefined } from "../assertions";
-import { User } from "./User";
+import { User, type UserDto } from "./User";
 
 export type AuthDto = {
     message: string,
     accessTokenExpiresAt: string | null,
-    userId: string | null,
-    userIdentifier: string | null,
+    user: UserDto | null,
 };
 
 type AuthLoginMutationInput = {
@@ -15,20 +14,20 @@ type AuthLoginMutationInput = {
 };
 
 type AuthLoginMutationResponse = {
-    authLogin: {
-        login: AuthDto,
+    getAuth: {
+        auth: AuthDto,
     },
 };
 
 type AuthRefreshMutationResponse = {
-    authTokenRefresh: {
-        tokenRefresh: AuthDto,
+    refreshAuth: {
+        auth: AuthDto,
     },
 };
 
 type AuthLogoutMutationResponse = {
-    authLogout: {
-        logout: {
+    revokeAuth: {
+        auth: {
             message: AuthDto['message'],
         },
     },
@@ -37,50 +36,58 @@ type AuthLogoutMutationResponse = {
 export class Auth {
     readonly message: string;
     readonly accessTokenExpiresAt?: number;
-    readonly userId?: string;
-    readonly userIdentifier?: string;
+    readonly user?: User;
 
     static readonly LOGIN_MUTATION: TypedDocumentNode<AuthLoginMutationResponse, AuthLoginMutationInput> = gql`
-        mutation AuthLogin($email: String!, $password: String!) {
-            authLogin(input: { email: $email, password: $password }) {
-                login {
+        mutation GetAuth($email: String!, $password: String!) {
+            getAuth(input: { email: $email, password: $password }) {
+                auth {
                     message
                     accessTokenExpiresAt
-                    userId
-                    userIdentifier
+                    user {
+                        id
+                        email
+                        roles
+                        createdAt
+                        updatedAt
+                    }
                 }
             }
         }
     `;
 
     static readonly REFRESH_MUTATION: TypedDocumentNode<AuthRefreshMutationResponse> = gql`
-        mutation AuthTokenRefresh {
-            authTokenRefresh(input: {  }) {
-                tokenRefresh {
+        mutation RefreshAuth {
+            refreshAuth(input: {  }) {
+                auth {
                     message
                     accessTokenExpiresAt
-                    userId
-                    userIdentifier
+                    user {
+                        id
+                        email
+                        roles
+                        createdAt
+                        updatedAt
+                    }
                 }
             }
         }
     `;
 
     static readonly LOGOUT_MUTATION: TypedDocumentNode<AuthLogoutMutationResponse> = gql`
-        mutation AuthLogout {
-            authLogout(input: {  }) {
-                logout {
+        mutation RevokeAuth {
+            revokeAuth(input: {  }) {
+                auth {
                     message
                 }
             }
         }
     `;
 
-    constructor(message: string, accessTokenExpiresAt: string | null | undefined, userId: string | null | undefined, userIdentifier: string | null | undefined) {
+    constructor(message: string, accessTokenExpiresAt: string | null | undefined, user: UserDto | null | undefined) {
         this.message = message;
         this.accessTokenExpiresAt = accessTokenExpiresAt ? Number(accessTokenExpiresAt) : undefined;
-        this.userId = userId ? User.toUuid(userId) : undefined;
-        this.userIdentifier = userIdentifier ?? undefined;
+        this.user = user ? User.fromDto(user) : undefined;
     };
 
     static fromDto(dto: AuthDto | undefined): Auth {
@@ -89,8 +96,7 @@ export class Auth {
         return new Auth(
             dto.message,
             dto.accessTokenExpiresAt,
-            dto.userId,
-            dto.userIdentifier,
+            dto.user,
         );
     }
 }

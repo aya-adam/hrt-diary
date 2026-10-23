@@ -16,7 +16,7 @@ export const errorLink = new ErrorLink(({ error, operation, forward }) => {
     const isAuthError =
         CombinedGraphQLErrors.is(error) && error.errors.some((graphQLError) => graphQLError.extensions?.status === 401);
 
-    if (!isAuthError || operation.operationName === "AuthTokenRefresh") {
+    if (!isAuthError || operation.operationName === "RefreshAuth") {
         return; // not retrying: let the error propagate as-is
     }
 

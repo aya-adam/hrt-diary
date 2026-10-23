@@ -21,9 +21,9 @@ export async function clientLoader() {
     if (userId || userIdentifier || accessTokenExpiresAt) {
         try {
             const { data } = await apolloClient.mutate({ mutation: Auth.REFRESH_MUTATION });
-            setUserId(data?.authTokenRefresh.tokenRefresh.userId ?? null);
-            setUserIdentifier(data?.authTokenRefresh.tokenRefresh.userIdentifier ?? null);
-            setAccessTokenExpiresAt(data?.authTokenRefresh.tokenRefresh.accessTokenExpiresAt ?? null);
+            setUserId(data?.refreshAuth.auth.user?.id ?? null);
+            setUserIdentifier(data?.refreshAuth.auth.user?.email ?? null);
+            setAccessTokenExpiresAt(data?.refreshAuth.auth.accessTokenExpiresAt ?? null);
             return redirect("/dashboard");
         } catch (error) {
             clearAll();

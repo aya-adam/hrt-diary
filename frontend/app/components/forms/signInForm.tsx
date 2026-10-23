@@ -55,10 +55,10 @@ export default function SignInForm({ prefill, onSuccess, onFail }: SignInFormInt
                     password: formData.password,
                 },
             });
-            setUserId(data?.authLogin.login.userId ?? null);
-            setUserIdentifier(data?.authLogin.login.userIdentifier ?? null);
-            setAccessTokenExpiresAt(data?.authLogin.login.accessTokenExpiresAt ?? null);
-            if (onSuccess) onSuccess(data);
+            setUserId(data?.getAuth.auth.user?.id ?? null);
+            setUserIdentifier(data?.getAuth.auth.user?.email ?? null);
+            setAccessTokenExpiresAt(data?.getAuth.auth.accessTokenExpiresAt ?? null);
+            if (onSuccess) onSuccess(data?.getAuth.auth);
         } catch (error: any) {
             if (CombinedGraphQLErrors.is(error)) {
                 error.errors.forEach((graphQlError) => {

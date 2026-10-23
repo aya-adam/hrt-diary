@@ -16,4 +16,19 @@ trait GraphQlOperationHelperTrait
     {
         return $operation instanceof Mutation && $operation->getName() === 'update';
     }
+    
+    private static function isMutationAuthLogin(Operation $operation): bool
+    {
+        return $operation instanceof Mutation && $operation->getShortName() === 'Auth' && $operation->getName() === 'get';
+    }
+    
+    private static function isMutationAuthRefresh(Operation $operation): bool
+    {
+        return $operation instanceof Mutation && $operation->getShortName() === 'Auth' && $operation->getName() === 'refresh';
+    }
+    
+    private static function isMutationAuthRevoke(Operation $operation): bool
+    {
+        return $operation instanceof Mutation && $operation->getShortName() === 'Auth' && $operation->getName() === 'revoke';
+    }
 }
