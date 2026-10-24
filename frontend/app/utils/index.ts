@@ -14,6 +14,7 @@ export { Unit, type UnitDto } from "./domains/Unit";
 export { User, type UserDto } from "./domains/User";
 export { apolloClient } from "./apollo/client";
 export { getErrorMessage } from "./apollo/errorLink";
+export { emptyToUndefined } from "./form";
 export { isCurrentPage } from "./navigation";
 export { useDebounce } from "./hooks/useDebounce";
 export { splitButtonToast } from "./toasts";
