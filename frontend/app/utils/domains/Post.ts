@@ -132,8 +132,8 @@ export class Post {
     `;
 
     static readonly DELETE_MUTATION: TypedDocumentNode<PostDeleteMutationResponse, PostItemIdentifierInput> = gql`
-        mutation UpdatePost($id: ID!) {
-            updatePost(input: { id: $id }) {
+        mutation DeletePost($id: ID!) {
+            deletePost(input: { id: $id }) {
                 post {
                     id
                 }
