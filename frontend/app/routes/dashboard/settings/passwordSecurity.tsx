@@ -18,7 +18,7 @@ export async function clientLoader() {
 
     const { data } = await apolloClient.query({
         query: User.ITEM_QUERY,
-        variables: { id: userId }
+        variables: { id: User.toIri(userId) }
     });
     const user: User = User.fromDto(data?.user);
     return { user };
