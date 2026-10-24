@@ -21,10 +21,10 @@ const Input = forwardRef<HTMLInputElement, InputInterface>(({ label, className, 
                     ref={ref}
                     {...rest}
                     className={joinClasses(
-                        "block w-full rounded-md bg-white py-1.5 text-base outline-1 -outline-offset-1 focus:outline-2 focus:-outline-offset-2 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500",
+                        "block w-full rounded-md bg-white dark:bg-white/5 py-1.5 text-base outline-1 -outline-offset-1 focus:outline-2 focus:-outline-offset-2 sm:text-sm/6",
                         error
-                            ? "col-start-1 row-start-1 pr-10 pl-3 text-red-900 outline-red-300 placeholder:text-red-300 focus:outline-red-600 sm:pr-9"
-                            : "px-3 text-gray-900 outline-gray-300 placeholder:text-gray-400 focus:outline-indigo-600",
+                            ? "col-start-1 row-start-1 pr-10 pl-3 text-red-900 dark:text-red-400 outline-red-300 dark:outline-red-500/50 placeholder:text-red-300 focus:outline-red-600 sm:pr-9"
+                            : "px-3 text-gray-900 dark:text-white outline-gray-300 dark:outline-white/10 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-indigo-600 dark:focus:outline-indigo-500",
                     )}
                 />
                 {error && (

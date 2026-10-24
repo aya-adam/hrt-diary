@@ -6,7 +6,7 @@ interface ButtonInterface {
     label: string;
     className?: string;
     type?: "button" | "submit" | "reset";
-    style?: "primary" | "secondary" | "soft";
+    style?: "primary" | "secondary" | "soft" | "danger";
     rounded?: boolean;
     size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
     leadingIcon?: ComponentType<SVGProps<SVGSVGElement>>;
@@ -102,6 +102,13 @@ export default function Button({
         case "soft":
             classesArr.push(
                 "bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/30",
+                active ? "underline" : "",
+            );
+            break;
+
+        case "danger":
+            classesArr.push(
+                "bg-red-600 dark:bg-red-500 text-white hover:bg-red-500 dark:hover:bg-red-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 dark:focus-visible:outline-red-500",
                 active ? "underline" : "",
             );
             break;
