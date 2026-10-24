@@ -3,6 +3,7 @@ import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration }
 import type { Route } from "./+types/root";
 import { ToastContainer } from "react-toastify";
 import "./app.css";
+import { XMarkIcon } from "@heroicons/react/20/solid";
 
 if (process.env.NODE_ENV !== "development") {
     console.log = () => { }
@@ -34,7 +35,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </head>
             <body className="h-full" suppressHydrationWarning>
                 {children}
-                <ToastContainer theme="colored" />
+                <ToastContainer
+                    closeButton={({ closeToast }) =>
+                        <button
+                            type="button"
+                            onClick={() => closeToast()}
+                            className="absolute top-1.5 right-1.5 inline-flex rounded-md text-gray-400 hover:text-gray-500 focus:outline-2 focus:outline-offset-2 focus:outline-indigo-600 dark:hover:text-white dark:focus:outline-indigo-500"
+                        >
+                            <span className="sr-only">Close</span>
+                            <XMarkIcon aria-hidden="true" className="size-4" />
+                        </button>
+                    }
+                />
                 <ScrollRestoration />
                 <Scripts />
             </body>

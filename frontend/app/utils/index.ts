@@ -16,3 +16,4 @@ export { apolloClient } from "./apollo/client";
 export { getErrorMessage } from "./apollo/errorLink";
 export { isCurrentPage } from "./navigation";
 export { useDebounce } from "./hooks/useDebounce";
+export { splitButtonToast } from "./toasts";

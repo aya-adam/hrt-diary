@@ -51,3 +51,33 @@ body {
         }
     }
 }
+
+.Toastify__toast,
+.Toastify__toast-theme--dark,
+.Toastify__toast-theme--light,
+.Toastify__toast-theme--colored.Toastify__toast--default,
+.Toastify__toast-theme--colored.Toastify__toast--info,
+.Toastify__toast-theme--colored.Toastify__toast--success,
+.Toastify__toast-theme--colored.Toastify__toast--warning,
+.Toastify__toast-theme--colored.Toastify__toast--error {
+    @apply pointer-events-auto! rounded-lg! text-sm! font-medium! text-gray-900! dark:text-white! bg-white! shadow-lg! outline-1! outline-black/5! transition! data-closed:opacity-0! data-enter:transform! data-enter:duration-300! data-enter:ease-out! data-closed:data-enter:translate-y-2! data-leave:duration-100! data-leave:ease-in! data-closed:data-enter:sm:translate-x-2! data-closed:data-enter:sm:translate-y-0! dark:bg-gray-800! dark:-outline-offset-1! dark:outline-white/10!;
+}
+
+.Toastify__progress-bar,
+.Toastify__progress-bar--rtl,
+.Toastify__progress-bar-theme--light,
+.Toastify__progress-bar-theme--dark,
+.Toastify__progress-bar--info,
+.Toastify__progress-bar--success,
+.Toastify__progress-bar--warning,
+.Toastify__progress-bar--error,
+.Toastify__progress-bar-theme--colored.Toastify__progress-bar--info,
+.Toastify__progress-bar-theme--colored.Toastify__progress-bar--success,
+.Toastify__progress-bar-theme--colored.Toastify__progress-bar--warning,
+.Toastify__progress-bar-theme--colored.Toastify__progress-bar--error {
+    background: #5BCEFA !important;
+    background: -webkit-linear-gradient(90deg, rgba(91, 206, 250, 1) 0%, rgba(245, 169, 184, 1) 25%, rgba(255, 255, 255, 1) 50%, rgba(245, 169, 184, 1) 75%, rgba(91, 206, 250, 1) 100%) !important;
+    background: -moz-linear-gradient(90deg, rgba(91, 206, 250, 1) 0%, rgba(245, 169, 184, 1) 25%, rgba(255, 255, 255, 1) 50%, rgba(245, 169, 184, 1) 75%, rgba(91, 206, 250, 1) 100%) !important;
+    background: linear-gradient(90deg, rgba(91, 206, 250, 1) 0%, rgba(245, 169, 184, 1) 25%, rgba(255, 255, 255, 1) 50%, rgba(245, 169, 184, 1) 75%, rgba(91, 206, 250, 1) 100%) !important;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr="#5BCEFA", endColorstr="#5BCEFA", GradientType=1) !important;
+}
