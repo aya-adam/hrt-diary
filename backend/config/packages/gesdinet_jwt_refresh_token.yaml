@@ -4,7 +4,10 @@ gesdinet_jwt_refresh_token:
     ttl: 604800  # 7 days
     cookie:
         enabled: true
-        same_site: none
+        same_site: strict
+        path: '%app.jwt_refresh_token_cookie_path%'
+        domain: null
         http_only: true
         secure: true
-        partitioned: true
+        partitioned: false
+        remove_token_from_body: true

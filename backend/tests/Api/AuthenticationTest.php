@@ -15,6 +15,7 @@ class AuthenticationTest extends ApiTestCase
 {
     use AuthenticatedClientTrait, ClockAwareTrait, GraphQlTestTrait, RegexTrait;
 
+    protected const string COOKIE_PATH = '/graphql';
     protected const string COOKIE_NAME_ACCESS_TOKEN = 'access_token';
     protected const string COOKIE_NAME_REFRESH_TOKEN = 'refresh_token';
 
@@ -199,7 +200,7 @@ class AuthenticationTest extends ApiTestCase
 
         $client = self::createAuthenticatedClient($user);
 
-        $client->getCookieJar()->expire(self::COOKIE_NAME_ACCESS_TOKEN);
+        $client->getCookieJar()->expire(self::COOKIE_NAME_ACCESS_TOKEN, self::COOKIE_PATH);
 
         $query = <<<'GQL'
             mutation RefreshAuth {
@@ -242,8 +243,8 @@ class AuthenticationTest extends ApiTestCase
 
         $client = self::createAuthenticatedClient($user);
 
-        $refreshTokenCookie = $client->getCookieJar()->get(self::COOKIE_NAME_REFRESH_TOKEN);
-        $client->getCookieJar()->expire(self::COOKIE_NAME_REFRESH_TOKEN);
+        $refreshTokenCookie = $client->getCookieJar()->get(self::COOKIE_NAME_REFRESH_TOKEN, self::COOKIE_PATH);
+        $client->getCookieJar()->expire(self::COOKIE_NAME_REFRESH_TOKEN, self::COOKIE_PATH);
 
         $newRefreshTokenCookie = new Cookie(
             $refreshTokenCookie->getName(),
@@ -301,7 +302,7 @@ class AuthenticationTest extends ApiTestCase
 
         $client = self::createAuthenticatedClient($user);
 
-        $client->getCookieJar()->expire(self::COOKIE_NAME_REFRESH_TOKEN);
+        $client->getCookieJar()->expire(self::COOKIE_NAME_REFRESH_TOKEN, self::COOKIE_PATH);
 
         $query = <<<'GQL'
             mutation RefreshAuth {

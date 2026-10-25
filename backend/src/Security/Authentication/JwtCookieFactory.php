@@ -27,6 +27,10 @@ final class JwtCookieFactory
         private string $accessTokenCookieName,
         #[Autowire('%app.jwt_refresh_token_cookie_name%')]
         private string $refreshTokenCookieName,
+        #[Autowire('%app.jwt_access_token_cookie_path%')]
+        private string $accessTokenCookiePath,
+        #[Autowire('%app.jwt_refresh_token_cookie_path%')]
+        private string $refreshTokenCookiePath,
     ) {}
 
     public function createAccessTokenCookie(UserEntity $user): Cookie
@@ -36,11 +40,11 @@ final class JwtCookieFactory
         return Cookie::create($this->accessTokenCookieName)
             ->withValue($token)
             ->withExpires(new DatePoint("+{$this->accessTokenTtl} seconds"))
-            ->withPath('/')
+            ->withPath($this->accessTokenCookiePath)
             ->withSecure(true)
             ->withHttpOnly(true)
-            ->withSameSite('none')
-            ->withPartitioned(true);
+            ->withSameSite('strict')
+            ->withPartitioned(false);
     }
 
     public function createRefreshTokenCookie(UserEntity $user, ?string $previousIdentifier = null): Cookie
@@ -53,11 +57,11 @@ final class JwtCookieFactory
         return Cookie::create($this->refreshTokenCookieName)
             ->withValue($refreshToken->getRefreshToken())
             ->withExpires($refreshToken->getValid())
-            ->withPath('/')
+            ->withPath($this->refreshTokenCookiePath)
             ->withSecure(true)
             ->withHttpOnly(true)
-            ->withSameSite('none')
-            ->withPartitioned(true);
+            ->withSameSite('strict')
+            ->withPartitioned(false);
     }
     
     public function createClearingAccessTokenCookie(): Cookie
@@ -65,11 +69,11 @@ final class JwtCookieFactory
         return Cookie::create($this->accessTokenCookieName)
             ->withValue(null)
             ->withExpires(new DatePoint('1 second'))
-            ->withPath('/')
+            ->withPath($this->accessTokenCookiePath)
             ->withSecure(true)
             ->withHttpOnly(true)
-            ->withSameSite('none')
-            ->withPartitioned(true);
+            ->withSameSite('strict')
+            ->withPartitioned(false);
     }
 
     public function createClearingRefreshTokenCookie(?UserEntity $user = null): Cookie
@@ -81,11 +85,11 @@ final class JwtCookieFactory
         return Cookie::create($this->refreshTokenCookieName)
             ->withValue(null)
             ->withExpires(new DatePoint('1 second'))
-            ->withPath('/')
+            ->withPath($this->accessTokenCookiePath)
             ->withSecure(true)
             ->withHttpOnly(true)
-            ->withSameSite('none')
-            ->withPartitioned(true);
+            ->withSameSite('strict')
+            ->withPartitioned(false);
     }
 
     private function revokeExistingRefreshTokens(string $identifier): void
