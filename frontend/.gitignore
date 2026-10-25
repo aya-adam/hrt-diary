@@ -7,5 +7,4 @@
 /build/
 
 # Local cert
-localhost.pem
-localhost-key.pem
+/*.pem

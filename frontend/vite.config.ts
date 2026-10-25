@@ -1,20 +1,36 @@
 import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
-import { readFileSync } from "node:fs";
-import { defineConfig } from "vite";
+import { execSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { defineConfig, loadEnv } from "vite";
 
-export default defineConfig(({ command }) => ({
-  plugins: [tailwindcss(), reactRouter()],
-  server:
-    command === "serve"
-      ? {
-        https: {
-          key: readFileSync("./localhost-key.pem"),
-          cert: readFileSync("./localhost.pem"),
-        },
-      }
-      : undefined,
-  resolve: {
-    tsconfigPaths: true,
-  },
-}));
+export default defineConfig(({ command, mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  let server = undefined;
+
+  if (command === "serve") {
+    const host = env.DEV_HOST || "localhost";
+    const certFile = `${host}.pem`;
+    const keyFile = `${host}-key.pem`;
+
+    if (!existsSync(certFile) || !existsSync(keyFile)) {
+      execSync(`mkcert ${host}`, { stdio: "inherit" });
+    }
+
+    server = {
+      host: host,
+      https: {
+        cert: readFileSync(certFile),
+        key: readFileSync(keyFile),
+      },
+    };
+  }
+
+  return {
+    plugins: [tailwindcss(), reactRouter()],
+    server: server,
+    resolve: {
+      tsconfigPaths: true,
+    },
+  }
+});

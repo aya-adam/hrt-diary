@@ -26,12 +26,21 @@ npm install
 
 ### Development
 
-Install a local SSL certificate with:
+Set the host in the `.env` file:
+
+_The Host must use the same domain as the api (backend-server), since the cookies will be set with `SameSite=Strict`._
+
+```bash
+DEV_HOST=example.org
+```
+
+Install mkcert to generate locally-trusted development certificates:
+
+_No need to generate a certificate. It will be generated automatically when running `npm run dev`._
 
 ```bash
 brew install mkcert # or https://github.com/FiloSottile/mkcert for other OS
 mkcert -install
-mkcert localhost
 ```
 
 Start the development server with HMR:
@@ -40,7 +49,7 @@ Start the development server with HMR:
 npm run dev
 ```
 
-Your application will be available at `https://localhost:5173`.
+Your application will be available at `https://{DEV_HOST}:5173` (replace `DEV_HOST` with the host you set).
 
 ## Building for Production
 
