@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 @theme {
+    --breakpoint-xs: 30rem;
+
     --font-sans:
         "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
         "Noto Color Emoji";
@@ -50,6 +52,10 @@ body {
             }
         }
     }
+}
+
+.Toastify__toast-container {
+    @apply max-xs:p-3 max-xs:gap-y-1.5;
 }
 
 .Toastify__toast,

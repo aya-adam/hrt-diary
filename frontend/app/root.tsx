@@ -4,6 +4,7 @@ import type { Route } from "./+types/root";
 import { ToastContainer } from "react-toastify";
 import "./app.css";
 import { XMarkIcon } from "@heroicons/react/20/solid";
+import { CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon, XCircleIcon } from "@heroicons/react/24/outline";
 
 if (process.env.NODE_ENV !== "development") {
     console.log = () => { }
@@ -46,6 +47,29 @@ export function Layout({ children }: { children: React.ReactNode }) {
                             <XMarkIcon aria-hidden="true" className="size-4" />
                         </button>
                     }
+                    icon={({ type, isLoading }) => {
+                        if (isLoading) {
+                            return (
+                                <svg className="size-6 animate-spin fill-transparent" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                    <circle className="opacity-25 stroke-current stroke-4" cx="12" cy="12" r="10"></circle>
+                                    <path className="opacity-75 fill-current" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            );
+                        }
+
+                        switch (type) {
+                            case "info":
+                                return <InformationCircleIcon aria-hidden="true" className="size-6 text-blue-500 dark:text-blue-400" />;
+                            case "success":
+                                return <CheckCircleIcon aria-hidden="true" className="size-6 text-green-500 dark:text-green-400" />;
+                            case "warning":
+                                return <ExclamationCircleIcon aria-hidden="true" className="size-6 text-yellow-500 dark:text-yellow-400" />;
+                            case "error":
+                                return <XCircleIcon aria-hidden="true" className="size-6 text-red-500 dark:text-red-400" />;
+                            default:
+                                return null;
+                        };
+                    }}
                 />
                 <ScrollRestoration />
                 <Scripts />
