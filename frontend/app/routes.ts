@@ -12,15 +12,21 @@ export default [
         ...prefix("dashboard", [
             layout("components/layouts/dashboardLayout.tsx", [
                 index("routes/dashboard/dashboard.tsx"),
-                route("labs", "routes/dashboard/labs.tsx"),
                 route("charts", "routes/dashboard/charts.tsx"),
-                route("cycles", "routes/dashboard/cycles.tsx"),
-                route("events", "routes/dashboard/events.tsx"),
+                ...prefix("cycles", [
+                    index("routes/dashboard/cycles/listCycles.tsx"),
+                ]),
                 ...prefix("diary", [
                     index("routes/dashboard/posts/listPosts.tsx"),
                     route("create", "routes/dashboard/posts/createPost.tsx"),
                     route(":postUuid", "routes/dashboard/posts/showPost.tsx"),
                     route("edit/:postUuid", "routes/dashboard/posts/editPost.tsx"),
+                ]),
+                ...prefix("events", [
+                    index("routes/dashboard/events/listEvents.tsx"),
+                ]),
+                ...prefix("labs", [
+                    index("routes/dashboard/labs/listLabs.tsx"),
                 ]),
             ]),
             route("settings", "components/layouts/dashboardSettingsLayout.tsx", [
