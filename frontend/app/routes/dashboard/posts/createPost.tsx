@@ -1,6 +1,6 @@
 import { ChevronLeftIcon } from "@heroicons/react/24/outline";
 import Button from "~/components/elements/button";
-import { apolloClient, constants, Post, type PostDto } from "~/utils";
+import { constants, Post } from "~/utils";
 import type { Route } from "./+types/createPost";
 import PostsForm from "~/components/forms/postsForm";
 import { useNavigate } from "react-router";
@@ -11,12 +11,6 @@ export function meta({ }: Route.MetaArgs) {
         { title: `${constants.PAGE_TITLE} | Create Diary Entry` },
         { name: "description", content: "Create a new diary entry" },
     ];
-}
-
-export async function clientLoader() {
-    const { data } = await apolloClient.query({ query: Post.COLLECTION_QUERY });
-    const posts: Post[] = data?.posts ? data?.posts.map((post: PostDto) => Post.fromDto(post)) : [];
-    return { posts };
 }
 
 export default function CreatePost() {
