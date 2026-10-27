@@ -15,6 +15,9 @@ export default [
                 route("charts", "routes/dashboard/charts.tsx"),
                 ...prefix("cycles", [
                     index("routes/dashboard/cycles/listCycles.tsx"),
+                    route("create", "routes/dashboard/cycles/createCycle.tsx"),
+                    route(":cycleUuid", "routes/dashboard/cycles/showCycle.tsx"),
+                    route("edit/:cycleUuid", "routes/dashboard/cycles/editCycle.tsx"),
                 ]),
                 ...prefix("diary", [
                     index("routes/dashboard/posts/listPosts.tsx"),
