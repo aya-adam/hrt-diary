@@ -46,13 +46,15 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 
     return (
         <BasicWrapper>
-            {messageArr && messageArr.length > 1 ? (
-                <Alert list={messageArr} type="error" />
-            ) : (
-                <Alert type="error">
-                    <span className="whitespace-pre-wrap">{message}</span>
-                </Alert>
-            )}
+            <div className="mx-auto max-w-200">
+                {messageArr && messageArr.length > 1 ? (
+                    <Alert list={messageArr} type="error" />
+                ) : (
+                    <Alert type="error">
+                        <span className="whitespace-pre-wrap">{message}</span>
+                    </Alert>
+                )}
+            </div>
         </BasicWrapper>
     );
 }
