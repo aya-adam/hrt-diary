@@ -1,6 +1,7 @@
 export { assertDefined } from "./assertions";
 export { constants } from "./constants";
 export { joinClasses } from "./css";
+export { mockPromise } from "./dev";
 export { AdministrationCycle, type AdministrationCycleDto } from "./domains/AdministrationCycle";
 export { Auth, type AuthDto } from "./domains/Auth";
 export { Event, type EventDto } from "./domains/Event";
