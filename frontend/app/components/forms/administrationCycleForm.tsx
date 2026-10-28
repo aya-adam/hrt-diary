@@ -9,7 +9,7 @@ import Loader from "../loaders/loader";
 import { useMemo, useState } from "react";
 import { AdministrationCycle, apolloClient, joinClasses } from "~/utils";
 import { ChevronDownIcon, ChevronUpIcon, TrashIcon } from "@heroicons/react/20/solid";
-import moment from "moment";
+import moment from "moment-timezone";
 
 const mapLocations = (objects: { value: string }[]): string[] => {
     return objects.map((item) => item.value);

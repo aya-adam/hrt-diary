@@ -1,6 +1,6 @@
 import { gql, type TypedDocumentNode } from "@apollo/client";
-import type { Moment } from "moment";
-import moment from "moment";
+import type { Moment } from "moment-timezone";
+import moment from "moment-timezone";
 import { assertDefined } from "../assertions";
 
 export type EventDto = {

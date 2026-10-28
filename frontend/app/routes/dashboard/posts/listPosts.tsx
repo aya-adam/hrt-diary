@@ -4,7 +4,7 @@ import Button from "~/components/elements/button";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import Badge from "~/components/elements/badge";
 import Divider from "~/components/elements/divider";
-import moment from "moment";
+import moment from "moment-timezone";
 import type { Route } from "./+types/listPosts";
 import { Link } from "react-router";
 

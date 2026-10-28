@@ -5,6 +5,9 @@ import { ToastContainer } from "react-toastify";
 import "./app.css";
 import { XMarkIcon } from "@heroicons/react/20/solid";
 import { CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon, XCircleIcon } from "@heroicons/react/24/outline";
+import moment from "moment-timezone";
+
+moment.tz.setDefault(moment.tz.guess(true));
 
 if (process.env.NODE_ENV !== "development") {
     console.log = () => { }

@@ -4,7 +4,7 @@ import Button from "~/components/elements/button";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import Alert from "~/components/notifications/alert";
 import { Link } from "react-router";
-import moment from "moment";
+import moment from "moment-timezone";
 import Divider from "~/components/elements/divider";
 import Badge from "~/components/elements/badge";
 
