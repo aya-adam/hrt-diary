@@ -27,6 +27,9 @@ export default [
                 ]),
                 ...prefix("events", [
                     index("routes/dashboard/events/listEvents.tsx"),
+                    route("create", "routes/dashboard/events/createEvent.tsx"),
+                    route(":eventUuid", "routes/dashboard/events/showEvent.tsx"),
+                    route("edit/:eventUuid", "routes/dashboard/events/editEvent.tsx"),
                 ]),
                 ...prefix("labs", [
                     index("routes/dashboard/labs/listLabs.tsx"),
