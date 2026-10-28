@@ -5,14 +5,21 @@ import { joinClasses } from "~/utils";
 
 interface InputInterface extends InputHTMLAttributes<HTMLInputElement> {
     label?: string;
+    subLabel?: boolean;
     error?: FieldError;
 }
 
-const Input = forwardRef<HTMLInputElement, InputInterface>(({ label, error, ...rest }, ref) => {
+const Input = forwardRef<HTMLInputElement, InputInterface>(({ label, subLabel = false, error, ...rest }, ref) => {
     return (
         <>
             {label && (
-                <label htmlFor={rest.name} className="block text-sm/6 font-medium text-gray-900 dark:text-white">
+                <label
+                    htmlFor={rest.name}
+                    className={joinClasses(
+                        "block text-sm/6 font-medium",
+                        subLabel ? "text-gray-500 dark:text-gray-400" : "text-gray-900 dark:text-white",
+                    )}
+                >
                     {label}
                 </label>
             )}
