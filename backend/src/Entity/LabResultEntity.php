@@ -43,10 +43,10 @@ class LabResultEntity
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $notes = null;
 
-    #[ORM\Column(nullable: true)]
+    #[ORM\Column(type: Types::DATETIME_UTC_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $publishedAt = null;
 
-    #[ORM\Column]
+    #[ORM\Column(type: Types::DATETIME_UTC_IMMUTABLE)]
     private ?\DateTimeImmutable $drawnAt = null;
 
     #[ORM\Column]

@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\EventRepository;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Symfony\Bridge\Doctrine\Types\UuidType;
@@ -25,7 +26,7 @@ class EventEntity
     #[ORM\Column(length: 100)]
     private ?string $name = null;
 
-    #[ORM\Column]
+    #[ORM\Column(type: Types::DATETIME_UTC_IMMUTABLE)]
     private ?\DateTimeImmutable $date = null;
 
     #[ORM\Column(nullable: true)]

@@ -40,7 +40,7 @@ class PostEntity
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $text = null;
 
-    #[ORM\Column(nullable: true)]
+    #[ORM\Column(type: Types::DATETIME_UTC_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $publishedAt = null;
 
     #[ORM\Column]
