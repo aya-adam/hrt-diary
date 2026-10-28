@@ -182,4 +182,26 @@ export class Event {
     static toIri(uuid: string): string {
         return uuid.startsWith(EVENT_IRI_PREFIX) ? uuid : `${EVENT_IRI_PREFIX}${uuid}`;
     }
+
+    getRepeatIntervalAsObject() {
+        return {
+            years: this.repeatInterval?.years() ?? 0,
+            months: this.repeatInterval?.months() ?? 0,
+            days: this.repeatInterval?.days() ?? 0,
+            hours: this.repeatInterval?.hours() ?? 0,
+            minutes: this.repeatInterval?.minutes() ?? 0,
+            seconds: this.repeatInterval?.seconds() ?? 0,
+        };
+    };
+
+    getEarlyNotificationAsObject() {
+        return {
+            years: this.earlyNotification?.years() ?? 0,
+            months: this.earlyNotification?.months() ?? 0,
+            days: this.earlyNotification?.days() ?? 0,
+            hours: this.earlyNotification?.hours() ?? 0,
+            minutes: this.earlyNotification?.minutes() ?? 0,
+            seconds: this.earlyNotification?.seconds() ?? 0,
+        };
+    };
 }

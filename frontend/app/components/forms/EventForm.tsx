@@ -26,17 +26,6 @@ const dateTimeStringToMoment = (dateTime: string, format: string = "YYYY-MM-DD H
     return date;
 };
 
-const momentDurationToYupInterval = (duration: moment.Duration): yup.InferType<typeof schema>["repeatInterval"] | yup.InferType<typeof schema>["repeatInterval"] => {
-    return {
-        years: duration.years(),
-        months: duration.months(),
-        days: duration.days(),
-        hours: duration.hours(),
-        minutes: duration.minutes(),
-        seconds: duration.seconds(),
-    };
-};
-
 const createEvent = async (formData: any): Promise<Event> => {
     const { data } = await apolloClient.mutate({
         mutation: Event.CREATE_MUTATION,
@@ -116,8 +105,8 @@ export default function EventForm({ prefill, onSuccess, onFail }: EventFormInter
             name: prefill?.name ?? undefined,
             eventDate: prefill?.date.format("YYYY-MM-DD") ?? undefined,
             eventTime: prefill?.date.format("HH:mm") ?? undefined,
-            repeatInterval: prefill?.repeatInterval ? momentDurationToYupInterval(prefill.repeatInterval) : dateIntervalDefault,
-            earlyNotification: prefill?.earlyNotification ? momentDurationToYupInterval(prefill.earlyNotification) : dateIntervalDefault,
+            repeatInterval: prefill?.getRepeatIntervalAsObject() ?? dateIntervalDefault,
+            earlyNotification: prefill?.getEarlyNotificationAsObject() ?? dateIntervalDefault,
             critical: prefill?.critical ?? false,
         },
     });
