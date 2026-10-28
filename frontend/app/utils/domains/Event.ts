@@ -69,8 +69,8 @@ export class Event {
     readonly id: string;
     readonly name: string;
     readonly date: Moment;
-    readonly repeatInterval?: string;
-    readonly earlyNotification?: string;
+    readonly repeatInterval?: moment.Duration;
+    readonly earlyNotification?: moment.Duration;
     readonly critical: boolean;
     readonly createdAt: Moment;
     readonly updatedAt: Moment;
@@ -153,8 +153,8 @@ export class Event {
         this.id = Event.toUuid(id);
         this.name = name;
         this.date = moment(date);
-        this.repeatInterval = repeatInterval;
-        this.earlyNotification = earlyNotification;
+        this.repeatInterval = repeatInterval ? moment.duration(repeatInterval) : undefined;
+        this.earlyNotification = earlyNotification ? moment.duration(earlyNotification) : undefined;
         this.critical = critical;
         this.createdAt = moment(createdAt);
         this.updatedAt = moment(updatedAt);
