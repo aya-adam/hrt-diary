@@ -8,17 +8,18 @@ interface InputInterface extends InputHTMLAttributes<HTMLInputElement> {
     error?: FieldError;
 }
 
-const Input = forwardRef<HTMLInputElement, InputInterface>(({ label, className, error, ...rest }, ref) => {
+const Input = forwardRef<HTMLInputElement, InputInterface>(({ label, error, ...rest }, ref) => {
     return (
         <>
             {label && (
-                <label htmlFor="email" className="block text-sm/6 font-medium text-gray-900 dark:text-white">
+                <label htmlFor={rest.name} className="block text-sm/6 font-medium text-gray-900 dark:text-white">
                     {label}
                 </label>
             )}
             <div className={joinClasses("mt-2", error ? "grid grid-cols-1" : "")}>
                 <input
                     ref={ref}
+                    id={rest.name}
                     {...rest}
                     className={joinClasses(
                         "block w-full rounded-md bg-white dark:bg-white/5 py-1.5 text-base outline-1 -outline-offset-1 focus:outline-2 focus:-outline-offset-2 sm:text-sm/6",
