@@ -5,6 +5,7 @@ import type { Route } from "./+types/showEvent";
 import { TrashIcon } from "@heroicons/react/20/solid";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router";
+import Badge from "~/components/elements/badge";
 
 export function meta({ }: Route.MetaArgs) {
     return [
@@ -80,7 +81,7 @@ export default function ShowEvent({ loaderData }: Route.ComponentProps) {
             </div>
             <div className="flex flex-col gap-3">
                 <div>
-                    Date: {event.date.format("DD.MM.YYYY HH:mm")}
+                    Date: {event.date.format("DD.MM.YYYY HH:mm")}{event.critical && <span className="ml-2"><Badge>Critical</Badge></span>}
                 </div>
                 <div>
                     Repeat Interval: {event.repeatInterval?.humanize() ?? "-"}
