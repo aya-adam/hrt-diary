@@ -1,6 +1,9 @@
 api_platform:
     title: HRT Diary API
     version: 1.0.0
+    enable_swagger_ui: false
+    enable_re_doc: false
+    enable_scalar: false
     defaults:
         stateless: true
         cache_headers:
