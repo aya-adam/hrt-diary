@@ -8,8 +8,8 @@ on:
 
 jobs:
   deploy:
-  runs-on: ubuntu-latest
-  steps:
-    - name: Trigger server webhook (frontend)
-      run: |
-        curl -X POST "${{ secrets.FRONTEND_WEBHOOK_URL }}"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger server webhook (frontend)
+        run: |
+          curl -X POST "${{ secrets.FRONTEND_WEBHOOK_URL }}"
