@@ -9,7 +9,3 @@ lexik_jwt_authentication:
             name: '%app.jwt_access_token_cookie_name%'
         authorization_header:
             enabled: false
-    api_platform:
-        check_path: /auth/login
-        username_path: username
-        password_path: password
