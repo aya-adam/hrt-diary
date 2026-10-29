@@ -5,7 +5,8 @@ export default [
         layout("components/layouts/landingPageLayout.tsx", [index("routes/home.tsx")]),
         layout("components/layouts/loginLayout.tsx", [
             route("signin", "routes/signin.tsx"),
-            route("signup", "routes/signup.tsx"),
+            // route("signup", "routes/signup.tsx"),
+            route("signup", "routes/landingPages/signupRestricted.tsx"),
         ]),
     ]),
     layout("components/shells/protectedShell.tsx", [
