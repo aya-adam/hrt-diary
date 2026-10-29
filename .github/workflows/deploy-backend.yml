@@ -1,0 +1,15 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'backend/**'
+
+jobs:
+  deploy:
+  runs-on: ubuntu-latest
+  steps:
+    - name: Trigger server webhook (backend)
+      run: |
+        curl -X POST "${{ secrets.BACKEND_WEBHOOK_URL }}"

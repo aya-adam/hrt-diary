@@ -1,0 +1,15 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'frontend/**'
+
+jobs:
+  deploy:
+  runs-on: ubuntu-latest
+  steps:
+    - name: Trigger server webhook (frontend)
+      run: |
+        curl -X POST "${{ secrets.FRONTEND_WEBHOOK_URL }}"
