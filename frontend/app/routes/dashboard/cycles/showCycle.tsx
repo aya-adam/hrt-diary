@@ -88,7 +88,7 @@ export default function ShowCycle({ loaderData }: Route.ComponentProps) {
                 <div>
                     Locations
                     <ol className="list-decimal list-inside">
-                        {cycle.locations.map((item, index) => <li>{item}{cycle.startingIndex === index && <>{" "}<Badge>Start</Badge></>}</li>)}
+                        {cycle.locations.map((item, index) => <li key={index}>{item}{cycle.startingIndex === index && <>{" "}<Badge>Start</Badge></>}</li>)}
                     </ol>
                 </div>
             </div>
