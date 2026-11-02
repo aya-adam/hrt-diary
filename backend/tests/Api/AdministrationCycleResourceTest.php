@@ -52,6 +52,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                     id
                     name
                     startingDate
+                    schedule
                     locations
                     startingIndex
                     createdAt
@@ -69,6 +70,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
             $this->assertMatchesIri($administrationCycle['id'], AdministrationCycleResource::class);
             $this->assertArrayHasKey('name', $administrationCycle);
             $this->assertArrayHasKey('startingDate', $administrationCycle);
+            $this->assertIsArray($administrationCycle['schedule']);
             $this->assertIsArray($administrationCycle['locations']);
             $this->assertIsInt($administrationCycle['startingIndex']);
             $this->assertMatchesDate($administrationCycle['createdAt']);
@@ -86,6 +88,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                     id
                     name
                     startingDate
+                    schedule
                     locations
                     startingIndex
                     createdAt
@@ -115,6 +118,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                     id
                     name
                     startingDate
+                    schedule
                     locations
                     startingIndex
                     createdAt
@@ -133,6 +137,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
         $this->assertMatchesIri($body['data']['administrationCycle']['id'], AdministrationCycleResource::class);
         $this->assertSame($administrationCycle->getName(), $body['data']['administrationCycle']['name']);
         $this->assertSame($administrationCycle->getStartingDate()->format('Y-m-d'), $body['data']['administrationCycle']['startingDate']);
+        $this->assertSame($administrationCycle->getSchedule(), $body['data']['administrationCycle']['schedule']);
         $this->assertSame($administrationCycle->getLocations(), $body['data']['administrationCycle']['locations']);
         $this->assertSame($administrationCycle->getStartingIndex(), $body['data']['administrationCycle']['startingIndex']);
         $this->assertSame($administrationCycle->getCreatedAt()->format(DateTimeInterface::ATOM), $body['data']['administrationCycle']['createdAt']);
@@ -152,6 +157,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                     id
                     name
                     startingDate
+                    schedule
                     locations
                     startingIndex
                     createdAt
@@ -182,6 +188,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                     id
                     name
                     startingDate
+                    schedule
                     locations
                     startingIndex
                     createdAt
@@ -209,12 +216,13 @@ class AdministrationCycleResourceTest extends ApiTestCase
         $client = self::createAuthenticatedClient($user);
 
         $query = <<<'GQL'
-            mutation CreateAdministrationCycle($name: String!, $startingDate: String!, $locations: Iterable!, $startingIndex: Int!) {
-                createAdministrationCycle(input: { name: $name, startingDate: $startingDate, locations: $locations, startingIndex: $startingIndex }) {
+            mutation CreateAdministrationCycle($name: String!, $startingDate: String!, $schedule: Iterable!, $locations: Iterable!, $startingIndex: Int!) {
+                createAdministrationCycle(input: { name: $name, startingDate: $startingDate, schedule: $schedule, locations: $locations, startingIndex: $startingIndex }) {
                     administrationCycle {
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -227,6 +235,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
         $variables = [
             'name' => 'Test Administration Cycle Name',
             'startingDate' => '2025-10-28',
+            'schedule' => ['Entry 1', 'Entry 2'],
             'locations' => ['Item 1', 'Item 2', 'Item 3'],
             'startingIndex' => 0,
         ];
@@ -237,6 +246,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
         $this->assertMatchesIri($body['data']['createAdministrationCycle']['administrationCycle']['id'], AdministrationCycleResource::class);
         $this->assertSame('Test Administration Cycle Name', $body['data']['createAdministrationCycle']['administrationCycle']['name']);
         $this->assertSame('2025-10-28', $body['data']['createAdministrationCycle']['administrationCycle']['startingDate']);
+        $this->assertSame(['Entry 1', 'Entry 2'], $body['data']['createAdministrationCycle']['administrationCycle']['schedule']);
         $this->assertSame(['Item 1', 'Item 2', 'Item 3'], $body['data']['createAdministrationCycle']['administrationCycle']['locations']);
         $this->assertSame(0, $body['data']['createAdministrationCycle']['administrationCycle']['startingIndex']);
         $this->assertMatchesDate($body['data']['createAdministrationCycle']['administrationCycle']['createdAt']);
@@ -248,12 +258,13 @@ class AdministrationCycleResourceTest extends ApiTestCase
         $client = self::createClient();
 
         $query = <<<'GQL'
-            mutation CreateAdministrationCycle($name: String!, $startingDate: String!, $locations: Iterable!, $startingIndex: Int!) {
-                createAdministrationCycle(input: { name: $name, startingDate: $startingDate, locations: $locations, startingIndex: $startingIndex }) {
+            mutation CreateAdministrationCycle($name: String!, $startingDate: String!, $schedule: Iterable!, $locations: Iterable!, $startingIndex: Int!) {
+                createAdministrationCycle(input: { name: $name, startingDate: $startingDate, schedule: $schedule, locations: $locations, startingIndex: $startingIndex }) {
                     administrationCycle {
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -266,6 +277,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
         $variables = [
             'name' => 'Test Administration Cycle Name',
             'startingDate' => '2025-10-28',
+            'schedule' => ['Entry 1', 'Entry 2'],
             'locations' => ['Item 1', 'Item 2', 'Item 3'],
             'startingIndex' => 0,
         ];
@@ -285,12 +297,13 @@ class AdministrationCycleResourceTest extends ApiTestCase
         $client = self::createAuthenticatedClient($user);
 
         $query = <<<'GQL'
-            mutation CreateAdministrationCycle($startingDate: String!, $locations: Iterable!, $startingIndex: Int!) {
-                createAdministrationCycle(input: {startingDate: $startingDate, locations: $locations, startingIndex: $startingIndex }) {
+            mutation CreateAdministrationCycle($startingDate: String!, $schedule: Iterable!, $locations: Iterable!, $startingIndex: Int!) {
+                createAdministrationCycle(input: {startingDate: $startingDate, schedule: $schedule, locations: $locations, startingIndex: $startingIndex }) {
                     administrationCycle {
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -302,6 +315,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
 
         $variables = [
             'startingDate' => '2025-10-28',
+            'schedule' => ['Entry 1', 'Entry 2'],
             'locations' => ['Item 1', 'Item 2', 'Item 3'],
             'startingIndex' => 0,
         ];
@@ -320,12 +334,13 @@ class AdministrationCycleResourceTest extends ApiTestCase
         $client = self::createAuthenticatedClient($user);
 
         $query = <<<'GQL'
-            mutation CreateAdministrationCycle($name: String!, $startingDate: String!, $locations: Iterable!, $startingIndex: Int!) {
-                createAdministrationCycle(input: { name: $name, startingDate: $startingDate, locations: $locations, startingIndex: $startingIndex }) {
+            mutation CreateAdministrationCycle($name: String!, $startingDate: String!, $schedule: Iterable!, $locations: Iterable!, $startingIndex: Int!) {
+                createAdministrationCycle(input: { name: $name, startingDate: $startingDate, schedule: $schedule, locations: $locations, startingIndex: $startingIndex }) {
                     administrationCycle {
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -338,6 +353,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
         $variables = [
             'name' => '',
             'startingDate' => '2025-10-28',
+            'schedule' => ['Entry 1', 'Entry 2'],
             'locations' => ['Item 1', 'Item 2', 'Item 3'],
             'startingIndex' => 0,
         ];
@@ -356,12 +372,13 @@ class AdministrationCycleResourceTest extends ApiTestCase
         $client = self::createAuthenticatedClient($user);
 
         $query = <<<'GQL'
-            mutation CreateAdministrationCycle($name: String!, $startingDate: String!, $locations: Iterable!, $startingIndex: Int!) {
-                createAdministrationCycle(input: { name: $name, startingDate: $startingDate, locations: $locations, startingIndex: $startingIndex }) {
+            mutation CreateAdministrationCycle($name: String!, $startingDate: String!, $schedule: Iterable!, $locations: Iterable!, $startingIndex: Int!) {
+                createAdministrationCycle(input: { name: $name, startingDate: $startingDate, schedule: $schedule, locations: $locations, startingIndex: $startingIndex }) {
                     administrationCycle {
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -374,6 +391,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
         $variables = [
             'name' => faker()->text(1000),
             'startingDate' => '2025-10-28',
+            'schedule' => ['Entry 1', 'Entry 2'],
             'locations' => ['Item 1', 'Item 2', 'Item 3'],
             'startingIndex' => 0,
         ];
@@ -392,12 +410,13 @@ class AdministrationCycleResourceTest extends ApiTestCase
         $client = self::createAuthenticatedClient($user);
 
         $query = <<<'GQL'
-            mutation CreateAdministrationCycle($name: String!, $locations: Iterable!, $startingIndex: Int!) {
-                createAdministrationCycle(input: { name: $name, locations: $locations, startingIndex: $startingIndex }) {
+            mutation CreateAdministrationCycle($name: String!, $schedule: Iterable!, $locations: Iterable!, $startingIndex: Int!) {
+                createAdministrationCycle(input: { name: $name, schedule: $schedule, locations: $locations, startingIndex: $startingIndex }) {
                     administrationCycle {
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -409,6 +428,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
 
         $variables = [
             'name' => 'Test Administration Cycle Name',
+            'schedule' => ['Entry 1', 'Entry 2'],
             'locations' => ['Item 1', 'Item 2', 'Item 3'],
             'startingIndex' => 0,
         ];
@@ -427,12 +447,13 @@ class AdministrationCycleResourceTest extends ApiTestCase
         $client = self::createAuthenticatedClient($user);
 
         $query = <<<'GQL'
-            mutation CreateAdministrationCycle($name: String!, $startingDate: String!, $locations: Iterable!, $startingIndex: Int!) {
-                createAdministrationCycle(input: { name: $name, startingDate: $startingDate, locations: $locations, startingIndex: $startingIndex }) {
+            mutation CreateAdministrationCycle($name: String!, $startingDate: String!, $schedule: Iterable!, $locations: Iterable!, $startingIndex: Int!) {
+                createAdministrationCycle(input: { name: $name, startingDate: $startingDate, schedule: $schedule, locations: $locations, startingIndex: $startingIndex }) {
                     administrationCycle {
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -445,6 +466,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
         $variables = [
             'name' => 'Test Administration Cycle Name',
             'startingDate' => '',
+            'schedule' => ['Entry 1', 'Entry 2'],
             'locations' => ['Item 1', 'Item 2', 'Item 3'],
             'startingIndex' => 0,
         ];
@@ -463,12 +485,13 @@ class AdministrationCycleResourceTest extends ApiTestCase
         $client = self::createAuthenticatedClient($user);
 
         $query = <<<'GQL'
-            mutation CreateAdministrationCycle($name: String!, $startingDate: String!, $locations: Iterable!, $startingIndex: Int!) {
-                createAdministrationCycle(input: { name: $name, startingDate: $startingDate, locations: $locations, startingIndex: $startingIndex }) {
+            mutation CreateAdministrationCycle($name: String!, $startingDate: String!, $schedule: Iterable!, $locations: Iterable!, $startingIndex: Int!) {
+                createAdministrationCycle(input: { name: $name, startingDate: $startingDate, schedule: $schedule, locations: $locations, startingIndex: $startingIndex }) {
                     administrationCycle {
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -481,6 +504,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
         $variables = [
             'name' => 'Test Administration Cycle Name',
             'startingDate' => 'invalid_value',
+            'schedule' => ['Entry 1', 'Entry 2'],
             'locations' => ['Item 1', 'Item 2', 'Item 3'],
             'startingIndex' => 0,
         ];
@@ -492,6 +516,158 @@ class AdministrationCycleResourceTest extends ApiTestCase
         $this->assertNull($body['data']['createAdministrationCycle']);
     }
 
+    public function testPostReturns422WhenScheduleIsMissing(): void
+    {
+        $user = UserFactory::random();
+
+        $client = self::createAuthenticatedClient($user);
+
+        $query = <<<'GQL'
+            mutation CreateAdministrationCycle($name: String!, $startingDate: String!, $locations: Iterable!, $startingIndex: Int!) {
+                createAdministrationCycle(input: { name: $name, startingDate: $startingDate, locations: $locations, startingIndex: $startingIndex }) {
+                    administrationCycle {
+                        id
+                        name
+                        startingDate
+                        schedule
+                        locations
+                        startingIndex
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'name' => 'Test Administration Cycle Name',
+            'startingDate' => '2025-10-28',
+            'locations' => ['Item 1', 'Item 2', 'Item 3'],
+            'startingIndex' => 0,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateAdministrationCycle')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'schedule', 'This value should not be blank.');
+        $this->assertNull($body['data']['createAdministrationCycle']);
+    }
+
+    public function testPostReturns422WhenScheduleIsEmptyArray(): void
+    {
+        $user = UserFactory::random();
+
+        $client = self::createAuthenticatedClient($user);
+
+        $query = <<<'GQL'
+            mutation CreateAdministrationCycle($name: String!, $startingDate: String!, $schedule: Iterable!, $locations: Iterable!, $startingIndex: Int!) {
+                createAdministrationCycle(input: { name: $name, startingDate: $startingDate, schedule: $schedule, locations: $locations, startingIndex: $startingIndex }) {
+                    administrationCycle {
+                        id
+                        name
+                        startingDate
+                        schedule
+                        locations
+                        startingIndex
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'name' => 'Test Administration Cycle Name',
+            'startingDate' => '2025-10-28',
+            'schedule' => [],
+            'locations' => ['Item 1', 'Item 2', 'Item 3'],
+            'startingIndex' => 0,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateAdministrationCycle')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'schedule', 'This value should not be blank.');
+        $this->assertGraphQlFieldViolation($body, 'schedule', 'You must specify at least one schedule entry.');
+        $this->assertNull($body['data']['createAdministrationCycle']);
+    }
+
+    public function testPostReturns422WhenScheduleIsNotArray(): void
+    {
+        $user = UserFactory::random();
+
+        $client = self::createAuthenticatedClient($user);
+
+        $query = <<<'GQL'
+            mutation CreateAdministrationCycle($name: String!, $startingDate: String!, $schedule: String! $locations: Iterable!, $startingIndex: Int!) {
+                createAdministrationCycle(input: { name: $name, startingDate: $startingDate, schedule: $schedule, locations: $locations, startingIndex: $startingIndex }) {
+                    administrationCycle {
+                        id
+                        name
+                        startingDate
+                        schedule
+                        locations
+                        startingIndex
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'name' => 'Test Administration Cycle Name',
+            'startingDate' => '2025-10-28',
+            'schedule' => 'invalid_value',
+            'locations' => ['Item 1', 'Item 2', 'Item 3'],
+            'startingIndex' => 0,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateAdministrationCycle')->toArray(false);
+
+        $this->assertGraphQlError($body, 'Variable "$schedule" of type "String!" used in position expecting type "Iterable".');
+        $this->assertNull($body['data']['createAdministrationCycle']);
+    }
+
+    public function testPostReturns422WhenScheduleIsArrayOfInvalidValues(): void
+    {
+        $user = UserFactory::random();
+
+        $client = self::createAuthenticatedClient($user);
+
+        $query = <<<'GQL'
+            mutation CreateAdministrationCycle($name: String!, $startingDate: String!, $schedule: Iterable!, $locations: Iterable!, $startingIndex: Int!) {
+                createAdministrationCycle(input: { name: $name, startingDate: $startingDate, schedule: $schedule, locations: $locations, startingIndex: $startingIndex }) {
+                    administrationCycle {
+                        id
+                        name
+                        startingDate
+                        schedule
+                        locations
+                        startingIndex
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        GQL;
+
+        $variables = [
+            'name' => 'Test Administration Cycle Name',
+            'startingDate' => '2025-10-28',
+            'schedule' => [100, 'Item 2', ['Item 2.1', 'Item 2.2']],
+            'locations' => ['Item 1', 'Item 2', 'Item 3'],
+            'startingIndex' => 0,
+        ];
+
+        $body = $this->executeGraphQl($client, $query, $variables, 'CreateAdministrationCycle')->toArray(false);
+
+        $this->assertGraphQlErrorStatus($body, 422);
+        $this->assertGraphQlFieldViolation($body, 'schedule[0]', 'This value should be of type string.');
+        $this->assertGraphQlFieldViolation($body, 'schedule[2]', 'This value should be of type string.');
+        $this->assertNull($body['data']['createAdministrationCycle']);
+    }
+    
     public function testPostReturns422WhenLocationsIsMissing(): void
     {
         $user = UserFactory::random();
@@ -505,6 +681,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -541,6 +718,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -578,6 +756,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -613,6 +792,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -650,6 +830,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -685,6 +866,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -721,6 +903,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -757,6 +940,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -792,6 +976,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -829,6 +1014,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -871,6 +1057,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -910,6 +1097,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -949,6 +1137,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -984,6 +1173,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -1019,6 +1209,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -1054,6 +1245,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -1089,6 +1281,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -1125,6 +1318,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -1159,6 +1353,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -1195,6 +1390,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -1231,6 +1427,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt
@@ -1265,6 +1462,7 @@ class AdministrationCycleResourceTest extends ApiTestCase
                         id
                         name
                         startingDate
+                        schedule
                         locations
                         startingIndex
                         createdAt

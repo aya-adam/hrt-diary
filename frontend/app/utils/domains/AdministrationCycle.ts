@@ -7,6 +7,7 @@ export type AdministrationCycleDto = {
     id: string,
     name: string,
     startingDate: string,
+    schedule: string[],
     locations: string[],
     startingIndex: number,
     createdAt: string,
@@ -20,6 +21,7 @@ type AdministrationCycleItemIdentifierInput = {
 type AdministrationCycleCreateMutationInput = {
     name: string,
     startingDate: string,
+    schedule: string[],
     locations: string[],
     startingIndex: number,
 };
@@ -28,6 +30,7 @@ type AdministrationCycleUpdateMutationInput = {
     id: AdministrationCycleItemIdentifierInput['id'],
     name?: string,
     startingDate?: string,
+    schedule?: string[],
     locations?: string[],
     startingIndex?: number,
 };
@@ -66,6 +69,7 @@ export class AdministrationCycle {
     readonly id: string;
     readonly name: string;
     readonly startingDate: Moment;
+    readonly schedule: string[];
     readonly locations: string[];
     readonly startingIndex: number;
     readonly createdAt: Moment;
@@ -77,6 +81,7 @@ export class AdministrationCycle {
                 id
                 name
                 startingDate
+                schedule
                 locations
                 startingIndex
                 createdAt
@@ -91,6 +96,7 @@ export class AdministrationCycle {
             id
             name
             startingDate
+            schedule
             locations
             startingIndex
             createdAt
@@ -100,12 +106,13 @@ export class AdministrationCycle {
     `;
 
     static readonly CREATE_MUTATION: TypedDocumentNode<AdministrationCycleCreateMutationResponse, AdministrationCycleCreateMutationInput> = gql`
-        mutation CreateAdministrationCycle($name: String!, $startingDate: String!, $locations: Iterable!, $startingIndex: Int!) {
-            createAdministrationCycle(input: { name: $name, startingDate: $startingDate, locations: $locations, startingIndex: $startingIndex }) {
+        mutation CreateAdministrationCycle($name: String!, $startingDate: String!, $schedule: Iterable!, $locations: Iterable!, $startingIndex: Int!) {
+            createAdministrationCycle(input: { name: $name, startingDate: $startingDate, schedule: $schedule, locations: $locations, startingIndex: $startingIndex }) {
                 administrationCycle {
                     id
                     name
                     startingDate
+                    schedule
                     locations
                     startingIndex
                     createdAt
@@ -116,12 +123,13 @@ export class AdministrationCycle {
     `;
 
     static readonly UPDATE_MUTATION: TypedDocumentNode<AdministrationCycleUpdateMutationResponse, AdministrationCycleUpdateMutationInput> = gql`
-        mutation UpdateAdministrationCycle($id: ID!, $name: String, $startingDate: String, $locations: Iterable, $startingIndex: Int) {
-            updateAdministrationCycle(input: { id: $id, name: $name, startingDate: $startingDate, locations: $locations, startingIndex: $startingIndex }) {
+        mutation UpdateAdministrationCycle($id: ID!, $name: String, $startingDate: String, $schedule: Iterable, $locations: Iterable, $startingIndex: Int) {
+            updateAdministrationCycle(input: { id: $id, name: $name, startingDate: $startingDate, schedule: $schedule, locations: $locations, startingIndex: $startingIndex }) {
                 administrationCycle {
                     id
                     name
                     startingDate
+                    schedule
                     locations
                     startingIndex
                     createdAt
@@ -141,10 +149,11 @@ export class AdministrationCycle {
         }
     `;
 
-    constructor(id: string, name: string, startingDate: string, locations: string[], startingIndex: number, createdAt: string, updatedAt: string) {
+    constructor(id: string, name: string, startingDate: string, schedule: string[], locations: string[], startingIndex: number, createdAt: string, updatedAt: string) {
         this.id = AdministrationCycle.toUuid(id);
         this.name = name;
         this.startingDate = moment(startingDate);
+        this.schedule = schedule;
         this.locations = locations;
         this.startingIndex = startingIndex;
         this.createdAt = moment(createdAt);
@@ -158,6 +167,7 @@ export class AdministrationCycle {
             dto.id,
             dto.name,
             dto.startingDate,
+            dto.schedule,
             dto.locations,
             dto.startingIndex,
             dto.createdAt,

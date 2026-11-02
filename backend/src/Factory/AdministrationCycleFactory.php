@@ -31,9 +31,11 @@ final class AdministrationCycleFactory extends PersistentObjectFactory
     #[\Override]
     protected function defaults(): array|callable
     {
+        $schedule = array_map(fn($item) => ucwords($item), self::faker()->words(self::faker()->numberBetween(2, 3)));
         $locations = array_map(fn($item) => ucwords($item), self::faker()->words(self::faker()->numberBetween(2, 4)));
 
         return [
+            'schedule' => $schedule,
             'locations' => $locations,
             'name' => ucwords(self::faker()->words(self::faker()->numberBetween(2, 3), true)),
             'startingDate' => \DateTimeImmutable::createFromMutable(self::faker()->dateTimeBetween('-2 month', '-1 day')),

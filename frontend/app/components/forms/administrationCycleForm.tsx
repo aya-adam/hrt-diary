@@ -11,12 +11,9 @@ import { AdministrationCycle, apolloClient, joinClasses } from "~/utils";
 import { ChevronDownIcon, ChevronUpIcon, TrashIcon } from "@heroicons/react/20/solid";
 import moment from "moment-timezone";
 
-const mapLocations = (objects: { value: string }[]): string[] => {
-    return objects.map((item) => item.value);
-}
-
 const createCycle = async (formData: any): Promise<AdministrationCycle> => {
-    formData.locations = mapLocations(formData.locations);
+    formData.schedule = formData.schedule.map((item: any) => item.value);
+    formData.locations = formData.locations.map((item: any) => item.value);
     const { data } = await apolloClient.mutate({
         mutation: AdministrationCycle.CREATE_MUTATION,
         variables: formData,
@@ -26,7 +23,8 @@ const createCycle = async (formData: any): Promise<AdministrationCycle> => {
 }
 
 const updateCycle = async (id: string, formData: any): Promise<AdministrationCycle> => {
-    formData.locations = mapLocations(formData.locations);
+    formData.schedule = formData.schedule.map((item: any) => item.value);
+    formData.locations = formData.locations.map((item: any) => item.value);
     const { data } = await apolloClient.mutate({
         mutation: AdministrationCycle.UPDATE_MUTATION,
         variables: {
@@ -42,6 +40,15 @@ const schema = yup
     .object({
         name: yup.string().required("Name is required"),
         startingDate: yup.string().required("Starting date is required"),
+        schedule: yup
+            .array()
+            .of(
+                yup.object({
+                    value: yup.string().required("Schedule is required"),
+                }),
+            )
+            .min(1, "Add at least one schedule entry")
+            .required(),
         locations: yup
             .array()
             .of(
@@ -81,11 +88,13 @@ export default function AdministrationCycleForm({ prefill, onSuccess, onFail }: 
         defaultValues: {
             name: prefill?.name ?? undefined,
             startingDate: prefill?.startingDate.format("YYYY-MM-DD") ?? moment().format("YYYY-MM-DD"),
+            schedule: prefill?.schedule.map((value) => ({ value })) ?? [],
             locations: prefill?.locations.map((value) => ({ value })) ?? [],
             startingIndex: prefill?.startingIndex ?? 0,
         },
     });
-    const { fields, append, move, remove } = useFieldArray({ control, name: "locations" });
+    const scheduleArr = useFieldArray({ control, name: "schedule" });
+    const locationsArr = useFieldArray({ control, name: "locations" });
 
     const onSubmit: SubmitHandler<AdministrationCycleFormInput> = async (formData) => {
         setLoading(true);
@@ -123,6 +132,18 @@ export default function AdministrationCycleForm({ prefill, onSuccess, onFail }: 
         }
     };
 
+    const scheduleSingleFieldErrors = useMemo((): Merge<FieldError, (Merge<FieldError, FieldErrorsImpl<{ value: string; }>> | undefined)[]> | undefined => {
+        return (errors.schedule && typeof errors.schedule === "object" && Array.isArray(errors.schedule))
+            ? errors.schedule
+            : undefined;
+    }, [errors.schedule]);
+
+    const scheduleFieldErrors = useMemo((): FieldError | undefined => {
+        return (errors.schedule && typeof errors.schedule === "object" && !Array.isArray(errors.schedule))
+            ? errors.schedule as FieldError
+            : undefined;
+    }, [errors.schedule]);
+    
     const locationSingleFieldErrors = useMemo((): Merge<FieldError, (Merge<FieldError, FieldErrorsImpl<{ value: string; }>> | undefined)[]> | undefined => {
         return (errors.locations && typeof errors.locations === "object" && Array.isArray(errors.locations))
             ? errors.locations
@@ -148,8 +169,79 @@ export default function AdministrationCycleForm({ prefill, onSuccess, onFail }: 
             </div>
 
             <div>
+                <label className="block text-sm/6 font-medium text-gray-900 dark:text-white">Schedule</label>
+                {scheduleArr.fields.map((field, index) => (
+                    <div key={field.id} className="flex items-center gap-2">
+                        <div className="flex-1">
+                            <Input
+                                {...register(`schedule.${index}.value` as const)}
+                                type="text"
+                                error={scheduleSingleFieldErrors?.[index]?.value}
+                            />
+                        </div>
+                        <div className="flex flex-col mt-2 gap-1">
+                            <button
+                                type="button"
+                                onClick={() => scheduleArr.move(index, index - 1)}
+                                disabled={scheduleArr.fields.length === 1 || index === 0}
+                                className={joinClasses(
+                                    "flex justify-center rounded-md bg-indigo-500 px-3 py-0.5 text-sm/6 font-semibold text-white hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500",
+                                    scheduleArr.fields.length > 1 && index > 0
+                                        ? "opacity-100 cursor-pointer"
+                                        : "opacity-30 cursor-not-allowed",
+                                )}
+                            >
+                                <ChevronUpIcon aria-hidden="true" className="size-3" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => scheduleArr.move(index, index + 1)}
+                                disabled={scheduleArr.fields.length === 1 || index === scheduleArr.fields.length - 1}
+                                className={joinClasses(
+                                    "flex justify-center rounded-md bg-indigo-500 px-3 py-0.5 text-sm/6 font-semibold text-white hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500",
+                                    scheduleArr.fields.length > 1 && index < scheduleArr.fields.length - 1
+                                        ? "opacity-100 cursor-pointer"
+                                        : "opacity-30 cursor-not-allowed",
+                                )}
+                            >
+                                <ChevronDownIcon aria-hidden="true" className="size-3" />
+                            </button>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => scheduleArr.remove(index)}
+                            disabled={scheduleArr.fields.length === 1}
+                            className={joinClasses(
+                                "flex justify-center rounded-md bg-indigo-500 px-3 py-2.5 mt-2 text-sm/6 font-semibold text-white hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500",
+                                scheduleArr.fields.length > 1
+                                    ? "opacity-100 cursor-pointer"
+                                    : "opacity-30 cursor-not-allowed",
+                            )}
+                        >
+                            <TrashIcon aria-hidden="true" className="size-4" />
+                        </button>
+                    </div>
+                ))}
+                <button
+                    type="button"
+                    onClick={() => scheduleArr.append({ value: "" })}
+                    className={joinClasses(
+                        "block w-full rounded-lg border-2 border-dashed p-1.5 mt-2 text-center focus:outline-2 focus:outline-offset-2 focus:outline-indigo-600 dark:focus:outline-indigo-500 cursor-pointer",
+                        scheduleFieldErrors ? "border-red-300 dark:border-red-500/25 hover:border-red-400 hover:dark:border-red-500/35" : "border-gray-300 dark:border-white/15 hover:border-gray-400 dark:hover:border-white/25",
+                    )}
+                >
+                    <span className="block text-sm font-semibold text-gray-900 dark:text-white">
+                        Add schedule entry
+                    </span>
+                </button>
+                {scheduleFieldErrors && (
+                    <p className="mt-2 text-sm text-red-600">{scheduleFieldErrors.message}</p>
+                )}
+            </div>
+            
+            <div>
                 <label className="block text-sm/6 font-medium text-gray-900 dark:text-white">Locations</label>
-                {fields.map((field, index) => (
+                {locationsArr.fields.map((field, index) => (
                     <div key={field.id} className="flex items-center gap-2">
                         <div className="flex-1">
                             <Input
@@ -161,11 +253,11 @@ export default function AdministrationCycleForm({ prefill, onSuccess, onFail }: 
                         <div className="flex flex-col mt-2 gap-1">
                             <button
                                 type="button"
-                                onClick={() => move(index, index - 1)}
-                                disabled={fields.length === 1 || index === 0}
+                                onClick={() => locationsArr.move(index, index - 1)}
+                                disabled={locationsArr.fields.length === 1 || index === 0}
                                 className={joinClasses(
                                     "flex justify-center rounded-md bg-indigo-500 px-3 py-0.5 text-sm/6 font-semibold text-white hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500",
-                                    fields.length > 1 && index > 0
+                                    locationsArr.fields.length > 1 && index > 0
                                         ? "opacity-100 cursor-pointer"
                                         : "opacity-30 cursor-not-allowed",
                                 )}
@@ -174,11 +266,11 @@ export default function AdministrationCycleForm({ prefill, onSuccess, onFail }: 
                             </button>
                             <button
                                 type="button"
-                                onClick={() => move(index, index + 1)}
-                                disabled={fields.length === 1 || index === fields.length - 1}
+                                onClick={() => locationsArr.move(index, index + 1)}
+                                disabled={locationsArr.fields.length === 1 || index === locationsArr.fields.length - 1}
                                 className={joinClasses(
                                     "flex justify-center rounded-md bg-indigo-500 px-3 py-0.5 text-sm/6 font-semibold text-white hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500",
-                                    fields.length > 1 && index < fields.length - 1
+                                    locationsArr.fields.length > 1 && index < locationsArr.fields.length - 1
                                         ? "opacity-100 cursor-pointer"
                                         : "opacity-30 cursor-not-allowed",
                                 )}
@@ -188,11 +280,11 @@ export default function AdministrationCycleForm({ prefill, onSuccess, onFail }: 
                         </div>
                         <button
                             type="button"
-                            onClick={() => remove(index)}
-                            disabled={fields.length === 1}
+                            onClick={() => locationsArr.remove(index)}
+                            disabled={locationsArr.fields.length === 1}
                             className={joinClasses(
                                 "flex justify-center rounded-md bg-indigo-500 px-3 py-2.5 mt-2 text-sm/6 font-semibold text-white hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500",
-                                fields.length > 1
+                                locationsArr.fields.length > 1
                                     ? "opacity-100 cursor-pointer"
                                     : "opacity-30 cursor-not-allowed",
                             )}
@@ -203,7 +295,7 @@ export default function AdministrationCycleForm({ prefill, onSuccess, onFail }: 
                 ))}
                 <button
                     type="button"
-                    onClick={() => append({ value: "" })}
+                    onClick={() => locationsArr.append({ value: "" })}
                     className={joinClasses(
                         "block w-full rounded-lg border-2 border-dashed p-1.5 mt-2 text-center focus:outline-2 focus:outline-offset-2 focus:outline-indigo-600 dark:focus:outline-indigo-500 cursor-pointer",
                         locationFieldErrors ? "border-red-300 dark:border-red-500/25 hover:border-red-400 hover:dark:border-red-500/35" : "border-gray-300 dark:border-white/15 hover:border-gray-400 dark:hover:border-white/25",

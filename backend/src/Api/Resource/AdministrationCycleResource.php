@@ -59,6 +59,8 @@ final class AdministrationCycleResource
     #[Map(source: 'startingDate', transform: [DateImmutableTransformer::class, 'format'])]
     public ?string $startingDate = null;
 
+    public array $schedule = [];
+
     public array $locations = [];
 
     public ?int $startingIndex = null;

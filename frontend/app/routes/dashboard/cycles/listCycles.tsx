@@ -48,6 +48,12 @@ export default function ListCycles({ loaderData }: Route.ComponentProps) {
                                         Start Date: {administrationCycle.startingDate.format("DD.MM.YYYY")}
                                     </div>
                                     <div>
+                                        Schedule:
+                                        <div className="ml-3 inline-flex gap-3">
+                                            {administrationCycle.schedule.map((item) => <Badge>{item}</Badge>)}
+                                        </div>
+                                    </div>
+                                    <div>
                                         Locations:
                                         <div className="ml-3 inline-flex gap-3">
                                             {administrationCycle.locations.map((item, index) => <Badge>{item}{administrationCycle.startingIndex === index && <>{" (Start)"}</>}</Badge>)}

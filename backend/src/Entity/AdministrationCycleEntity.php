@@ -30,6 +30,9 @@ class AdministrationCycleEntity
     private ?\DateTimeImmutable $startingDate = null;
 
     #[ORM\Column(type: Types::SIMPLE_ARRAY)]
+    private array $schedule = [];
+
+    #[ORM\Column(type: Types::SIMPLE_ARRAY)]
     private array $locations = [];
 
     #[ORM\Column(type: Types::SMALLINT)]
@@ -80,6 +83,18 @@ class AdministrationCycleEntity
     public function setStartingDate(\DateTimeImmutable $startingDate): static
     {
         $this->startingDate = $startingDate;
+
+        return $this;
+    }
+
+    public function getSchedule(): array
+    {
+        return $this->schedule;
+    }
+
+    public function setSchedule(array $schedule): static
+    {
+        $this->schedule = $schedule;
 
         return $this;
     }

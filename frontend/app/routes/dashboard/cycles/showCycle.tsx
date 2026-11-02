@@ -86,6 +86,12 @@ export default function ShowCycle({ loaderData }: Route.ComponentProps) {
                     Start Date: {cycle.startingDate.format("DD.MM.YYYY")}
                 </div>
                 <div>
+                    Schedule
+                    <ol className="list-decimal list-inside">
+                        {cycle.schedule.map((item, index) => <li key={index}>{item}</li>)}
+                    </ol>
+                </div>
+                <div>
                     Locations
                     <ol className="list-decimal list-inside">
                         {cycle.locations.map((item, index) => <li key={index}>{item}{cycle.startingIndex === index && <>{" "}<Badge>Start</Badge></>}</li>)}

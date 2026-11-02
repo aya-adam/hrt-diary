@@ -22,6 +22,15 @@ final class AdministrationCycleCreateInput
 
     #[Assert\NotBlank]
     #[Assert\Type('array')]
+    #[Assert\Count(min: 1, minMessage: 'You must specify at least one schedule entry.')]
+    #[Assert\All([
+        new Assert\NotBlank,
+        new Assert\Type('string'),
+    ])]
+    public ?array $schedule = null;
+    
+    #[Assert\NotBlank]
+    #[Assert\Type('array')]
     #[Assert\Count(min: 1, minMessage: 'You must specify at least one location.')]
     #[Assert\All([
         new Assert\NotBlank,
