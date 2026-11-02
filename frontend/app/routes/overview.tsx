@@ -2,10 +2,11 @@ import { AdministrationCycle, apolloClient, constants, Event } from "~/utils";
 import type { Route } from "./+types/overview";
 import BasicWrapper from "~/components/layouts/wrappers/basicWrapper";
 import Button from "~/components/elements/button";
-import { ChevronLeftIcon, ChevronRightIcon, WindowIcon } from "@heroicons/react/24/outline";
+import { WindowIcon } from "@heroicons/react/24/outline";
 import { useEffect, useMemo, useState } from "react";
 import moment from "moment-timezone";
-import Badge from "~/components/elements/badge";
+import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/20/solid";
+import { ExclamationCircleIcon } from "@heroicons/react/16/solid";
 
 export function meta({ }: Route.MetaArgs) {
     return [{ title: `${constants.PAGE_TITLE} | Overview` }, { name: "description", content: "HRT-Diary overview!" }];
@@ -127,7 +128,10 @@ export default function Overview({ loaderData }: Route.ComponentProps) {
                             className="divide-y divide-gray-100 bg-white dark:divide-white/5 dark:bg-gray-800/50"
                         >
                             {todaysEvents.map((e, i) => (
-                                <li key={e.id} className="inline-flex gap-x-1 py-1.5 px-3 text-sm/6 font-semibold text-gray-900 dark:text-white">{e.critical && <span className="text-red-500 dark:text-red-600 font-bold">Critical:</span>}{e.name}</li>
+                                <li key={e.id} className="flex items-center gap-x-1 py-1.5 px-3 text-sm/6 font-semibold text-gray-900 dark:text-white">
+                                    {e.critical && <ExclamationCircleIcon aria-hidden="true" className="size-4 text-red-500 dark:text-red-400" />}
+                                    {e.name}
+                                </li>
                             ))}
                         </ul>
                     ) : (
@@ -144,8 +148,8 @@ export default function Overview({ loaderData }: Route.ComponentProps) {
                             className="divide-y divide-gray-100 bg-white dark:divide-white/5 dark:bg-gray-800/50"
                         >
                             {upcomingEvents.map((e, i) => (
-                                <li key={e.id} className="flex gap-x-1 py-1.5 px-3 text-sm/6 font-semibold text-gray-900 dark:text-white">
-                                    {e.critical && <span className="text-red-500 dark:text-red-600 font-bold">Critical:</span>}
+                                <li key={e.id} className="flex items-center gap-x-1 py-1.5 px-3 text-sm/6 font-semibold text-gray-900 dark:text-white">
+                                    {e.critical && <ExclamationCircleIcon aria-hidden="true" className="size-4 text-red-500 dark:text-red-400" />}
                                     {e.name}
                                     <span className="text-gray-500 dark:text-gray-400">- {getFullDayDifference(displayDate, getNextDateFromRepeatInterval(e, displayDate))}</span>
                                 </li>
