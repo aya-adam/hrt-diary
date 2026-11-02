@@ -182,4 +182,10 @@ export class AdministrationCycle {
     static toIri(uuid: string): string {
         return uuid.startsWith(ADMINISTRATION_CYCLE_IRI_PREFIX) ? uuid : `${ADMINISTRATION_CYCLE_IRI_PREFIX}${uuid}`;
     }
+
+    getLocationByDate(date: moment.Moment = moment(), numOfUsesPerDay: number = 1, offset: number = 0): string {
+        const newOffset = Math.ceil(Math.abs(this.startingDate.diff(date, "days"))) * numOfUsesPerDay + offset;
+        const index = newOffset >= this.locations.length ? newOffset % this.locations.length : newOffset;
+        return this.locations[index];
+    }
 }
