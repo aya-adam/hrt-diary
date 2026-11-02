@@ -43,5 +43,6 @@ export default [
                 route("privacy-and-data", "routes/dashboard/settings/privacyData.tsx"),
             ]),
         ]),
+        route("overview", "routes/overview.tsx"),
     ]),
 ] satisfies RouteConfig;
