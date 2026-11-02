@@ -93,14 +93,14 @@ export default function Overview({ loaderData }: Route.ComponentProps) {
 
     return (
         <BasicWrapper>
-            <div className="flex flex-col gap-y-6">
-                <div className="pb-10 md:flex md:items-center md:justify-between">
+            <div className="flex flex-col gap-y-6 mx-auto max-w-2xl">
+                <div className="pb-10 flex items-center justify-between">
                     <div className="min-w-0 flex-1">
                         <h2 className="text-2xl/7 font-bold text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight dark:text-white">
-                            HRT-Diary Overview
+                            HRT-Diary
                         </h2>
                     </div>
-                    <div className="mt-4 flex md:mt-0 md:ml-4">
+                    <div className="flex mt-0 ml-4">
                         <Button label="Dashboard" leadingIcon={WindowIcon} to="/dashboard" />
                     </div>
                 </div>
