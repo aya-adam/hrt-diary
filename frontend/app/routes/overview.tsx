@@ -135,7 +135,7 @@ export default function Overview({ loaderData }: Route.ComponentProps) {
                             className="divide-y divide-gray-100 bg-white dark:divide-white/5 dark:bg-gray-800/50"
                         >
                             {upcomingEvents.map((e, i) => (
-                                <li key={e.id} className="inline-flex gap-x-1 py-1.5 px-3 text-sm/6 font-semibold text-gray-900 dark:text-white">{e.critical && <span className="text-red-500 dark:text-red-600 font-bold">Critical:</span>}{e.name}</li>
+                                <li key={e.id} className="flex gap-x-1 py-1.5 px-3 text-sm/6 font-semibold text-gray-900 dark:text-white">{e.critical && <span className="text-red-500 dark:text-red-600 font-bold">Critical:</span>}{e.name}</li>
                             ))}
                         </ul>
                     ) : (
