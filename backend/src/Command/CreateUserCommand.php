@@ -87,7 +87,7 @@ class CreateUserCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $userRepository = $this->entityManager->getRepository('App\Entity\User');
+        $userRepository = $this->entityManager->getRepository('App\Entity\UserEntity');
         $userExists = $userRepository->findOneByEmail($this->email);
 
         if ($userExists) {
