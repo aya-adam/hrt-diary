@@ -107,8 +107,8 @@ export default function Overview({ loaderData }: Route.ComponentProps) {
                 <div className="flex flex-col gap-y-3">
                     <div className="flex flex-row justify-between overflow-hidden rounded-md border border-indigo-600 dark:border-indigo-500">
                         <Button btnIcon={ChevronLeftIcon} onClick={() => setOffset((prev) => prev - 1)} className="rounded-none!" />
-                        <div className="grow text-center bg-white dark:bg-gray-800/50">
-                            {displayDate.format("DD.MM.YYYY")}
+                        <div className="grow text-center font-semibold bg-white dark:bg-gray-800/50">
+                            {displayDate.format("ddd, DD.MM.YYYY")}
                         </div>
                         <Button btnIcon={ChevronRightIcon} onClick={() => setOffset((prev) => prev + 1)} className="rounded-none!" />
                     </div>
