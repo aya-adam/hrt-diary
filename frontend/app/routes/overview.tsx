@@ -23,6 +23,15 @@ export async function clientLoader() {
     return { cycles, events }
 }
 
+const getFullDayDifference = (from: moment.Moment, to: moment.Moment): string => {
+    const commonTime = { hour: 0, minute: 0, second: 0, millisecond: 0 };
+    from.set(commonTime)
+    to.set(commonTime)
+    console.log("from", from);
+    console.log("to", to);
+    return to.from(from);
+}
+
 const getNextDateFromRepeatInterval = (event: Event, threshold: moment.Moment) => {
     const date: moment.Moment = event.date.clone();
     if (event.repeatInterval) {
@@ -135,7 +144,11 @@ export default function Overview({ loaderData }: Route.ComponentProps) {
                             className="divide-y divide-gray-100 bg-white dark:divide-white/5 dark:bg-gray-800/50"
                         >
                             {upcomingEvents.map((e, i) => (
-                                <li key={e.id} className="flex gap-x-1 py-1.5 px-3 text-sm/6 font-semibold text-gray-900 dark:text-white">{e.critical && <span className="text-red-500 dark:text-red-600 font-bold">Critical:</span>}{e.name}</li>
+                                <li key={e.id} className="flex gap-x-1 py-1.5 px-3 text-sm/6 font-semibold text-gray-900 dark:text-white">
+                                    {e.critical && <span className="text-red-500 dark:text-red-600 font-bold">Critical:</span>}
+                                    {e.name}
+                                    <span className="text-gray-500 dark:text-gray-400">- {getFullDayDifference(displayDate, getNextDateFromRepeatInterval(e, displayDate))}</span>
+                                </li>
                             ))}
                         </ul>
                     ) : (
