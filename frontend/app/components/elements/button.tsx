@@ -3,12 +3,13 @@ import { Link } from "react-router";
 import { joinClasses } from "~/utils";
 
 interface ButtonInterface {
-    label: string;
+    label?: string;
     className?: string;
     type?: "button" | "submit" | "reset";
     style?: "primary" | "secondary" | "soft" | "danger";
     rounded?: boolean;
     size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
+    btnIcon?: ComponentType<SVGProps<SVGSVGElement>>;
     leadingIcon?: ComponentType<SVGProps<SVGSVGElement>>;
     trailingIcon?: ComponentType<SVGProps<SVGSVGElement>>;
     active?: boolean;
@@ -23,6 +24,7 @@ export default function Button({
     style = "primary",
     rounded = false,
     size = "md",
+    btnIcon: BtnIcon,
     leadingIcon: LeadingIcon,
     trailingIcon: TrailingIcon,
     active = false,
@@ -31,6 +33,10 @@ export default function Button({
 }: ButtonInterface) {
     const classesArr: string[] = [];
     const btnClassesArr: string[] = [];
+
+    if (label && BtnIcon) {
+        throw new Error("Component <Button>: You cannot set a `label` and `btnIcon` simultaneously.")
+    }
 
     // General classes
     classesArr.push(
@@ -131,6 +137,12 @@ export default function Button({
                     />
                 )}
                 {label}
+                {BtnIcon && (
+                    <BtnIcon
+                        aria-hidden="true"
+                        className={btnClassesArr.filter(Boolean).join(" ")}
+                    />
+                )}
                 {TrailingIcon && (
                     <TrailingIcon
                         aria-hidden="true"
@@ -159,6 +171,12 @@ export default function Button({
                     />
                 )}
                 {label}
+                {BtnIcon && (
+                    <BtnIcon
+                        aria-hidden="true"
+                        className={btnClassesArr.filter(Boolean).join(" ")}
+                    />
+                )}
                 {TrailingIcon && (
                     <TrailingIcon
                         aria-hidden="true"
@@ -178,6 +196,12 @@ export default function Button({
                 />
             )}
             {label}
+            {BtnIcon && (
+                <BtnIcon
+                    aria-hidden="true"
+                    className={btnClassesArr.filter(Boolean).join(" ")}
+                />
+            )}
             {TrailingIcon && (
                 <TrailingIcon
                     aria-hidden="true"
